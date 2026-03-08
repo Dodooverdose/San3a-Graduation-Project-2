@@ -53,24 +53,40 @@
                 <q-input
                   v-model="form.password"
                   label="Password"
-                  type="password"
+                  :type="showPassword ? 'text' : 'password'"
                   filled
                   outlined
                   hide-bottom-space
                   :rules="[
                     (val) => (val && val.length >= 6) || 'Password must be at least 6 characters',
                   ]"
-                />
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      :name="showPassword ? 'visibility' : 'visibility_off'"
+                      class="cursor-pointer"
+                      @click="showPassword = !showPassword"
+                    />
+                  </template>
+                </q-input>
 
                 <q-input
                   v-model="form.confirmPassword"
                   label="Confirm Password"
-                  type="password"
+                  :type="showConfirmPassword ? 'text' : 'password'"
                   filled
                   outlined
                   hide-bottom-space
                   :rules="[(val) => val === form.password || 'Passwords must match']"
-                />
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+                      class="cursor-pointer"
+                      @click="showConfirmPassword = !showConfirmPassword"
+                    />
+                  </template>
+                </q-input>
 
                 <div>
                   <div class="text-subtitle2 q-mb-sm">Select Role</div>
@@ -194,6 +210,8 @@ const form = ref({
 })
 
 const loading = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const isSignUpEnabled = computed(() => {
   const f = form.value
@@ -303,6 +321,9 @@ const onSubmit = async () => {
       message: `Welcome ${form.value.fullName}! Account created successfully.`,
     })
 
+    const selectedRole = form.value.role
+    const selectedSpecialty = form.value.specialty
+
     // Reset form
     form.value = {
       fullName: '',
@@ -316,7 +337,19 @@ const onSubmit = async () => {
       agreeTerms: false,
     }
 
-    router.push('/home')
+    if (selectedRole === 'fixer') {
+      const specialtyRoutes = {
+        plumber: '/plumbing',
+        electrician: '/electrical',
+        carpenter: '/carpentry',
+        painter: '/painters',
+        kitchen_fitter: '/kitchen',
+        drapery_seamstress: '/drapery',
+      }
+      router.push(specialtyRoutes[selectedSpecialty] || '/service-provider')
+    } else {
+      router.push('/home')
+    }
   } catch (err) {
     $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
     console.error(err)

@@ -16,6 +16,10 @@ const routes = [
     component: () => import('layouts/HomePage.vue'),
   },
   {
+    path: '/service-provider',
+    component: () => import('layouts/ServiceProvider.vue'),
+  },
+  {
     path: '/profile',
     component: () => import('layouts/UserProfile.vue'),
   },

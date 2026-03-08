@@ -32,14 +32,22 @@
                 <q-input
                   v-model="form.password"
                   label="Password"
-                  type="password"
+                  :type="showPassword ? 'text' : 'password'"
                   filled
                   outlined
                   hide-bottom-space
                   :rules="[
                     (val) => (val && val.length >= 6) || 'Password must be at least 6 characters',
                   ]"
-                />
+                >
+                  <template v-slot:append>
+                    <q-icon
+                      :name="showPassword ? 'visibility' : 'visibility_off'"
+                      class="cursor-pointer"
+                      @click="showPassword = !showPassword"
+                    />
+                  </template>
+                </q-input>
 
                 <q-checkbox v-model="form.rememberMe" label="Remember me" />
 
@@ -110,6 +118,7 @@ const form = ref({
 })
 
 const loading = ref(false)
+const showPassword = ref(false)
 
 const isSignInEnabled = computed(() => {
   const f = form.value
@@ -168,7 +177,7 @@ const onSubmit = async () => {
       }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password: form.value.password,
     })
@@ -189,7 +198,22 @@ const onSubmit = async () => {
       rememberMe: false,
     }
 
-    router.push('/home')
+    const role = data.user?.user_metadata?.role
+    const specialty = data.user?.user_metadata?.specialty
+
+    if (role === 'fixer') {
+      const specialtyRoutes = {
+        plumber: '/plumbing',
+        electrician: '/electrical',
+        carpenter: '/carpentry',
+        painter: '/painters',
+        kitchen_fitter: '/kitchen',
+        drapery_seamstress: '/drapery',
+      }
+      router.push(specialtyRoutes[specialty] || '/service-provider')
+    } else {
+      router.push('/home')
+    }
   } catch (err) {
     $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
     console.error(err)
