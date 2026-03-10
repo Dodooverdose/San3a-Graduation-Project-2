@@ -59,7 +59,7 @@
               <template #prepend>
                 <q-icon name="access_time" class="cursor-pointer">
                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-time v-model="appointmentTime" mask="HH:mm" format24h>
+                    <q-time v-model="appointmentTime" mask="hh:mm">
                       <div class="row items-center justify-end">
                         <q-btn v-close-popup label="Close" color="primary" flat />
                       </div>
@@ -68,6 +68,15 @@
                 </q-icon>
               </template>
             </q-input>
+
+            <q-select
+              v-model="amPm"
+              :options="['AM', 'PM']"
+              filled
+              outlined
+              label="AM/PM"
+              class="ampm-select"
+            />
           </div>
 
           <div class="urgency-row q-mb-md">
@@ -145,7 +154,6 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -155,18 +163,15 @@ const selectedImages = ref([])
 const location = ref(null)
 const appointmentDate = ref(null)
 const appointmentTime = ref(null)
+const amPm = ref('AM')
 const urgency = ref('standard')
 const urgencyOptions = [
   { label: 'Standard', value: 'standard' },
   { label: 'Urgent', value: 'urgent' },
 ]
 
-const goBack = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const role = user?.user_metadata?.role
-  router.push(role === 'fixer' ? '/service-provider' : '/home')
+const goBack = () => {
+  router.push('/home')
 }
 
 const openImagePicker = () => {
@@ -218,6 +223,7 @@ const submitRequest = () => {
   location.value = null
   appointmentDate.value = null
   appointmentTime.value = null
+  amPm.value = 'AM'
   urgency.value = 'standard'
 }
 
@@ -246,6 +252,9 @@ onBeforeUnmount(() => {
 .date-time-row .date-input,
 .date-time-row .time-input {
   flex: 1;
+}
+.date-time-row .ampm-select {
+  flex: 0 0 90px;
 }
 
 .urgency-row {

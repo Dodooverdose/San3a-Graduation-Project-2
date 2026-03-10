@@ -61,7 +61,6 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -75,12 +74,12 @@ const openFilePicker = () => {
   fileInputRef.value?.click()
 }
 
-const goHome = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const role = user?.user_metadata?.role
-  router.push(role === 'fixer' ? '/service-provider' : '/home')
+const goHome = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/home')
+  }
 }
 
 const goToMain = () => {

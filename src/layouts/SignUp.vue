@@ -11,7 +11,7 @@
     </q-header>
     <q-page-container style="margin-top: 64px">
       <q-page class="flex flex-center">
-        <div class="q-pa-lg" style="max-width: 500px; width: 100%">
+        <div class="q-pa-lg" style="max-width: 500px; width: 100%; position: relative; z-index: 2">
           <q-card>
             <q-card-section class="text-h6 text-center q-pb-none"> Create Account </q-card-section>
 
@@ -47,7 +47,17 @@
                   filled
                   outlined
                   hide-bottom-space
-                  :rules="[(val) => (val && val.length > 0) || 'Phone number is required']"
+                  prefix="+20"
+                  mask="### ### ####"
+                  placeholder="1XX XXX XXXX"
+                  :rules="[
+                    (val) =>
+                      (val && val.replace(/\s/g, '').length === 10) ||
+                      'Enter a valid phone number (e.g. 01X XXXX XXXX)',
+                    (val) =>
+                      /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') ||
+                      'Number must start with 10, 11, 12, or 15',
+                  ]"
                 />
 
                 <q-input
@@ -272,6 +282,21 @@ const onSubmit = async () => {
   loading.value = true
 
   try {
+    // Check if the email already exists in either the users or technician table
+    const [{ data: existingUser }, { data: existingTechnician }] = await Promise.all([
+      supabase.from('users').select('email').eq('email', form.value.email).maybeSingle(),
+      supabase.from('technician').select('email').eq('email', form.value.email).maybeSingle(),
+    ])
+
+    if (existingUser || existingTechnician) {
+      $q.notify({
+        type: 'negative',
+        message: 'An account with this email already exists. Please sign in instead.',
+      })
+      loading.value = false
+      return
+    }
+
     console.log('Starting sign up for:', form.value.email)
 
     // 1. Create auth user with profile metadata
@@ -357,10 +382,6 @@ const onSubmit = async () => {
   left: 0 !important;
   right: 0 !important;
   z-index: 1000 !important;
-}
-
-:deep(.q-layout) {
-  position: static !important;
 }
 
 .q-page {

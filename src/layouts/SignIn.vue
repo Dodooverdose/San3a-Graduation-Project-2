@@ -12,7 +12,7 @@
 
     <q-page-container>
       <q-page class="flex flex-center">
-        <div class="q-pa-lg" style="max-width: 500px; width: 100%">
+        <div class="q-pa-lg" style="max-width: 500px; width: 100%; position: relative; z-index: 2">
           <q-card>
             <q-card-section class="text-h6 text-center q-pb-none"> Sign In </q-card-section>
 
@@ -84,6 +84,8 @@
                   color="primary"
                   label="Forgot Password?"
                   style="margin: 0 auto !important"
+                  :loading="forgotLoading"
+                  @click="onForgotPassword"
                 />
               </div>
             </q-card-section>
@@ -118,6 +120,7 @@ const form = ref({
 })
 
 const loading = ref(false)
+const forgotLoading = ref(false)
 const showPassword = ref(false)
 
 const isSignInEnabled = computed(() => {
@@ -148,6 +151,44 @@ const lookupEmailByPhone = async (phone) => {
     .single())
 
   return data?.email || null
+}
+
+const onForgotPassword = async () => {
+  const identifier = form.value.identifier.trim()
+
+  let email = identifier
+
+  if (!isEmail(identifier)) {
+    if (!identifier) {
+      $q.notify({ type: 'negative', message: 'Enter your email or phone number above first' })
+      return
+    }
+    email = await lookupEmailByPhone(identifier)
+    if (!email) {
+      $q.notify({ type: 'negative', message: 'No account found with that phone number' })
+      return
+    }
+  }
+
+  forgotLoading.value = true
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    if (error) {
+      $q.notify({ type: 'negative', message: error.message })
+      return
+    }
+    $q.notify({
+      type: 'positive',
+      message: 'Check Your Email.',
+      timeout: 3000,
+    })
+    setTimeout(() => window.location.reload(), 3000)
+  } catch (err) {
+    $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
+    console.error(err)
+  } finally {
+    forgotLoading.value = false
+  }
 }
 
 const onSubmit = async () => {
