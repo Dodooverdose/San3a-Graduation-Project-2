@@ -7,9 +7,74 @@
           <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
         </q-toolbar-title>
         <q-space />
+        <q-btn
+          flat
+          round
+          dense
+          icon="notifications"
+          aria-label="Notifications"
+          @click="showNotifications = !showNotifications"
+        >
+          <q-badge v-if="unreadCount > 0" color="red" floating>{{ unreadCount }}</q-badge>
+        </q-btn>
         <q-btn flat round dense icon="account_circle" to="/profile" aria-label="User profile" />
       </q-toolbar>
     </q-header>
+
+    <!-- Notifications Panel -->
+    <q-dialog v-model="showNotifications" position="top" seamless>
+      <q-card style="width: 380px; max-width: 95vw; margin-top: 60px">
+        <q-card-section class="row items-center q-pb-sm">
+          <div class="text-h6">Notifications</div>
+          <q-space />
+          <q-btn flat dense round icon="close" @click="showNotifications = false" />
+        </q-card-section>
+        <q-separator />
+        <q-list v-if="notifications.length > 0" separator>
+          <q-item
+            v-for="(notif, i) in notifications"
+            :key="i"
+            :class="{ 'bg-blue-1': !notif.read }"
+            clickable
+            @click="markAsRead(i)"
+          >
+            <q-item-section avatar>
+              <q-avatar color="primary" text-color="white" icon="build" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ notif.fixerName }}</q-item-label>
+              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row q-gutter-xs">
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="positive"
+                  icon="check"
+                  size="sm"
+                  @click.stop="acceptOffer(i)"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="negative"
+                  icon="close"
+                  size="sm"
+                  @click.stop="declineOffer(i)"
+                />
+              </div>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg">
+          No Offers Yet
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
     <q-page-container>
       <q-page class="page-content">
@@ -36,9 +101,13 @@
           </div>
 
           <div class="text-body1 text-grey-7 text-center q-mb-lg">
-            You are registered as a <strong>{{ specialtyLabel }}</strong>.
+            You are registered as a <strong>{{ specialtyLabel }}</strong
+            >.
             <span v-if="yearsOfExperience !== null">
-              You have <strong>{{ yearsOfExperience }}</strong> year{{ yearsOfExperience === 1 ? '' : 's' }} of experience.
+              You have <strong>{{ yearsOfExperience }}</strong> year{{
+                yearsOfExperience === 1 ? '' : 's'
+              }}
+              of experience.
             </span>
           </div>
 
@@ -47,7 +116,12 @@
           <!-- INCOMING REQUESTS -->
           <div class="row items-center justify-between full-width q-mb-sm">
             <div class="text-h6">Incoming Requests</div>
-            <q-badge v-if="requests.length" color="primary" :label="`${requests.length} request${requests.length > 1 ? 's' : ''}`" class="text-body2 q-pa-sm" />
+            <q-badge
+              v-if="requests.length"
+              color="primary"
+              :label="`${requests.length} request${requests.length > 1 ? 's' : ''}`"
+              class="text-body2 q-pa-sm"
+            />
           </div>
 
           <!-- District Filter -->
@@ -78,14 +152,25 @@
             <q-icon name="error" size="64px" color="negative" />
             <div class="text-h6 text-negative q-mt-md">Failed to load requests</div>
             <div class="text-body2 text-grey-7 q-mt-sm">{{ requestsError }}</div>
-            <q-btn flat color="primary" label="Retry" icon="refresh" class="q-mt-sm" @click="fetchRequests" />
+            <q-btn
+              flat
+              color="primary"
+              label="Retry"
+              icon="refresh"
+              class="q-mt-sm"
+              @click="fetchRequests"
+            />
           </div>
 
           <!-- Empty -->
           <div v-else-if="filteredRequests.length === 0" class="text-center q-pa-xl full-width">
             <q-icon name="inbox" size="64px" color="grey-5" />
             <div class="text-h6 text-grey-6 q-mt-md">
-              {{ selectedDistricts.length ? 'No requests in selected districts.' : `No requests available for your specialty yet.` }}
+              {{
+                selectedDistricts.length
+                  ? 'No requests in selected districts.'
+                  : `No requests available for your specialty yet.`
+              }}
             </div>
           </div>
 
@@ -97,8 +182,15 @@
                   <div class="row items-center justify-between q-mb-sm">
                     <div class="text-subtitle1 text-weight-bold">Request #{{ req.request_id }}</div>
                     <div class="row q-gutter-xs">
-                      <q-badge v-if="req.urgency" :color="req.urgency === 'urgent' ? 'red' : 'blue'" :label="req.urgency" />
-                      <q-badge :color="statusColor(req.request_status)" :label="req.request_status || 'pending'" />
+                      <q-badge
+                        v-if="req.urgency"
+                        :color="req.urgency === 'urgent' ? 'red' : 'blue'"
+                        :label="req.urgency"
+                      />
+                      <q-badge
+                        :color="statusColor(req.request_status)"
+                        :label="req.request_status || 'pending'"
+                      />
                     </div>
                   </div>
 
@@ -107,7 +199,9 @@
                     <span class="text-body2 text-weight-medium">{{ req.customer_name }}</span>
                   </div>
 
-                  <div class="text-body2 q-mb-md" style="white-space: pre-line">{{ req.description_of_issue || 'No description' }}</div>
+                  <div class="text-body2 q-mb-md" style="white-space: pre-line">
+                    {{ req.description_of_issue || 'No description' }}
+                  </div>
 
                   <q-separator class="q-mb-sm" />
 
@@ -130,7 +224,9 @@
                     </div>
                     <div v-if="req.customer_price" class="detail-row">
                       <q-icon name="sell" size="xs" color="green-7" />
-                      <span class="text-weight-medium text-green-9">Customer budget: {{ req.customer_price }} EGP</span>
+                      <span class="text-weight-medium text-green-9"
+                        >Customer budget: {{ req.customer_price }} EGP</span
+                      >
                     </div>
                   </div>
                 </q-card-section>
@@ -140,8 +236,20 @@
                 <q-card-section class="q-py-sm">
                   <div v-if="req.myOffer" class="row items-center q-gutter-sm">
                     <q-icon name="check_circle" color="positive" size="sm" />
-                    <span class="text-body2 text-positive text-weight-medium">Offer submitted: {{ req.myOffer.offered_price }} EGP</span>
-                    <q-badge :color="req.myOffer.status === 'accepted' ? 'green' : req.myOffer.status === 'rejected' ? 'red' : 'orange'" :label="req.myOffer.status" class="q-ml-sm" />
+                    <span class="text-body2 text-positive text-weight-medium"
+                      >Offer submitted: {{ req.myOffer.offered_price }} EGP</span
+                    >
+                    <q-badge
+                      :color="
+                        req.myOffer.status === 'accepted'
+                          ? 'green'
+                          : req.myOffer.status === 'rejected'
+                            ? 'red'
+                            : 'orange'
+                      "
+                      :label="req.myOffer.status"
+                      class="q-ml-sm"
+                    />
                   </div>
                   <q-btn
                     v-else
@@ -166,7 +274,9 @@
           <div class="text-h6">Place Your Bid</div>
           <div v-if="offerTarget" class="text-caption text-grey-7 q-mt-xs">
             Request #{{ offerTarget.request_id }}
-            <span v-if="offerTarget.customer_price"> — Customer budget: {{ offerTarget.customer_price }} EGP</span>
+            <span v-if="offerTarget.customer_price">
+              — Customer budget: {{ offerTarget.customer_price }} EGP</span
+            >
           </div>
         </q-card-section>
 
@@ -178,7 +288,7 @@
             outlined
             label="Your Price (EGP)"
             prefix="EGP"
-            :rules="[val => val > 0 || 'Price must be greater than 0']"
+            :rules="[(val) => val > 0 || 'Price must be greater than 0']"
             class="q-mb-md"
           >
             <template #prepend>
@@ -225,6 +335,26 @@ import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+
+const showNotifications = ref(false)
+const notifications = ref([])
+const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
+
+const markAsRead = (index) => {
+  notifications.value[index].read = true
+}
+
+const acceptOffer = (index) => {
+  const notif = notifications.value[index]
+  $q.notify({ type: 'positive', message: `Accepted offer from ${notif.fixerName}` })
+  notifications.value.splice(index, 1)
+}
+
+const declineOffer = (index) => {
+  const notif = notifications.value[index]
+  $q.notify({ type: 'warning', message: `Declined offer from ${notif.fixerName}` })
+  notifications.value.splice(index, 1)
+}
 
 const loading = ref(true)
 const fullName = ref('')
@@ -309,14 +439,20 @@ const specialtyColor = ref('primary')
 
 const filteredRequests = computed(() => {
   if (!selectedDistricts.value.length) return requests.value
-  return requests.value.filter(r => selectedDistricts.value.includes(r.service_location))
+  return requests.value.filter((r) => selectedDistricts.value.includes(r.service_location))
 })
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z'
   const d = new Date(utcStr)
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 const statusColor = (status) => {
@@ -350,11 +486,13 @@ const fetchRequests = async () => {
       .select('*')
       .eq('technician_id', technicianId.value)
     if (offers) {
-      offers.forEach(o => { myOffers[o.request_id] = o })
+      offers.forEach((o) => {
+        myOffers[o.request_id] = o
+      })
     }
   }
 
-  requests.value = (data || []).map(r => ({
+  requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     myOffer: myOffers[r.request_id] || null,
@@ -395,7 +533,9 @@ const submitOffer = async () => {
 
 onMounted(async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       router.push('/signin')
       return
