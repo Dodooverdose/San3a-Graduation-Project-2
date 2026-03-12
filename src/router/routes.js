@@ -12,6 +12,10 @@ const routes = [
     component: () => import('layouts/SignIn.vue'),
   },
   {
+    path: '/reset-password',
+    component: () => import('layouts/ResetPassword.vue'),
+  },
+  {
     path: '/home',
     meta: { requiresAuth: true },
     component: () => import('layouts/HomePage.vue'),

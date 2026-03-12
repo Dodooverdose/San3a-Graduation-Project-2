@@ -172,7 +172,9 @@ const onForgotPassword = async () => {
 
   forgotLoading.value = true
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: import.meta.env.VITE_APP_URL || window.location.origin,
+    })
     if (error) {
       $q.notify({ type: 'negative', message: error.message })
       return
