@@ -35,6 +35,24 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   })
 
   Router.beforeEach(async (to) => {
+    // Handle Supabase recovery tokens that land in the route path.
+    // In hash-mode routing, the URL fragment is used by Vue Router,
+    // so Supabase tokens (e.g. /#/access_token=...&type=recovery)
+    // get misinterpreted as a route path, causing a 404.
+    if (to.fullPath.includes('access_token') && to.fullPath.includes('type=recovery')) {
+      const params = new URLSearchParams(to.fullPath.replace(/^\/?/, ''))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (accessToken) {
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        return '/reset-password'
+      }
+    }
+
     if (to.meta.requiresAuth) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
