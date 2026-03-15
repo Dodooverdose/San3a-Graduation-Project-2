@@ -68,6 +68,44 @@
         </div>
       </q-page>
     </q-page-container>
+
+    <q-footer v-if="!profileLoading" elevated class="bottom-nav">
+      <q-tabs
+        v-model="activeTab"
+        active-color="white"
+        indicator-color="transparent"
+        class="nav-tabs"
+        narrow-indicator
+        dense
+      >
+        <template v-if="isFixer">
+          <q-tab
+            name="requests"
+            icon="request_page"
+            label="Requests"
+            @click="goToPage('/service-provider')"
+          />
+          <q-tab
+            name="orders"
+            icon="receipt_long"
+            label="Orders"
+            @click="goToPage('/service-provider')"
+          />
+          <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+        </template>
+        <template v-else-if="userRole === 'customer'">
+          <q-tab name="home" icon="home" label="Home" @click="goToPage('/home')" />
+          <q-tab
+            name="offers"
+            icon="handshake"
+            label="Requests"
+            @click="goToPage('/incoming-offers')"
+          />
+          <q-tab name="orders" icon="receipt_long" label="Orders" @click="goToPage('/orders')" />
+          <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+        </template>
+      </q-tabs>
+    </q-footer>
   </q-layout>
 </template>
 
@@ -81,14 +119,16 @@ const router = useRouter()
 const $q = useQuasar()
 const fileInputRef = ref(null)
 const avatarUrl = ref('/icons/pfp.png')
+const activeTab = ref('profile')
 const showSettings = ref(false)
 const darkMode = ref($q.dark.isActive)
 const profileLoading = ref(true)
 const profileName = ref('')
 const profileEmail = ref('')
-const isFixer = ref(false)
+const userRole = ref('')
 const specialty = ref('')
 const yearsOfExperience = ref(null)
+const isFixer = computed(() => userRole.value === 'fixer')
 const specialtyLabel = computed(() =>
   specialty.value
     ? specialty.value
@@ -113,42 +153,44 @@ const loadProfile = async () => {
 
     const userEmail = user.email || ''
     profileEmail.value = userEmail
-    isFixer.value = user.user_metadata?.role === 'fixer'
+    specialty.value = ''
+    yearsOfExperience.value = null
 
-    if (isFixer.value) {
-      const { data: tech } = await supabase
+    const [{ data: tech }, { data: customer }] = await Promise.all([
+      supabase
         .from('technician')
         .select('full_name, email, specialty, years_of_experience')
         .ilike('email', userEmail)
-        .maybeSingle()
+        .maybeSingle(),
+      supabase.from('users').select('full_name, email').ilike('email', userEmail).maybeSingle(),
+    ])
 
-      if (tech) {
-        profileName.value = tech.full_name || user.user_metadata?.full_name || ''
-        profileEmail.value = tech.email || userEmail
-        specialty.value = tech.specialty || user.user_metadata?.specialty || ''
-        yearsOfExperience.value = tech.years_of_experience ?? null
-      } else {
-        profileName.value = user.user_metadata?.full_name || ''
-        specialty.value = user.user_metadata?.specialty || ''
-        yearsOfExperience.value = user.user_metadata?.years_of_experience ?? null
-      }
+    if (tech) {
+      userRole.value = 'fixer'
+      profileName.value = tech.full_name || user.user_metadata?.full_name || ''
+      profileEmail.value = tech.email || userEmail
+      specialty.value = tech.specialty || user.user_metadata?.specialty || ''
+      yearsOfExperience.value = tech.years_of_experience ?? null
       return
     }
 
-    specialty.value = ''
-
-    const { data: customer } = await supabase
-      .from('users')
-      .select('full_name, email')
-      .ilike('email', userEmail)
-      .maybeSingle()
-
     if (customer) {
+      userRole.value = 'customer'
       profileName.value = customer.full_name || user.user_metadata?.full_name || ''
       profileEmail.value = customer.email || userEmail
-    } else {
-      profileName.value = user.user_metadata?.full_name || ''
+      return
     }
+
+    if (user.user_metadata?.role === 'fixer') {
+      userRole.value = 'fixer'
+      profileName.value = user.user_metadata?.full_name || ''
+      specialty.value = user.user_metadata?.specialty || ''
+      yearsOfExperience.value = user.user_metadata?.years_of_experience ?? null
+      return
+    }
+
+    userRole.value = 'customer'
+    profileName.value = user.user_metadata?.full_name || ''
   } catch (err) {
     console.error('Failed to load profile:', err)
     $q.notify({ type: 'negative', message: 'Failed to load profile data.' })
@@ -161,6 +203,10 @@ onMounted(loadProfile)
 
 const openFilePicker = () => {
   fileInputRef.value?.click()
+}
+
+const goToPage = (route) => {
+  if (route) router.push(route)
 }
 
 const goHome = () => {
@@ -212,6 +258,7 @@ watch(darkMode, (val) => {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  padding-bottom: 92px;
 }
 
 .profile-card {
@@ -325,5 +372,30 @@ watch(darkMode, (val) => {
   align-items: center;
   gap: 8px;
   padding: 6px 16px 6px 12px;
+}
+
+.bottom-nav {
+  background: linear-gradient(135deg, #2e7d32, #388e3c) !important;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.nav-tabs {
+  height: 60px;
+}
+
+.nav-tabs :deep(.q-tab) {
+  min-height: 60px;
+  font-size: 11px;
+  text-transform: none;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+
+.nav-tabs :deep(.q-tab--active) {
+  opacity: 1;
+}
+
+.nav-tabs :deep(.q-tab__icon) {
+  font-size: 24px;
 }
 </style>

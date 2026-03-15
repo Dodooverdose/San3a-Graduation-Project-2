@@ -28,7 +28,7 @@ const routes = [
   {
     path: '/incoming-offers',
     meta: { requiresAuth: true },
-    component: () => import('layouts/IncomingOffersPage.vue'),
+    component: () => import('../layouts/IncomingOffersPage.vue'),
   },
   {
     path: '/service-provider',
