@@ -576,16 +576,33 @@ const openOfferDialog = (req) => {
 
 const submitOffer = async () => {
   if (!offerTarget.value || !offerPrice.value || offerPrice.value <= 0) return
+
+  if (!technicianId.value) {
+    $q.notify({
+      type: 'negative',
+      message: 'Technician profile not loaded. Please sign in again and retry.',
+    })
+    return
+  }
+
+  const normalizedPrice = Number(offerPrice.value)
+  if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
+    $q.notify({ type: 'warning', message: 'Please enter a valid bid amount.' })
+    return
+  }
+
   offerSubmitting.value = true
 
-  const { error } = await supabase
+  const { data: updatedRequest, error } = await supabase
     .from('request')
     .update({
-      fixer_price: offerPrice.value,
+      fixer_price: normalizedPrice,
       request_status: 'pending',
       technician_id: technicianId.value,
     })
     .eq('request_id', offerTarget.value.request_id)
+    .select('request_id, fixer_price, technician_id, request_status')
+    .maybeSingle()
 
   offerSubmitting.value = false
 
@@ -594,9 +611,18 @@ const submitOffer = async () => {
     return
   }
 
+  if (!updatedRequest) {
+    $q.notify({
+      type: 'negative',
+      message:
+        'Offer was not saved (0 rows updated). This is usually caused by a database policy (RLS) or row filter mismatch.',
+    })
+    return
+  }
+
   $q.notify({ type: 'positive', message: 'Offer submitted successfully!' })
   offerDialogOpen.value = false
-  fetchRequests()
+  await fetchRequests()
 }
 
 onMounted(async () => {
