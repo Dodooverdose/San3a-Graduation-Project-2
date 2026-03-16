@@ -135,6 +135,7 @@
                   <span class="text-capitalize">{{ req.payment_method }}</span>
                 </div>
               </div>
+
               <div
                 v-if="!req.request_status || req.request_status.toLowerCase() === 'pending'"
                 class="action-row q-mt-sm"
