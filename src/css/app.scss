@@ -1,0 +1,22 @@
+// app global css in SCSS form
+
+.q-field__native,
+.q-field__control {
+  cursor: text;
+}
+
+body.dark-transition,
+body.dark-transition *,
+body.dark-transition *::before,
+body.dark-transition *::after {
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease,
+    border-color 0.5s ease,
+    box-shadow 0.5s ease !important;
+}
+
+body.body--dark .social-img[alt='X'] {
+  filter: brightness(0) invert(1);
+  transition: filter 0.5s ease;
+}
