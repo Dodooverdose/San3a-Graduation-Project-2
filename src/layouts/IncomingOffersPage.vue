@@ -356,7 +356,10 @@ const acceptOffer = async (req) => {
   req._accepting = true
   const { error: err } = await supabase
     .from('request')
-    .update({ request_status: 'accepted' })
+    .update({
+      request_status: 'accepted',
+      final_price: req.fixer_price,
+    })
     .eq('request_id', req.request_id)
   req._accepting = false
   if (err) {
