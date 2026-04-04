@@ -60,6 +60,13 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       if (!session) {
         return '/signin'
       }
+
+      if (to.meta.requiresAdmin) {
+        const role = session.user?.user_metadata?.role
+        if (role !== 'admin') {
+          return '/home'
+        }
+      }
     }
   })
 

@@ -89,6 +89,16 @@
                   @click="onForgotPassword"
                 />
               </div>
+
+              <div class="text-center q-mt-md">
+                <q-btn
+                  flat
+                  color="primary"
+                  label="Admin Dashboard"
+                  style="margin: 0 auto !important"
+                  @click="goToAdmin"
+                />
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -118,6 +128,42 @@ const navigateWithPress = (path, action) => {
 
 const goToSignUp = () => {
   navigateWithPress('/signup', 'signup')
+}
+
+const goToAdmin = async () => {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      $q.notify({
+        type: 'warning',
+        message: 'Please sign in with admin credentials first',
+        position: 'top',
+      })
+      return
+    }
+
+    const role = session.user?.user_metadata?.role
+
+    if (role === 'admin') {
+      navigateWithPress('/admin', 'admin')
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'You do not have admin privileges',
+        position: 'top',
+      })
+    }
+  } catch (error) {
+    console.error('Error checking admin access:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error accessing admin dashboard',
+      position: 'top',
+    })
+  }
 }
 
 const goBack = () => {
@@ -237,7 +283,11 @@ const onSubmit = async () => {
     })
 
     if (error) {
-      $q.notify({ type: 'negative', message: error.message })
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Sign in failed. Please check your credentials.',
+        position: 'top',
+      })
       return
     }
 
@@ -254,7 +304,9 @@ const onSubmit = async () => {
 
     const role = data.user?.user_metadata?.role
 
-    if (role === 'fixer') {
+    if (role === 'admin') {
+      router.push('/admin')
+    } else if (role === 'fixer') {
       router.push('/service-provider')
     } else {
       router.push('/home')

@@ -70,6 +70,11 @@ const routes = [
     meta: { requiresAuth: true },
     component: () => import('layouts/DraperyPage.vue'),
   },
+  {
+    path: '/admin',
+    meta: { requiresAuth: true, requiresAdmin: true },
+    component: () => import('layouts/AdminPage.vue'),
+  },
 
   // Always leave this as last one,
   // but you can also remove it

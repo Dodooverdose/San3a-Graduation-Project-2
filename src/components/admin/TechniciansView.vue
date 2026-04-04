@@ -1,0 +1,278 @@
+<template>
+  <div class="technicians-view">
+    <div class="q-mb-md">
+      <q-btn color="primary" label="Add Technician" icon="add" @click="showAddDialog = true" />
+      <q-input
+        v-model="searchQuery"
+        outlined
+        dense
+        placeholder="Search technicians..."
+        class="q-ml-md"
+        style="max-width: 300px"
+      >
+        <template v-slot:prepend>
+          <q-icon name="search" />
+        </template>
+      </q-input>
+    </div>
+
+    <q-table
+      :rows="filteredTechnicians"
+      :columns="columns"
+      row-key="id"
+      :loading="loading"
+      class="q-mt-md"
+    >
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn
+            flat
+            dense
+            round
+            icon="edit"
+            size="sm"
+            @click="editTechnician(props.row)"
+            color="primary"
+          />
+          <q-btn
+            flat
+            dense
+            round
+            icon="delete"
+            size="sm"
+            @click="deleteTechnician(props.row.id)"
+            color="negative"
+          />
+          <q-btn
+            flat
+            dense
+            round
+            :icon="props.row.verified ? 'verified' : 'pending'"
+            size="sm"
+            @click="toggleVerification(props.row)"
+            :color="props.row.verified ? 'positive' : 'warning'"
+          />
+        </q-td>
+      </template>
+    </q-table>
+
+    <!-- Add/Edit Dialog -->
+    <q-dialog v-model="showAddDialog">
+      <q-card style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ editingId ? 'Edit' : 'Add' }} Technician</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showAddDialog = false" />
+        </q-card-section>
+
+        <q-card-section>
+          <q-form @submit="saveTechnician">
+            <q-input
+              v-model="formData.name"
+              label="Full Name"
+              outlined
+              class="q-mb-md"
+              :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+            />
+            <q-input
+              v-model="formData.email"
+              label="Email"
+              outlined
+              class="q-mb-md"
+              type="email"
+              :rules="[(val) => (val && val.length > 0) || 'Email is required']"
+            />
+            <q-input
+              v-model="formData.phone"
+              label="Phone"
+              outlined
+              class="q-mb-md"
+              :rules="[(val) => (val && val.length > 0) || 'Phone is required']"
+            />
+            <q-input v-model="formData.specialty" label="Specialty" outlined class="q-mb-md" />
+            <q-checkbox v-model="formData.verified" label="Verified" />
+            <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useQuasar } from 'quasar'
+import { supabase } from 'src/boot/supabase'
+
+const $q = useQuasar()
+
+const columns = [
+  { name: 'id', label: 'ID', field: 'id', align: 'left' },
+  { name: 'name', label: 'Name', field: 'name', align: 'left' },
+  { name: 'email', label: 'Email', field: 'email', align: 'left' },
+  { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
+  { name: 'specialty', label: 'Specialty', field: 'specialty', align: 'left' },
+  { name: 'verified', label: 'Status', field: 'verified', align: 'center' },
+  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+]
+
+const technicians = ref([])
+const loading = ref(false)
+const searchQuery = ref('')
+const showAddDialog = ref(false)
+const editingId = ref(null)
+
+const formData = ref({
+  name: '',
+  email: '',
+  phone: '',
+  specialty: '',
+  verified: false,
+})
+
+const filteredTechnicians = computed(() => {
+  return technicians.value.filter(
+    (tech) =>
+      tech.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      tech.email.toLowerCase().includes(searchQuery.value.toLowerCase()),
+  )
+})
+
+const loadTechnicians = async () => {
+  loading.value = true
+  try {
+    const { data, error } = await supabase
+      .from('technicians')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    technicians.value = data || []
+  } catch (error) {
+    console.error('Error loading technicians:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error loading technicians',
+      position: 'top',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveTechnician = async () => {
+  try {
+    if (editingId.value) {
+      const { error } = await supabase
+        .from('technicians')
+        .update(formData.value)
+        .eq('id', editingId.value)
+
+      if (error) throw error
+      $q.notify({
+        type: 'positive',
+        message: 'Technician updated successfully',
+        position: 'top',
+      })
+    } else {
+      const { error } = await supabase.from('technicians').insert([formData.value])
+
+      if (error) throw error
+      $q.notify({
+        type: 'positive',
+        message: 'Technician added successfully',
+        position: 'top',
+      })
+    }
+    showAddDialog.value = false
+    resetForm()
+    loadTechnicians()
+  } catch (error) {
+    console.error('Error saving technician:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error saving technician',
+      position: 'top',
+    })
+  }
+}
+
+const editTechnician = (technician) => {
+  editingId.value = technician.id
+  formData.value = { ...technician }
+  showAddDialog.value = true
+}
+
+const deleteTechnician = async (id) => {
+  try {
+    await $q.dialog({
+      title: 'Confirm',
+      message: 'Are you sure you want to delete this technician?',
+      cancel: true,
+      persistent: true,
+    })
+
+    const { error } = await supabase.from('technicians').delete().eq('id', id)
+
+    if (error) throw error
+    $q.notify({
+      type: 'positive',
+      message: 'Technician deleted successfully',
+      position: 'top',
+    })
+    loadTechnicians()
+  } catch (error) {
+    if (error.message !== 'Cancelled') {
+      console.error('Error deleting technician:', error)
+      $q.notify({
+        type: 'negative',
+        message: 'Error deleting technician',
+        position: 'top',
+      })
+    }
+  }
+}
+
+const toggleVerification = async (technician) => {
+  try {
+    const { error } = await supabase
+      .from('technicians')
+      .update({ verified: !technician.verified })
+      .eq('id', technician.id)
+
+    if (error) throw error
+    $q.notify({
+      type: 'positive',
+      message: technician.verified ? 'Technician unverified' : 'Technician verified',
+      position: 'top',
+    })
+    loadTechnicians()
+  } catch (error) {
+    console.error('Error updating verification:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error updating verification',
+      position: 'top',
+    })
+  }
+}
+
+const resetForm = () => {
+  formData.value = {
+    name: '',
+    email: '',
+    phone: '',
+    specialty: '',
+    verified: false,
+  }
+  editingId.value = null
+}
+
+loadTechnicians()
+</script>
+
+<style scoped>
+.technicians-view {
+  width: 100%;
+}
+</style>
