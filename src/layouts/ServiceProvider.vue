@@ -112,165 +112,187 @@
 
           <q-separator class="q-my-md full-width" />
 
-          <!-- INCOMING REQUESTS -->
-          <div class="row items-center justify-between full-width q-mb-sm">
-            <div class="text-h6">
-              {{ activeTab === 'orders' ? 'Accepted Orders' : 'Incoming Requests' }}
-            </div>
-            <q-badge
-              v-if="requests.length"
-              color="primary"
-              :label="
-                activeTab === 'orders'
-                  ? `${requests.length} order${requests.length > 1 ? 's' : ''}`
-                  : `${requests.length} request${requests.length > 1 ? 's' : ''}`
-              "
-              class="text-body2 q-pa-sm"
-            />
-          </div>
+          <transition name="tab-switch" mode="out-in">
+            <div :key="activeTab" class="full-width">
+              <div class="row items-center justify-between full-width q-mb-sm">
+                <div class="text-h6">
+                  {{ activeTab === 'orders' ? 'Accepted Orders' : 'Incoming Requests' }}
+                </div>
+                <q-badge
+                  v-if="requests.length"
+                  color="primary"
+                  :label="
+                    activeTab === 'orders'
+                      ? `${requests.length} order${requests.length > 1 ? 's' : ''}`
+                      : `${requests.length} request${requests.length > 1 ? 's' : ''}`
+                  "
+                  class="text-body2 q-pa-sm"
+                />
+              </div>
 
-          <!-- District Filter -->
-          <q-select
-            v-model="selectedDistricts"
-            :options="cairoDistricts"
-            label="Filter by District"
-            filled
-            outlined
-            multiple
-            use-chips
-            clearable
-            class="q-mb-md full-width"
-          >
-            <template #prepend>
-              <q-icon name="location_city" />
-            </template>
-          </q-select>
+              <div v-if="activeTab === 'requests'" class="filters-row q-gutter-md q-mb-md">
+                <q-select
+                  v-model="selectedDistricts"
+                  :options="cairoDistricts"
+                  label="Filter by District"
+                  filled
+                  outlined
+                  multiple
+                  use-chips
+                  clearable
+                  class="filter-select"
+                >
+                  <template #prepend>
+                    <q-icon name="location_city" />
+                  </template>
+                </q-select>
 
-          <!-- Loading requests -->
-          <div v-if="requestsLoading" class="text-center q-pa-xl full-width">
-            <q-spinner color="primary" size="48px" />
-            <div class="q-mt-md text-grey-7">Loading requests...</div>
-          </div>
+                <q-select
+                  v-model="selectedPaymentMethod"
+                  :options="paymentMethodOptions"
+                  label="Filter by Payment Method"
+                  filled
+                  outlined
+                  clearable
+                  emit-value
+                  map-options
+                  class="filter-select"
+                >
+                  <template #prepend>
+                    <q-icon name="payments" />
+                  </template>
+                </q-select>
+              </div>
 
-          <!-- Error -->
-          <div v-else-if="requestsError" class="text-center q-pa-xl full-width">
-            <q-icon name="error" size="64px" color="negative" />
-            <div class="text-h6 text-negative q-mt-md">Failed to load requests</div>
-            <div class="text-body2 text-grey-7 q-mt-sm">{{ requestsError }}</div>
-            <q-btn
-              flat
-              color="primary"
-              label="Retry"
-              icon="refresh"
-              class="q-mt-sm"
-              @click="activeTab === 'orders' ? fetchAcceptedOrders() : fetchRequests()"
-            />
-          </div>
+              <!-- Loading requests -->
+              <div v-if="requestsLoading" class="text-center q-pa-xl full-width">
+                <q-spinner color="primary" size="48px" />
+                <div class="q-mt-md text-grey-7">Loading requests...</div>
+              </div>
 
-          <!-- Empty -->
-          <div v-else-if="filteredRequests.length === 0" class="text-center q-pa-xl full-width">
-            <q-icon name="inbox" size="64px" color="grey-5" />
-            <div class="text-h6 text-grey-6 q-mt-md">
-              {{
-                activeTab === 'orders'
-                  ? 'No accepted orders yet.'
-                  : selectedDistricts.length
-                    ? 'No requests in selected districts.'
-                    : `No requests available for your specialty yet.`
-              }}
-            </div>
-          </div>
+              <!-- Error -->
+              <div v-else-if="requestsError" class="text-center q-pa-xl full-width">
+                <q-icon name="error" size="64px" color="negative" />
+                <div class="text-h6 text-negative q-mt-md">Failed to load requests</div>
+                <div class="text-body2 text-grey-7 q-mt-sm">{{ requestsError }}</div>
+                <q-btn
+                  flat
+                  color="primary"
+                  label="Retry"
+                  icon="refresh"
+                  class="q-mt-sm"
+                  @click="activeTab === 'orders' ? fetchAcceptedOrders() : fetchRequests()"
+                />
+              </div>
 
-          <!-- Request Cards -->
-          <div v-else class="row q-col-gutter-md full-width">
-            <div v-for="req in filteredRequests" :key="req.request_id" class="col-12">
-              <q-card bordered flat class="request-card-item">
-                <q-card-section>
-                  <div class="row items-center justify-between q-mb-sm">
-                    <div class="text-subtitle1 text-weight-bold">Request #{{ req.request_id }}</div>
-                    <div class="row q-gutter-xs">
-                      <q-badge
-                        v-if="req.urgency"
-                        :color="req.urgency === 'urgent' ? 'red' : 'blue'"
-                        :label="req.urgency"
+              <!-- Empty -->
+              <div v-else-if="filteredRequests.length === 0" class="text-center q-pa-xl full-width">
+                <q-icon name="inbox" size="64px" color="grey-5" />
+                <div class="text-h6 text-grey-6 q-mt-md">
+                  {{
+                    activeTab === 'orders'
+                      ? 'No accepted orders yet.'
+                      : selectedDistricts.length
+                        ? 'No requests in selected districts.'
+                        : `No requests available for your specialty yet.`
+                  }}
+                </div>
+              </div>
+
+              <!-- Request Cards -->
+              <div v-else class="row q-col-gutter-md full-width">
+                <div v-for="req in filteredRequests" :key="req.request_id" class="col-12">
+                  <q-card bordered flat class="request-card-item">
+                    <q-card-section>
+                      <div class="row items-center justify-between q-mb-sm">
+                        <div class="text-subtitle1 text-weight-bold">
+                          Request #{{ req.request_id }}
+                        </div>
+                        <div class="row q-gutter-xs">
+                          <q-badge
+                            v-if="req.urgency"
+                            :color="req.urgency === 'urgent' ? 'red' : 'blue'"
+                            :label="req.urgency"
+                          />
+                          <q-badge
+                            :color="statusColor(req.request_status)"
+                            :label="req.request_status || 'pending'"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-if="req.customer_name" class="row items-center q-mb-sm">
+                        <q-icon name="person" size="xs" color="grey-7" class="q-mr-xs" />
+                        <span class="text-body2 text-weight-medium">{{ req.customer_name }}</span>
+                      </div>
+
+                      <div class="text-body2 q-mb-md" style="white-space: pre-line">
+                        {{ req.description_of_issue || 'No description' }}
+                      </div>
+
+                      <q-separator class="q-mb-sm" />
+
+                      <div class="request-details">
+                        <div v-if="req.request_date" class="detail-row">
+                          <q-icon name="event" size="xs" color="grey-7" />
+                          <span>{{ formatDate(req.request_date) }}</span>
+                        </div>
+                        <div v-if="req.schedule_time" class="detail-row">
+                          <q-icon name="schedule" size="xs" color="grey-7" />
+                          <span>Scheduled: {{ formatDate(req.schedule_time) }}</span>
+                        </div>
+                        <div v-if="req.service_location" class="detail-row">
+                          <q-icon name="location_on" size="xs" color="grey-7" />
+                          <span>{{ req.service_location }}</span>
+                        </div>
+                        <div v-if="req.payment_method" class="detail-row">
+                          <q-icon name="payments" size="xs" color="grey-7" />
+                          <span class="text-capitalize">{{ req.payment_method }}</span>
+                        </div>
+                        <div v-if="req.customer_price" class="detail-row">
+                          <q-icon name="sell" size="xs" color="green-7" />
+                          <span class="text-weight-medium text-green-9"
+                            >Customer budget: {{ req.customer_price }} EGP</span
+                          >
+                        </div>
+                      </div>
+                    </q-card-section>
+
+                    <q-separator />
+
+                    <q-card-section class="q-py-sm">
+                      <div v-if="req.myOffer" class="row items-center q-gutter-sm">
+                        <q-icon name="check_circle" color="positive" size="sm" />
+                        <span class="text-body2 text-positive text-weight-medium"
+                          >Offer submitted: {{ req.myOffer.offered_price }} EGP</span
+                        >
+                        <q-badge
+                          :color="
+                            req.myOffer.status === 'accepted'
+                              ? 'green'
+                              : req.myOffer.status === 'rejected'
+                                ? 'red'
+                                : 'orange'
+                          "
+                          :label="req.myOffer.status"
+                          class="q-ml-sm"
+                        />
+                      </div>
+                      <q-btn
+                        v-else
+                        v-show="activeTab !== 'orders'"
+                        color="primary"
+                        label="Place Bid"
+                        icon="gavel"
+                        class="full-width"
+                        @click="openOfferDialog(req)"
                       />
-                      <q-badge
-                        :color="statusColor(req.request_status)"
-                        :label="req.request_status || 'pending'"
-                      />
-                    </div>
-                  </div>
-
-                  <div v-if="req.customer_name" class="row items-center q-mb-sm">
-                    <q-icon name="person" size="xs" color="grey-7" class="q-mr-xs" />
-                    <span class="text-body2 text-weight-medium">{{ req.customer_name }}</span>
-                  </div>
-
-                  <div class="text-body2 q-mb-md" style="white-space: pre-line">
-                    {{ req.description_of_issue || 'No description' }}
-                  </div>
-
-                  <q-separator class="q-mb-sm" />
-
-                  <div class="request-details">
-                    <div v-if="req.request_date" class="detail-row">
-                      <q-icon name="event" size="xs" color="grey-7" />
-                      <span>{{ formatDate(req.request_date) }}</span>
-                    </div>
-                    <div v-if="req.schedule_time" class="detail-row">
-                      <q-icon name="schedule" size="xs" color="grey-7" />
-                      <span>Scheduled: {{ formatDate(req.schedule_time) }}</span>
-                    </div>
-                    <div v-if="req.service_location" class="detail-row">
-                      <q-icon name="location_on" size="xs" color="grey-7" />
-                      <span>{{ req.service_location }}</span>
-                    </div>
-                    <div v-if="req.payment_method" class="detail-row">
-                      <q-icon name="payments" size="xs" color="grey-7" />
-                      <span class="text-capitalize">{{ req.payment_method }}</span>
-                    </div>
-                    <div v-if="req.customer_price" class="detail-row">
-                      <q-icon name="sell" size="xs" color="green-7" />
-                      <span class="text-weight-medium text-green-9"
-                        >Customer budget: {{ req.customer_price }} EGP</span
-                      >
-                    </div>
-                  </div>
-                </q-card-section>
-
-                <q-separator />
-
-                <q-card-section class="q-py-sm">
-                  <div v-if="req.myOffer" class="row items-center q-gutter-sm">
-                    <q-icon name="check_circle" color="positive" size="sm" />
-                    <span class="text-body2 text-positive text-weight-medium"
-                      >Offer submitted: {{ req.myOffer.offered_price }} EGP</span
-                    >
-                    <q-badge
-                      :color="
-                        req.myOffer.status === 'accepted'
-                          ? 'green'
-                          : req.myOffer.status === 'rejected'
-                            ? 'red'
-                            : 'orange'
-                      "
-                      :label="req.myOffer.status"
-                      class="q-ml-sm"
-                    />
-                  </div>
-                  <q-btn
-                    v-else
-                    v-show="activeTab !== 'orders'"
-                    color="primary"
-                    label="Place Bid"
-                    icon="gavel"
-                    class="full-width"
-                    @click="openOfferDialog(req)"
-                  />
-                </q-card-section>
-              </q-card>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </div>
             </div>
-          </div>
+          </transition>
         </div>
       </q-page>
     </q-page-container>
@@ -357,11 +379,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
+const route = useRoute()
 const $q = useQuasar()
 
 const showNotifications = ref(false)
@@ -408,6 +431,7 @@ const requests = ref([])
 const requestsLoading = ref(false)
 const requestsError = ref(null)
 const selectedDistricts = ref([])
+const selectedPaymentMethod = ref(null)
 
 const offerDialogOpen = ref(false)
 const offerTarget = ref(null)
@@ -466,6 +490,11 @@ const cairoDistricts = [
   'Hadayek El-Ahram',
 ]
 
+const paymentMethodOptions = [
+  { label: 'Cash', value: 'cash' },
+  { label: 'Instapay', value: 'instapay' },
+]
+
 const specialtyMap = {
   plumber: { label: 'Plumber', icon: '/icons/plumbing.png', color: 'blue' },
   electrician: { label: 'Electrician', icon: '/icons/electrical.png', color: 'amber-8' },
@@ -480,8 +509,20 @@ const specialtyIcon = ref(null)
 const specialtyColor = ref('primary')
 
 const filteredRequests = computed(() => {
-  if (!selectedDistricts.value.length) return requests.value
-  return requests.value.filter((r) => selectedDistricts.value.includes(r.service_location))
+  const baseRequests = requests.value
+
+  if (activeTab.value === 'orders') {
+    return baseRequests
+  }
+
+  return baseRequests.filter((request) => {
+    const matchesDistrict =
+      !selectedDistricts.value.length || selectedDistricts.value.includes(request.service_location)
+    const matchesPayment =
+      !selectedPaymentMethod.value || request.payment_method === selectedPaymentMethod.value
+
+    return matchesDistrict && matchesPayment
+  })
 })
 
 const formatDate = (dateStr) => {
@@ -661,14 +702,13 @@ onMounted(async () => {
       specialtyIcon.value = info.icon
       specialtyColor.value = info.color
     }
+
+    const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
+    await setActiveTab(initialTab)
   } catch (err) {
     console.error('Failed to load user data:', err)
   } finally {
     loading.value = false
-  }
-
-  if (specialty.value) {
-    await fetchRequests()
   }
 })
 </script>
@@ -697,6 +737,15 @@ onMounted(async () => {
 }
 
 .full-width {
+  width: 100%;
+}
+
+.filters-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.filter-select {
   width: 100%;
 }
 
@@ -745,5 +794,28 @@ onMounted(async () => {
 
 .nav-tabs :deep(.q-tab__icon) {
   font-size: 24px;
+}
+
+@media (max-width: 600px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tab-switch-enter-active,
+.tab-switch-leave-active {
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.tab-switch-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+}
+
+.tab-switch-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.99);
 }
 </style>

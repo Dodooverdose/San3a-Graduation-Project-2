@@ -73,8 +73,9 @@
                   dense
                   color="primary"
                   label="Sign Up"
+                  class="q-ml-xs auth-action-btn"
+                  :class="pressedAction === 'signup' ? 'auth-action-btn--pressed' : ''"
                   @click="goToSignUp"
-                  class="q-ml-xs"
                 />
               </div>
 
@@ -104,9 +105,19 @@ import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+const pressedAction = ref(null)
+
+const navigateWithPress = (path, action) => {
+  pressedAction.value = action
+
+  window.setTimeout(() => {
+    router.push(path)
+    pressedAction.value = null
+  }, 160)
+}
 
 const goToSignUp = () => {
-  router.push('/signup')
+  navigateWithPress('/signup', 'signup')
 }
 
 const goBack = () => {
@@ -256,6 +267,19 @@ const onSubmit = async () => {
   }
 }
 </script>
+
+<style scoped>
+.auth-action-btn {
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease;
+}
+
+.auth-action-btn--pressed {
+  transform: translateY(1px) scale(0.97);
+  opacity: 0.9;
+}
+</style>
 
 <style scoped>
 .q-page {

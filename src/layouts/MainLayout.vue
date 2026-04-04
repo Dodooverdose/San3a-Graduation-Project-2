@@ -25,7 +25,8 @@
               color="primary"
               label="Sign Up"
               size="lg"
-              class="full-width"
+              class="full-width auth-action-btn"
+              :class="pressedAction === 'signup' ? 'auth-action-btn--pressed' : ''"
               @click="goToSignUp"
             />
 
@@ -34,7 +35,8 @@
               color="primary"
               label="Sign In"
               size="lg"
-              class="full-width"
+              class="full-width auth-action-btn"
+              :class="pressedAction === 'signin' ? 'auth-action-btn--pressed' : ''"
               @click="goToSignIn"
             />
           </div>
@@ -45,16 +47,27 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const pressedAction = ref(null)
+
+const navigateWithPress = (path, action) => {
+  pressedAction.value = action
+
+  window.setTimeout(() => {
+    router.push(path)
+    pressedAction.value = null
+  }, 160)
+}
 
 const goToSignUp = () => {
-  router.push('/signup')
+  navigateWithPress('/signup', 'signup')
 }
 
 const goToSignIn = () => {
-  router.push('/signin')
+  navigateWithPress('/signin', 'signin')
 }
 </script>
 
@@ -101,6 +114,19 @@ const goToSignIn = () => {
 .buttons-container {
   margin-top: 40px;
   margin-left: -15px;
+}
+
+.auth-action-btn {
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease;
+}
+
+.auth-action-btn--pressed {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: 0 10px 24px rgba(25, 118, 210, 0.18);
+  opacity: 0.96;
 }
 
 .loading-dots {

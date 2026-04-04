@@ -1,5 +1,9 @@
 <template>
-  <router-view />
+  <router-view v-slot="{ Component, route }">
+    <transition name="auth-page" mode="out-in">
+      <component :is="Component" :key="route.fullPath" />
+    </transition>
+  </router-view>
 </template>
 
 <script setup>
@@ -14,3 +18,25 @@ supabase.auth.onAuthStateChange((event) => {
   }
 })
 </script>
+
+<style>
+.auth-page-enter-active,
+.auth-page-leave-active {
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    filter 220ms ease;
+}
+
+.auth-page-enter-from {
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  filter: blur(3px);
+}
+
+.auth-page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.99);
+  filter: blur(2px);
+}
+</style>

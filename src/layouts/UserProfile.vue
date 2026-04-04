@@ -2,7 +2,15 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated class="fixed-top">
       <q-toolbar>
-        <q-btn flat round dense icon="arrow_back" aria-label="Back to home" @click="goHome" />
+        <q-btn
+          v-if="userRole === 'customer'"
+          flat
+          round
+          dense
+          icon="arrow_back"
+          aria-label="Back to home"
+          @click="goHome"
+        />
         <q-toolbar-title>User Profile</q-toolbar-title>
       </q-toolbar>
     </q-header>
@@ -89,7 +97,7 @@
             name="orders"
             icon="receipt_long"
             label="Orders"
-            @click="goToPage('/service-provider')"
+            @click="goToPage({ path: '/service-provider', query: { tab: 'orders' } })"
           />
           <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
         </template>
