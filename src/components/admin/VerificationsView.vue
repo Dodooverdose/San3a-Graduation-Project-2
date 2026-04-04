@@ -151,7 +151,6 @@ const loadPendingTechnicians = async () => {
       .from('technician')
       .select('*')
       .eq('verified', false)
-      .order('created_at', { ascending: false })
 
     if (error) throw error
     pendingTechnicians.value = data || []

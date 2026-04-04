@@ -201,9 +201,8 @@ const loadComplaints = async () => {
   loading.value = true
   try {
     const { data, error } = await supabase
-      .from('complaints')
+      .from('complaint')
       .select('*')
-      .order('created_at', { ascending: false })
 
     if (error) throw error
     complaints.value = data || []
@@ -237,7 +236,7 @@ const editComplaint = (complaint) => {
 const saveComplaint = async () => {
   try {
     const { error } = await supabase
-      .from('complaints')
+      .from('complaint')
       .update(formData.value)
       .eq('id', editingId.value)
 
@@ -268,7 +267,7 @@ const deleteComplaint = async (id) => {
       persistent: true,
     })
 
-    const { error } = await supabase.from('complaints').delete().eq('id', id)
+    const { error } = await supabase.from('complaint').delete().eq('id', id)
 
     if (error) throw error
     $q.notify({

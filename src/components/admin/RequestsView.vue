@@ -209,7 +209,6 @@ const loadRequests = async () => {
     const { data, error } = await supabase
       .from('request')
       .select('*')
-      .order('created_at', { ascending: false })
 
     if (error) throw error
     requests.value = data || []

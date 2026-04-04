@@ -7,6 +7,7 @@ import {
 } from 'vue-router'
 import routes from './routes'
 import { supabase } from 'src/boot/supabase'
+import { useAuthStore } from 'src/stores/authStore'
 
 /*
  * If not building with SSR mode, you can
@@ -35,6 +36,8 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   })
 
   Router.beforeEach(async (to) => {
+    const authStore = useAuthStore()
+
     // Handle Supabase recovery tokens that land in the route path.
     // In hash-mode routing, the URL fragment is used by Vue Router,
     // so Supabase tokens (e.g. /#/access_token=...&type=recovery)
@@ -63,8 +66,19 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
       if (to.meta.requiresAdmin) {
         const role = session.user?.user_metadata?.role
+
         if (role !== 'admin') {
           return '/home'
+        }
+
+        // Optional: Verify admin is in admin table (non-blocking)
+        authStore.user = session.user
+        await authStore.verifyAdminStatus(session.user.email)
+
+        if (!authStore.isAdminVerified) {
+          // Admin table verification failed, but allow if role is admin in metadata
+          console.warn('Admin table verification failed, but allowing access due to admin role in metadata')
+          authStore.isAdminVerified = true
         }
       }
     }

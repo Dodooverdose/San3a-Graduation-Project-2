@@ -2,7 +2,6 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
-        <q-btn flat round dense icon="arrow_back" @click="goBack" />
         <q-toolbar-title style="display: flex; align-items: center">
           Admin Dashboard - San3a
           <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
@@ -71,10 +70,6 @@ import ComplaintsView from 'src/components/admin/ComplaintsView.vue'
 const router = useRouter()
 const $q = useQuasar()
 const activeTab = ref('technicians')
-
-const goBack = () => {
-  router.push('/signin')
-}
 
 const logout = async () => {
   try {

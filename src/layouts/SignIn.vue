@@ -90,13 +90,13 @@
                 />
               </div>
 
-              <div class="text-center q-mt-md">
+              <div v-if="authStore.isAdmin" class="text-center q-mt-md">
                 <q-btn
                   flat
                   color="primary"
-                  label="Admin Dashboard"
+                  label="Go to Admin Panel"
                   style="margin: 0 auto !important"
-                  @click="goToAdmin"
+                  @click="navigateWithPress('/admin', 'admin')"
                 />
               </div>
             </q-card-section>
@@ -108,14 +108,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useAuthStore } from 'src/stores/authStore'
 
 const router = useRouter()
 const $q = useQuasar()
+const authStore = useAuthStore()
 const pressedAction = ref(null)
+
+onMounted(() => {
+  // Initialize auth store on component mount
+  authStore.initSession()
+})
 
 const navigateWithPress = (path, action) => {
   pressedAction.value = action
@@ -128,42 +135,6 @@ const navigateWithPress = (path, action) => {
 
 const goToSignUp = () => {
   navigateWithPress('/signup', 'signup')
-}
-
-const goToAdmin = async () => {
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session) {
-      $q.notify({
-        type: 'warning',
-        message: 'Please sign in with admin credentials first',
-        position: 'top',
-      })
-      return
-    }
-
-    const role = session.user?.user_metadata?.role
-
-    if (role === 'admin') {
-      navigateWithPress('/admin', 'admin')
-    } else {
-      $q.notify({
-        type: 'negative',
-        message: 'You do not have admin privileges',
-        position: 'top',
-      })
-    }
-  } catch (error) {
-    console.error('Error checking admin access:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Error accessing admin dashboard',
-      position: 'top',
-    })
-  }
 }
 
 const goBack = () => {
@@ -277,15 +248,13 @@ const onSubmit = async () => {
       }
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: form.value.password,
-    })
+    // Use authStore for sign-in
+    const { success, error } = await authStore.signIn(email, form.value.password)
 
-    if (error) {
+    if (!success) {
       $q.notify({
         type: 'negative',
-        message: error.message || 'Sign in failed. Please check your credentials.',
+        message: error?.message || 'Sign in failed. Please check your credentials.',
         position: 'top',
       })
       return
@@ -302,15 +271,9 @@ const onSubmit = async () => {
       rememberMe: false,
     }
 
-    const role = data.user?.user_metadata?.role
-
-    if (role === 'admin') {
-      router.push('/admin')
-    } else if (role === 'fixer') {
-      router.push('/service-provider')
-    } else {
-      router.push('/home')
-    }
+    // Redirect based on role
+    const path = authStore.getRedirectPath()
+    router.push(path)
   } catch (err) {
     $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
     console.error(err)

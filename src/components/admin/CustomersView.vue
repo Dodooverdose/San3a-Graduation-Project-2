@@ -138,7 +138,6 @@ const loadCustomers = async () => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .order('created_at', { ascending: false })
 
     if (error) throw error
     users.value = data || []

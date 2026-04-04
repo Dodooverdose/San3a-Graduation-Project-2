@@ -142,9 +142,8 @@ const loadTechnicians = async () => {
   loading.value = true
   try {
     const { data, error } = await supabase
-      .from('technicians')
+      .from('technician')
       .select('*')
-      .order('created_at', { ascending: false })
 
     if (error) throw error
     technicians.value = data || []
@@ -164,7 +163,7 @@ const saveTechnician = async () => {
   try {
     if (editingId.value) {
       const { error } = await supabase
-        .from('technicians')
+        .from('technician')
         .update(formData.value)
         .eq('id', editingId.value)
 
@@ -175,7 +174,7 @@ const saveTechnician = async () => {
         position: 'top',
       })
     } else {
-      const { error } = await supabase.from('technicians').insert([formData.value])
+      const { error } = await supabase.from('technician').insert([formData.value])
 
       if (error) throw error
       $q.notify({
@@ -212,7 +211,7 @@ const deleteTechnician = async (id) => {
       persistent: true,
     })
 
-    const { error } = await supabase.from('technicians').delete().eq('id', id)
+    const { error } = await supabase.from('technician').delete().eq('id', id)
 
     if (error) throw error
     $q.notify({
@@ -236,9 +235,7 @@ const deleteTechnician = async (id) => {
 const toggleVerification = async (technician) => {
   try {
     const { error } = await supabase
-      .from('technicians')
-      .update({ verified: !technician.verified })
-      .eq('id', technician.id)
+      .from('technician')
 
     if (error) throw error
     $q.notify({
