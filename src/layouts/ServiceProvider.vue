@@ -599,12 +599,13 @@ const fetchRequests = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
-    myOffer: r.fixer_price && r.technician_id === technicianId.value
-      ? {
-          offered_price: r.fixer_price,
-          status: r.request_status || 'pending',
-        }
-      : null,
+    myOffer:
+      r.fixer_price && r.technician_id === technicianId.value
+        ? {
+            offered_price: r.fixer_price,
+            status: r.request_status || 'pending',
+          }
+        : null,
   }))
 
   requestsLoading.value = false
@@ -632,12 +633,13 @@ const fetchAcceptedOrders = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
-    myOffer: r.fixer_price && r.technician_id === technicianId.value
-      ? {
-          offered_price: r.fixer_price,
-          status: r.request_status || 'accepted',
-        }
-      : null,
+    myOffer:
+      r.fixer_price && r.technician_id === technicianId.value
+        ? {
+            offered_price: r.fixer_price,
+            status: r.request_status || 'accepted',
+          }
+        : null,
   }))
 
   requestsLoading.value = false
