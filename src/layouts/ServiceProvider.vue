@@ -462,6 +462,7 @@ const offerMessage = ref('')
 const offerSubmitting = ref(false)
 const acceptingCounterOfferId = ref(null)
 const customerOfferEventsChannel = supabase.channel('customer-offer-events')
+const myBargainChannel = ref(null)
 
 const cairoDistricts = [
   'Downtown / Wust El-Balad',
@@ -773,7 +774,55 @@ const submitOffer = async () => {
 
   $q.notify({ type: 'positive', message: 'Offer submitted successfully!' })
   offerDialogOpen.value = false
+
+  // Broadcast notification to customer via their specific channel
+  if (offerTarget.value.user_id) {
+    const customerChannel = supabase.channel(`bargain-customer-${offerTarget.value.user_id}`)
+    await customerChannel.send({
+      type: 'broadcast',
+      event: 'fixer-bid-notification',
+      payload: {
+        requestId: offerTarget.value.request_id,
+        price: normalizedPrice,
+        fixerName: fullName.value,
+      },
+    })
+    supabase.removeChannel(customerChannel)
+  }
+
   await fetchRequests()
+}
+
+const subscribeToCounterOffers = () => {
+  if (!technicianId.value) return
+
+  // Listen on fixer-specific channel
+  myBargainChannel.value = supabase
+    .channel(`bargain-fixer-${technicianId.value}`)
+    .on('broadcast', { event: 'customer-bargain-notification' }, ({ payload }) => {
+      if (!payload) return
+
+      const notif = {
+        fixerName: 'Customer',
+        message: `Sent a counter-offer of ${payload.price} EGP for request #${payload.requestId}.`,
+        time: new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        requestId: payload.requestId,
+      }
+      notifications.value.unshift(notif)
+      $q.notify({
+        type: 'info',
+        icon: 'notifications_active',
+        message: `Customer counter-offer received for request #${payload.requestId}.`,
+      })
+      fetchRequests()
+    })
+    .subscribe()
 }
 
 onMounted(async () => {
@@ -815,6 +864,11 @@ onMounted(async () => {
       specialtyColor.value = info.color
     }
 
+    // Subscribe to customer counter-offer notifications
+    if (technicianId.value) {
+      subscribeToCounterOffers()
+    }
+
     const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
     await setActiveTab(initialTab)
   } catch (err) {
@@ -826,6 +880,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   customerOfferEventsChannel.unsubscribe()
+  myBargainChannel.value?.unsubscribe()
 })
 </script>
 

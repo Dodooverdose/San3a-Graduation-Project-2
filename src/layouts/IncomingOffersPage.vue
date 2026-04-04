@@ -303,9 +303,9 @@ const notifications = ref([])
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const messageSubscription = ref(null)
-const knownOfferPrices = ref(new Map())
 const transientFixerMessages = ref(new Map())
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
+const myBargainChannel = ref(null)
 const statusFilter = ref('all')
 const statusFilterOptions = [
   { label: 'All', value: 'all' },
@@ -443,10 +443,6 @@ const fetchIncomingOffers = async () => {
         ...r,
         fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
       }))
-
-      knownOfferPrices.value = new Map(
-        incomingOffers.value.map((offer) => [offer.request_id, offer.fixer_price]),
-      )
     }
   } catch (err) {
     error.value = 'An unexpected error occurred.'
@@ -471,43 +467,10 @@ const subscribeToIncomingOffers = () => {
         table: 'request',
         filter: `user_id=eq.${customerUserId.value}`,
       },
-      (payload) => {
-        const next = payload.new || {}
-        const requestId = next.request_id
-        const nextFixerPrice = next.fixer_price
-        const prevFixerPrice = knownOfferPrices.value.get(requestId)
-
-        const hasNewBid =
-          nextFixerPrice !== null &&
-          nextFixerPrice !== undefined &&
-          (prevFixerPrice === null ||
-            prevFixerPrice === undefined ||
-            prevFixerPrice !== nextFixerPrice)
-
-        knownOfferPrices.value.set(requestId, nextFixerPrice)
-
-        if (hasNewBid) {
-          const notificationItem = {
-            fixerName: next.technician_id ? 'Fixer' : 'System',
-            message: `Sent an offer of ${nextFixerPrice} EGP for request #${requestId}.`,
-            time: new Date().toLocaleString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            read: false,
-            requestId,
-          }
-
-          notifications.value.unshift(notificationItem)
-          $q.notify({
-            type: 'info',
-            icon: 'notifications_active',
-            message: `New fixer bid received for request #${requestId}.`,
-          })
-          fetchIncomingOffers()
-        }
+      () => {
+        // Refresh offers list when database changes
+        // Notifications are handled by Broadcast in subscribeToFixerBidNotifications()
+        fetchIncomingOffers()
       },
     )
     .subscribe()
@@ -522,6 +485,38 @@ const subscribeToFixerMessages = () => {
       if (!payload || !customerUserId.value) return
       if (String(payload.customerUserId) !== String(customerUserId.value)) return
       setTransientFixerMessage(payload.requestId, payload.message)
+    })
+    .subscribe()
+}
+
+const subscribeToFixerBidNotifications = () => {
+  if (!customerUserId.value) return
+
+  // Listen on customer-specific channel
+  myBargainChannel.value = supabase
+    .channel(`bargain-customer-${customerUserId.value}`)
+    .on('broadcast', { event: 'fixer-bid-notification' }, ({ payload }) => {
+      if (!payload) return
+
+      const notif = {
+        fixerName: `Fixer ${payload.fixerName || 'Name'}`,
+        message: `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.`,
+        time: new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        requestId: payload.requestId,
+      }
+      notifications.value.unshift(notif)
+      $q.notify({
+        type: 'info',
+        icon: 'notifications_active',
+        message: `New offer received for request #${payload.requestId}.`,
+      })
+      fetchIncomingOffers()
     })
     .subscribe()
 }
@@ -597,6 +592,21 @@ const submitBargain = async () => {
     bargainTarget.value.customer_price = price
     bargainDialog.value = false
     $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
+
+    // Broadcast notification to fixer via their specific channel
+    const target = bargainTarget.value
+    if (target.technician_id) {
+      const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)
+      await fixerChannel.send({
+        type: 'broadcast',
+        event: 'customer-bargain-notification',
+        payload: {
+          requestId: target.request_id,
+          price: price,
+        },
+      })
+      supabase.removeChannel(fixerChannel)
+    }
   }
 }
 
@@ -604,11 +614,13 @@ onMounted(async () => {
   await fetchIncomingOffers()
   subscribeToIncomingOffers()
   subscribeToFixerMessages()
+  subscribeToFixerBidNotifications()
 })
 
 onBeforeUnmount(() => {
   offersSubscription.value?.unsubscribe()
   messageSubscription.value?.unsubscribe()
+  myBargainChannel.value?.unsubscribe()
 })
 </script>
 
