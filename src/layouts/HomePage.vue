@@ -35,7 +35,7 @@
             :key="i"
             :class="{ 'bg-blue-1': !notif.read }"
             clickable
-            @click="markAsRead(i)"
+            @click="openNotification(notif, i)"
           >
             <q-item-section avatar>
               <q-avatar color="primary" text-color="white" icon="build" />
@@ -119,9 +119,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -130,11 +131,26 @@ const showNotifications = ref(false)
 const activeTab = ref('home')
 
 const notifications = ref([])
+const customerUserId = ref(null)
+const offersSubscription = ref(null)
+const knownOfferPrices = ref(new Map())
 
 const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
 
 const markAsRead = (index) => {
   notifications.value[index].read = true
+}
+
+const openNotification = (notif, index) => {
+  markAsRead(index)
+  showNotifications.value = false
+
+  if (notif?.requestId) {
+    router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
+    return
+  }
+
+  router.push('/incoming-offers')
 }
 
 const acceptOffer = (index) => {
@@ -148,6 +164,109 @@ const declineOffer = (index) => {
   $q.notify({ type: 'warning', message: `Declined offer from ${notif.fixerName}` })
   notifications.value.splice(index, 1)
 }
+
+const fetchFixerName = async (technicianId) => {
+  if (!technicianId) return 'Fixer'
+  const { data } = await supabase
+    .from('technician')
+    .select('full_name')
+    .eq('technician_id', technicianId)
+    .maybeSingle()
+  return data?.full_name || 'Fixer'
+}
+
+const initializeIncomingOfferTracking = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return
+
+  const { data: customer } = await supabase
+    .from('users')
+    .select('user_id')
+    .ilike('email', user.email)
+    .maybeSingle()
+
+  if (!customer?.user_id) return
+  customerUserId.value = customer.user_id
+
+  const { data: requests } = await supabase
+    .from('request')
+    .select('request_id, fixer_price')
+    .eq('user_id', customer.user_id)
+
+  knownOfferPrices.value = new Map((requests || []).map((r) => [r.request_id, r.fixer_price]))
+}
+
+const subscribeToIncomingOffers = () => {
+  if (!customerUserId.value) return
+
+  offersSubscription.value?.unsubscribe()
+  offersSubscription.value = supabase
+    .channel(`home-incoming-offers-${customerUserId.value}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'request',
+        filter: `user_id=eq.${customerUserId.value}`,
+      },
+      async (payload) => {
+        const next = payload.new || {}
+        const requestId = next.request_id
+        const nextFixerPrice = next.fixer_price
+        const prevFixerPrice = knownOfferPrices.value.get(requestId)
+
+        const hasNewBid =
+          nextFixerPrice !== null &&
+          nextFixerPrice !== undefined &&
+          (prevFixerPrice === null ||
+            prevFixerPrice === undefined ||
+            prevFixerPrice !== nextFixerPrice)
+
+        knownOfferPrices.value.set(requestId, nextFixerPrice)
+
+        if (!hasNewBid) return
+
+        const fixerName = await fetchFixerName(next.technician_id)
+        const notificationItem = {
+          fixerName,
+          message: `Sent an offer of ${nextFixerPrice} EGP for request #${requestId}.`,
+          time: new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          read: false,
+          requestId,
+        }
+
+        notifications.value.unshift(notificationItem)
+        $q.notify({
+          type: 'info',
+          icon: 'notifications_active',
+          message: `New offer received for request #${requestId}.`,
+        })
+      },
+    )
+    .subscribe()
+}
+
+onMounted(async () => {
+  try {
+    await initializeIncomingOfferTracking()
+    subscribeToIncomingOffers()
+  } catch (err) {
+    console.error('Failed to initialize home notifications:', err)
+  }
+})
+
+onBeforeUnmount(() => {
+  offersSubscription.value?.unsubscribe()
+})
 
 const goToPage = (route) => {
   if (route) router.push(route)

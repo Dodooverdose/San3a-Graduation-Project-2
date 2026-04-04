@@ -7,9 +7,50 @@
           <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
         </q-toolbar-title>
         <q-space />
-        <q-btn flat round dense icon="notifications" aria-label="Notifications" />
+        <q-btn
+          flat
+          round
+          dense
+          icon="notifications"
+          aria-label="Notifications"
+          @click="showNotifications = !showNotifications"
+        >
+          <q-badge v-if="unreadCount > 0" color="red" floating>{{ unreadCount }}</q-badge>
+        </q-btn>
       </q-toolbar>
     </q-header>
+
+    <q-dialog v-model="showNotifications" position="top" seamless>
+      <q-card style="width: 380px; max-width: 95vw; margin-top: 60px">
+        <q-card-section class="row items-center q-pb-sm">
+          <div class="text-h6">Notifications</div>
+          <q-space />
+          <q-btn flat dense round icon="close" @click="showNotifications = false" />
+        </q-card-section>
+        <q-separator />
+        <q-list v-if="notifications.length > 0" separator>
+          <q-item
+            v-for="(notif, i) in notifications"
+            :key="i"
+            :class="{ 'bg-blue-1': !notif.read }"
+            clickable
+            @click="openNotification(notif, i)"
+          >
+            <q-item-section avatar>
+              <q-avatar color="primary" text-color="white" icon="build" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ notif.fixerName }}</q-item-label>
+              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg">
+          No notifications yet
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
     <q-page-container>
       <q-page class="page-content">
@@ -97,6 +138,11 @@
                 >
                   Your budget: {{ req.customer_price }} EGP
                 </q-chip>
+              </div>
+
+              <div v-if="getFixerMessage(req)" class="fixer-message q-mb-sm">
+                <div class="fixer-message-title">Fixer message</div>
+                <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
               </div>
 
               <div v-if="req.fixerInfo" class="fixer-info q-mb-sm">
@@ -240,15 +286,26 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 
+const route = useRoute()
+const router = useRouter()
 const $q = useQuasar()
 const activeTab = ref('offers')
 const loading = ref(true)
 const error = ref(null)
 const incomingOffers = ref([])
+const showNotifications = ref(false)
+const notifications = ref([])
+const customerUserId = ref(null)
+const offersSubscription = ref(null)
+const messageSubscription = ref(null)
+const knownOfferPrices = ref(new Map())
+const transientFixerMessages = ref(new Map())
+const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
 const statusFilter = ref('all')
 const statusFilterOptions = [
   { label: 'All', value: 'all' },
@@ -258,13 +315,24 @@ const statusFilterOptions = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
+const requestIdFilter = computed(() => {
+  const raw = route.query.requestId
+  if (!raw) return null
+  return String(raw)
+})
+
 const filteredOffers = computed(() => {
-  if (statusFilter.value === 'all') {
-    return incomingOffers.value
+  let offers = incomingOffers.value
+
+  if (requestIdFilter.value) {
+    offers = offers.filter((r) => String(r.request_id) === requestIdFilter.value)
+    return offers
   }
-  return incomingOffers.value.filter(
-    (r) => (r.request_status || 'pending').toLowerCase() === statusFilter.value,
-  )
+
+  if (statusFilter.value === 'all') {
+    return offers
+  }
+  return offers.filter((r) => (r.request_status || 'pending').toLowerCase() === statusFilter.value)
 })
 
 const statusColor = (status) => {
@@ -283,6 +351,35 @@ const formatDate = (dateStr) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const setTransientFixerMessage = (requestId, message) => {
+  const next = new Map(transientFixerMessages.value)
+  if (message) {
+    next.set(requestId, message)
+  } else {
+    next.delete(requestId)
+  }
+  transientFixerMessages.value = next
+}
+
+const getFixerMessage = (req) => {
+  return transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
+}
+
+const markAsRead = (index) => {
+  notifications.value[index].read = true
+}
+
+const openNotification = (notif, index) => {
+  markAsRead(index)
+  showNotifications.value = false
+
+  if (notif?.requestId) {
+    router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
+    return
+  }
+  router.push('/incoming-offers')
 }
 
 const fetchIncomingOffers = async () => {
@@ -307,10 +404,13 @@ const fetchIncomingOffers = async () => {
       .maybeSingle()
 
     if (!customer?.user_id) {
+      customerUserId.value = null
       incomingOffers.value = []
       loading.value = false
       return
     }
+
+    customerUserId.value = customer.user_id
 
     const { data, error: fetchErr } = await supabase
       .from('request')
@@ -343,6 +443,10 @@ const fetchIncomingOffers = async () => {
         ...r,
         fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
       }))
+
+      knownOfferPrices.value = new Map(
+        incomingOffers.value.map((offer) => [offer.request_id, offer.fixer_price]),
+      )
     }
   } catch (err) {
     error.value = 'An unexpected error occurred.'
@@ -350,6 +454,76 @@ const fetchIncomingOffers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const subscribeToIncomingOffers = () => {
+  if (!customerUserId.value) return
+
+  offersSubscription.value?.unsubscribe()
+
+  offersSubscription.value = supabase
+    .channel(`incoming-offers-${customerUserId.value}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'request',
+        filter: `user_id=eq.${customerUserId.value}`,
+      },
+      (payload) => {
+        const next = payload.new || {}
+        const requestId = next.request_id
+        const nextFixerPrice = next.fixer_price
+        const prevFixerPrice = knownOfferPrices.value.get(requestId)
+
+        const hasNewBid =
+          nextFixerPrice !== null &&
+          nextFixerPrice !== undefined &&
+          (prevFixerPrice === null ||
+            prevFixerPrice === undefined ||
+            prevFixerPrice !== nextFixerPrice)
+
+        knownOfferPrices.value.set(requestId, nextFixerPrice)
+
+        if (hasNewBid) {
+          const notificationItem = {
+            fixerName: next.technician_id ? 'Fixer' : 'System',
+            message: `Sent an offer of ${nextFixerPrice} EGP for request #${requestId}.`,
+            time: new Date().toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            read: false,
+            requestId,
+          }
+
+          notifications.value.unshift(notificationItem)
+          $q.notify({
+            type: 'info',
+            icon: 'notifications_active',
+            message: `New fixer bid received for request #${requestId}.`,
+          })
+          fetchIncomingOffers()
+        }
+      },
+    )
+    .subscribe()
+}
+
+const subscribeToFixerMessages = () => {
+  messageSubscription.value?.unsubscribe()
+
+  messageSubscription.value = supabase
+    .channel('customer-offer-events')
+    .on('broadcast', { event: 'fixer-bid-message' }, ({ payload }) => {
+      if (!payload || !customerUserId.value) return
+      if (String(payload.customerUserId) !== String(customerUserId.value)) return
+      setTransientFixerMessage(payload.requestId, payload.message)
+    })
+    .subscribe()
 }
 
 const acceptOffer = async (req) => {
@@ -425,7 +599,17 @@ const submitBargain = async () => {
     $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
   }
 }
-onMounted(fetchIncomingOffers)
+
+onMounted(async () => {
+  await fetchIncomingOffers()
+  subscribeToIncomingOffers()
+  subscribeToFixerMessages()
+})
+
+onBeforeUnmount(() => {
+  offersSubscription.value?.unsubscribe()
+  messageSubscription.value?.unsubscribe()
+})
 </script>
 
 <style scoped>
@@ -524,6 +708,26 @@ onMounted(fetchIncomingOffers)
   gap: 6px;
   font-size: 13px;
   color: #455a64;
+}
+
+.fixer-message {
+  border-left: 3px solid #f9a825;
+  background: #fff8e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.fixer-message-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e65100;
+  margin-bottom: 2px;
+}
+
+.fixer-message-body {
+  font-size: 13px;
+  color: #5d4037;
+  white-space: pre-line;
 }
 
 .action-row {

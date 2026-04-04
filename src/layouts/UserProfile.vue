@@ -2,15 +2,6 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated class="fixed-top">
       <q-toolbar>
-        <q-btn
-          v-if="userRole === 'customer'"
-          flat
-          round
-          dense
-          icon="arrow_back"
-          aria-label="Back to home"
-          @click="goHome"
-        />
         <q-toolbar-title>User Profile</q-toolbar-title>
       </q-toolbar>
     </q-header>
@@ -215,14 +206,6 @@ const openFilePicker = () => {
 
 const goToPage = (route) => {
   if (route) router.push(route)
-}
-
-const goHome = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/home')
-  }
 }
 
 const goToMain = () => {

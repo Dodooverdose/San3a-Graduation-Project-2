@@ -279,11 +279,12 @@
                         />
                       </div>
                       <q-btn
-                        v-if="!req.myOffer && activeTab !== 'orders'"
-                        color="primary"
-                        label="Place Bid"
+                        v-if="activeTab !== 'orders' && (!req.myOffer || isOfferAccepted(req))"
+                        :color="isOfferAccepted(req) ? 'grey-5' : 'primary'"
+                        :label="isOfferAccepted(req) ? 'Place Bid (Accepted)' : 'Place Bid'"
                         icon="gavel"
                         class="full-width"
+                        :disable="isOfferAccepted(req)"
                         @click="openOfferDialog(req)"
                       />
                       <div
@@ -399,7 +400,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
@@ -460,6 +461,7 @@ const offerPrice = ref(null)
 const offerMessage = ref('')
 const offerSubmitting = ref(false)
 const acceptingCounterOfferId = ref(null)
+const customerOfferEventsChannel = supabase.channel('customer-offer-events')
 
 const cairoDistricts = [
   'Downtown / Wust El-Balad',
@@ -563,6 +565,12 @@ const formatDate = (dateStr) => {
 const statusColor = (status) => {
   const map = { pending: 'orange', accepted: 'blue', completed: 'green', cancelled: 'red' }
   return map[status?.toLowerCase()] || 'grey'
+}
+
+const isOfferAccepted = (req) => {
+  const requestStatus = (req?.request_status || '').toLowerCase()
+  const myOfferStatus = (req?.myOffer?.status || '').toLowerCase()
+  return requestStatus === 'accepted' || myOfferStatus === 'accepted'
 }
 
 const canRespondToCustomerOffer = (req) => {
@@ -723,6 +731,7 @@ const submitOffer = async () => {
 
   offerSubmitting.value = true
 
+  const trimmedMessage = (offerMessage.value || '').trim()
   const { data: updatedRequest, error } = await supabase
     .from('request')
     .update({
@@ -750,12 +759,26 @@ const submitOffer = async () => {
     return
   }
 
+  if (trimmedMessage && offerTarget.value.user_id) {
+    await customerOfferEventsChannel.send({
+      type: 'broadcast',
+      event: 'fixer-bid-message',
+      payload: {
+        customerUserId: offerTarget.value.user_id,
+        requestId: offerTarget.value.request_id,
+        message: trimmedMessage,
+      },
+    })
+  }
+
   $q.notify({ type: 'positive', message: 'Offer submitted successfully!' })
   offerDialogOpen.value = false
   await fetchRequests()
 }
 
 onMounted(async () => {
+  customerOfferEventsChannel.subscribe()
+
   try {
     const {
       data: { user },
@@ -799,6 +822,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onBeforeUnmount(() => {
+  customerOfferEventsChannel.unsubscribe()
 })
 </script>
 
