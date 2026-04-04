@@ -279,14 +279,35 @@
                         />
                       </div>
                       <q-btn
-                        v-else
-                        v-show="activeTab !== 'orders'"
+                        v-if="!req.myOffer && activeTab !== 'orders'"
                         color="primary"
                         label="Place Bid"
                         icon="gavel"
                         class="full-width"
                         @click="openOfferDialog(req)"
                       />
+                      <div
+                        v-if="canRespondToCustomerOffer(req)"
+                        class="row items-center q-gutter-sm q-mt-sm"
+                      >
+                        <q-btn
+                          unelevated
+                          dense
+                          color="positive"
+                          icon="check_circle"
+                          label="Accept Customer Offer"
+                          :loading="acceptingCounterOfferId === req.request_id"
+                          @click="acceptCustomerOffer(req)"
+                        />
+                        <q-btn
+                          unelevated
+                          dense
+                          color="orange"
+                          icon="gavel"
+                          label="Bargain"
+                          @click="openCounterOfferDialog(req)"
+                        />
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -438,6 +459,7 @@ const offerTarget = ref(null)
 const offerPrice = ref(null)
 const offerMessage = ref('')
 const offerSubmitting = ref(false)
+const acceptingCounterOfferId = ref(null)
 
 const cairoDistricts = [
   'Downtown / Wust El-Balad',
@@ -543,6 +565,19 @@ const statusColor = (status) => {
   return map[status?.toLowerCase()] || 'grey'
 }
 
+const canRespondToCustomerOffer = (req) => {
+  if (!req?.myOffer) return false
+  if ((req.myOffer.status || 'pending').toLowerCase() !== 'pending') return false
+  if (req.technician_id !== technicianId.value) return false
+  if (req.customer_price === null || req.customer_price === undefined) return false
+
+  const customerOffer = Number(req.customer_price)
+  const myOffer = Number(req.myOffer.offered_price)
+  if (!Number.isFinite(customerOffer) || !Number.isFinite(myOffer)) return false
+
+  return customerOffer !== myOffer
+}
+
 const fetchRequests = async () => {
   if (!specialty.value) return
   requestsLoading.value = true
@@ -564,7 +599,7 @@ const fetchRequests = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
-    myOffer: r.fixer_price
+    myOffer: r.fixer_price && r.technician_id === technicianId.value
       ? {
           offered_price: r.fixer_price,
           status: r.request_status || 'pending',
@@ -597,7 +632,7 @@ const fetchAcceptedOrders = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
-    myOffer: r.fixer_price
+    myOffer: r.fixer_price && r.technician_id === technicianId.value
       ? {
           offered_price: r.fixer_price,
           status: r.request_status || 'accepted',
@@ -613,6 +648,58 @@ const openOfferDialog = (req) => {
   offerPrice.value = req.fixer_price || req.customer_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
+}
+
+const openCounterOfferDialog = (req) => {
+  offerTarget.value = req
+  offerPrice.value = req.customer_price || req.fixer_price || null
+  offerMessage.value = ''
+  offerDialogOpen.value = true
+}
+
+const acceptCustomerOffer = async (req) => {
+  if (!req?.request_id) return
+  const acceptedPrice = Number(req.customer_price)
+  if (!Number.isFinite(acceptedPrice) || acceptedPrice <= 0) {
+    $q.notify({ type: 'warning', message: 'Customer offer is invalid.' })
+    return
+  }
+
+  acceptingCounterOfferId.value = req.request_id
+
+  const { data: updatedRequest, error } = await supabase
+    .from('request')
+    .update({
+      fixer_price: acceptedPrice,
+      request_status: 'accepted',
+      technician_id: technicianId.value,
+      final_price: acceptedPrice,
+    })
+    .eq('request_id', req.request_id)
+    .eq('technician_id', technicianId.value)
+    .select('request_id, fixer_price, customer_price, request_status, technician_id')
+    .maybeSingle()
+
+  acceptingCounterOfferId.value = null
+
+  if (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to accept customer offer: ' + error.message,
+    })
+    return
+  }
+
+  if (!updatedRequest) {
+    $q.notify({
+      type: 'negative',
+      message: 'Offer was not accepted. Please refresh and try again.',
+    })
+    return
+  }
+
+  $q.notify({ type: 'positive', message: 'Customer offer accepted. Order confirmed!' })
+  await fetchRequests()
 }
 
 const submitOffer = async () => {

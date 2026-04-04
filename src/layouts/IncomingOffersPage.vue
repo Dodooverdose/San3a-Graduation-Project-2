@@ -135,12 +135,87 @@
                   <span class="text-capitalize">{{ req.payment_method }}</span>
                 </div>
               </div>
+
+              <div
+                v-if="!req.request_status || req.request_status.toLowerCase() === 'pending'"
+                class="action-row q-mt-sm"
+              >
+                <q-btn
+                  unelevated
+                  dense
+                  color="positive"
+                  icon="check_circle"
+                  label="Accept"
+                  class="action-btn"
+                  :loading="req._accepting"
+                  @click="acceptOffer(req)"
+                />
+                <q-btn
+                  unelevated
+                  dense
+                  color="negative"
+                  icon="cancel"
+                  label="Reject"
+                  class="action-btn"
+                  :loading="req._rejecting"
+                  @click="rejectOffer(req)"
+                />
+                <q-btn
+                  unelevated
+                  dense
+                  color="orange"
+                  icon="gavel"
+                  label="Bargain"
+                  class="action-btn"
+                  @click="openBargain(req)"
+                />
+              </div>
             </q-card-section>
           </q-card>
         </div>
       </q-page>
     </q-page-container>
 
+    <!-- Bargain Dialog -->
+    <q-dialog v-model="bargainDialog" persistent>
+      <q-card style="min-width: 300px; border-radius: 14px">
+        <q-card-section>
+          <div class="text-h6 text-weight-bold" style="color: #e65100">Make an Offer</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Fixer's price:
+            <strong>{{ bargainTarget?.fixer_price }} EGP</strong>
+          </div>
+        </q-card-section>
+
+        <q-form ref="bargainForm">
+          <q-card-section class="q-pt-none">
+            <q-input
+              v-model.number="bargainPrice"
+              type="number"
+              label="Your counter-offer (EGP)"
+              outlined
+              dense
+              autofocus
+              min="1"
+              :rules="[(v) => (!!v && Number(v) > 0) || 'Enter a valid price']"
+              @keyup.enter="submitBargain"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="grey-7" v-close-popup />
+            <q-btn
+              unelevated
+              label="Send Offer"
+              color="orange"
+              icon="send"
+              :loading="bargainLoading"
+              @click="submitBargain"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
     <q-footer elevated class="bottom-nav">
       <q-tabs
         v-model="activeTab"
@@ -166,8 +241,10 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 
+const $q = useQuasar()
 const activeTab = ref('offers')
 const loading = ref(true)
 const error = ref(null)
@@ -275,6 +352,79 @@ const fetchIncomingOffers = async () => {
   }
 }
 
+const acceptOffer = async (req) => {
+  req._accepting = true
+  const { error: err } = await supabase
+    .from('request')
+    .update({
+      request_status: 'accepted',
+      final_price: req.fixer_price,
+    })
+    .eq('request_id', req.request_id)
+  req._accepting = false
+  if (err) {
+    $q.notify({ type: 'negative', message: 'Failed to accept: ' + err.message })
+  } else {
+    req.request_status = 'accepted'
+    $q.notify({ type: 'positive', message: 'Offer accepted!' })
+  }
+}
+
+const rejectOffer = async (req) => {
+  req._rejecting = true
+  const { error: err } = await supabase
+    .from('request')
+    .update({ request_status: 'cancelled' })
+    .eq('request_id', req.request_id)
+  req._rejecting = false
+  if (err) {
+    $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
+  } else {
+    req.request_status = 'cancelled'
+    $q.notify({ type: 'warning', message: 'Offer rejected.' })
+  }
+}
+
+// Bargain
+const bargainDialog = ref(false)
+const bargainTarget = ref(null)
+const bargainPrice = ref(null)
+const bargainLoading = ref(false)
+const bargainForm = ref(null)
+
+const openBargain = (req) => {
+  bargainTarget.value = req
+  bargainPrice.value = req.customer_price ? Number(req.customer_price) : null
+  bargainDialog.value = true
+}
+
+const submitBargain = async () => {
+  const valid = await bargainForm.value?.validate()
+  if (!valid) return
+  const price = Number(bargainPrice.value)
+  if (!price || price <= 0) return
+  bargainLoading.value = true
+  const { data, error: err } = await supabase
+    .from('request')
+    .update({ customer_price: price })
+    .eq('request_id', bargainTarget.value.request_id)
+    .select()
+  bargainLoading.value = false
+  if (err) {
+    console.error('[Bargain] Supabase error:', err)
+    $q.notify({ type: 'negative', message: 'Failed to save offer: ' + err.message })
+  } else if (!data || data.length === 0) {
+    console.warn('[Bargain] 0 rows updated — check RLS policies on the request table.')
+    $q.notify({
+      type: 'warning',
+      message: 'Update blocked — check database permissions.',
+    })
+  } else {
+    bargainTarget.value.customer_price = price
+    bargainDialog.value = false
+    $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
+  }
+}
 onMounted(fetchIncomingOffers)
 </script>
 
@@ -376,6 +526,17 @@ onMounted(fetchIncomingOffers)
   color: #455a64;
 }
 
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-btn {
+  border-radius: 20px;
+  font-size: 12px;
+  padding: 0 14px;
+}
 .bottom-nav {
   background: linear-gradient(135deg, #2e7d32, #388e3c) !important;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
