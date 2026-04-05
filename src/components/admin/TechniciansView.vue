@@ -19,7 +19,7 @@
     <q-table
       :rows="filteredTechnicians"
       :columns="columns"
-      row-key="id"
+      row-key="_id"
       :loading="loading"
       class="q-mt-md"
     >
@@ -107,10 +107,10 @@ import { supabase } from 'src/boot/supabase'
 const $q = useQuasar()
 
 const columns = [
-  { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'email', label: 'Email', field: 'email', align: 'left' },
-  { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
+  { name: 'id', label: 'ID', field: '_id', align: 'left' },
+  { name: 'name', label: 'Name', field: '_name', align: 'left' },
+  { name: 'email', label: 'Email', field: '_email', align: 'left' },
+  { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
   { name: 'specialty', label: 'Specialty', field: 'specialty', align: 'left' },
   { name: 'verified', label: 'Status', field: 'verified', align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
@@ -130,11 +130,23 @@ const formData = ref({
   verified: false,
 })
 
+const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
+
+const normalizeTechnician = (technician) => ({
+  ...technician,
+  _id: technician.id ?? technician.technician_id ?? technician.user_id ?? null,
+  _name: technician.name ?? technician.full_name ?? 'Unknown',
+  _email: technician.email ?? '',
+  _phone: technician.phone ?? technician.phone_number ?? '',
+})
+
 const filteredTechnicians = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+
   return technicians.value.filter(
     (tech) =>
-      tech.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      tech.email.toLowerCase().includes(searchQuery.value.toLowerCase()),
+      normalizeText(tech._name).toLowerCase().includes(query) ||
+      normalizeText(tech._email).toLowerCase().includes(query),
   )
 })
 
@@ -146,7 +158,7 @@ const loadTechnicians = async () => {
       .select('*')
 
     if (error) throw error
-    technicians.value = data || []
+    technicians.value = (data || []).map(normalizeTechnician)
   } catch (error) {
     console.error('Error loading technicians:', error)
     $q.notify({

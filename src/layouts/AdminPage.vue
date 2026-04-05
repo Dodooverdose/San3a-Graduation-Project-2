@@ -27,6 +27,7 @@
             <q-tab name="requests" label="Requests" icon="assignment" />
             <q-tab name="pending" label="Pending Approvals" icon="pending_actions" />
             <q-tab name="complaints" label="Complaints" icon="flag" />
+            <q-tab name="analytics" label="Analytics" icon="insights" />
           </q-tabs>
 
           <q-tab-panels v-model="activeTab" animated>
@@ -49,6 +50,10 @@
             <q-tab-panel name="complaints">
               <ComplaintsView />
             </q-tab-panel>
+
+            <q-tab-panel name="analytics">
+              <AnalyticsView />
+            </q-tab-panel>
           </q-tab-panels>
         </div>
       </q-page>
@@ -66,6 +71,7 @@ import CustomersView from 'src/components/admin/CustomersView.vue'
 import RequestsView from 'src/components/admin/RequestsView.vue'
 import VerificationsView from 'src/components/admin/VerificationsView.vue'
 import ComplaintsView from 'src/components/admin/ComplaintsView.vue'
+import AnalyticsView from 'src/components/admin/AnalyticsView.vue'
 
 const router = useRouter()
 const $q = useQuasar()

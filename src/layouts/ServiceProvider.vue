@@ -404,15 +404,22 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 
 const router = useRouter()
 const route = useRoute()
 const $q = useQuasar()
+const {
+  notifications,
+  unreadCount,
+  setRecipientEmail,
+  loadNotifications,
+  markAsRead,
+  recordNotificationForRecipient,
+} = useNotificationCenter()
 
 const showNotifications = ref(false)
 const activeTab = ref('requests')
-const notifications = ref([])
-const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
 
 const goToPage = (route) => {
   if (route) router.push(route)
@@ -427,20 +434,16 @@ const setActiveTab = async (tab) => {
   await fetchRequests()
 }
 
-const markAsRead = (index) => {
-  notifications.value[index].read = true
-}
-
 const acceptOffer = (index) => {
   const notif = notifications.value[index]
+  markAsRead(index)
   $q.notify({ type: 'positive', message: `Accepted offer from ${notif.fixerName}` })
-  notifications.value.splice(index, 1)
 }
 
 const declineOffer = (index) => {
   const notif = notifications.value[index]
+  markAsRead(index)
   $q.notify({ type: 'warning', message: `Declined offer from ${notif.fixerName}` })
-  notifications.value.splice(index, 1)
 }
 
 const loading = ref(true)
@@ -595,7 +598,7 @@ const fetchRequests = async () => {
   // Query requests matching this technician's specialty
   const { data, error } = await supabase
     .from('request')
-    .select('*, users:user_id(full_name)')
+    .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
     .order('request_date', { ascending: false })
 
@@ -608,6 +611,7 @@ const fetchRequests = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
+    customer_email: r.users?.email || null,
     myOffer:
       r.fixer_price && r.technician_id === technicianId.value
         ? {
@@ -628,7 +632,7 @@ const fetchAcceptedOrders = async () => {
 
   const { data, error } = await supabase
     .from('request')
-    .select('*, users:user_id(full_name)')
+    .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
     .eq('request_status', 'accepted')
     .order('request_date', { ascending: false })
@@ -642,6 +646,7 @@ const fetchAcceptedOrders = async () => {
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
+    customer_email: r.users?.email || null,
     myOffer:
       r.fixer_price && r.technician_id === technicianId.value
         ? {
@@ -760,6 +765,21 @@ const submitOffer = async () => {
     return
   }
 
+  if (offerTarget.value.customer_email) {
+    void recordNotificationForRecipient(offerTarget.value.customer_email, {
+      title: `Fixer ${fullName.value || 'Fixer'}`,
+      message: `Sent an offer of ${normalizedPrice} EGP for request #${offerTarget.value.request_id}.`,
+      requestId: offerTarget.value.request_id,
+      type: 'offer',
+      icon: 'build',
+      payload: {
+        requestId: offerTarget.value.request_id,
+        price: normalizedPrice,
+        fixerName: fullName.value,
+      },
+    })
+  }
+
   if (trimmedMessage && offerTarget.value.user_id) {
     await customerOfferEventsChannel.send({
       type: 'broadcast',
@@ -801,20 +821,7 @@ const subscribeToCounterOffers = () => {
     .channel(`bargain-fixer-${technicianId.value}`)
     .on('broadcast', { event: 'customer-bargain-notification' }, ({ payload }) => {
       if (!payload) return
-
-      const notif = {
-        fixerName: 'Customer',
-        message: `Sent a counter-offer of ${payload.price} EGP for request #${payload.requestId}.`,
-        time: new Date().toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        read: false,
-        requestId: payload.requestId,
-      }
-      notifications.value.unshift(notif)
+      void loadNotifications()
       $q.notify({
         type: 'info',
         icon: 'notifications_active',
@@ -836,6 +843,8 @@ onMounted(async () => {
       router.push('/signin')
       return
     }
+
+    setRecipientEmail(user.email)
 
     // Look up technician from DB for accurate data
     const { data: tech } = await supabase
@@ -868,6 +877,8 @@ onMounted(async () => {
     if (technicianId.value) {
       subscribeToCounterOffers()
     }
+
+    await loadNotifications()
 
     const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
     await setActiveTab(initialTab)

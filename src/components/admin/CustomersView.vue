@@ -19,7 +19,7 @@
     <q-table
       :rows="filteredCustomers"
       :columns="columns"
-      row-key="id"
+      row-key="_id"
       :loading="loading"
       class="q-mt-md"
     >
@@ -103,10 +103,10 @@ import { supabase } from 'src/boot/supabase'
 const $q = useQuasar()
 
 const columns = [
-  { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'email', label: 'Email', field: 'email', align: 'left' },
-  { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
+  { name: 'id', label: 'ID', field: '_id', align: 'left' },
+  { name: 'name', label: 'Name', field: '_name', align: 'left' },
+  { name: 'email', label: 'Email', field: '_email', align: 'left' },
+  { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
   { name: 'address', label: 'Address', field: 'address', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
@@ -124,11 +124,23 @@ const formData = ref({
   address: '',
 })
 
+const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
+
+const normalizeCustomer = (customer) => ({
+  ...customer,
+  _id: customer.id ?? customer.user_id ?? null,
+  _name: customer.name ?? customer.full_name ?? 'Unknown',
+  _email: customer.email ?? '',
+  _phone: customer.phone ?? customer.phone_number ?? '',
+})
+
 const filteredCustomers = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+
   return users.value.filter(
     (cust) =>
-      cust.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      cust.email.toLowerCase().includes(searchQuery.value.toLowerCase()),
+      normalizeText(cust._name).toLowerCase().includes(query) ||
+      normalizeText(cust._email).toLowerCase().includes(query),
   )
 })
 
@@ -140,7 +152,7 @@ const loadCustomers = async () => {
       .select('*')
 
     if (error) throw error
-    users.value = data || []
+    users.value = (data || []).map(normalizeCustomer)
   } catch (error) {
     console.error('Error loading customers:', error)
     $q.notify({

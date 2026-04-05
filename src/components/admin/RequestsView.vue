@@ -26,13 +26,13 @@
     <q-table
       :rows="filteredRequests"
       :columns="columns"
-      row-key="id"
+      row-key="_id"
       :loading="loading"
       class="q-mt-md"
     >
       <template v-slot:body-cell-status="props">
         <q-td :props="props">
-          <q-badge :label="props.row.status" :color="getStatusColor(props.row.status)" />
+          <q-badge :label="props.row._status" :color="getStatusColor(props.row._status)" />
         </q-td>
       </template>
 
@@ -62,7 +62,7 @@
             round
             icon="delete"
             size="sm"
-            @click="deleteRequest(props.row.id)"
+            @click="deleteRequest(props.row)"
             color="negative"
           />
         </q-td>
@@ -80,15 +80,15 @@
 
         <q-card-section v-if="selectedRequest">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedRequest.id }}</div>
-            <div><strong>Customer:</strong> {{ selectedRequest.customer_name }}</div>
-            <div><strong>Category:</strong> {{ selectedRequest.category }}</div>
-            <div><strong>Description:</strong> {{ selectedRequest.description }}</div>
+            <div><strong>ID:</strong> {{ selectedRequest._id }}</div>
+            <div><strong>Customer:</strong> {{ selectedRequest._customer_name }}</div>
+            <div><strong>Category:</strong> {{ selectedRequest._category }}</div>
+            <div><strong>Description:</strong> {{ selectedRequest._description }}</div>
             <div>
               <strong>Status:</strong>
               <q-badge
-                :label="selectedRequest.status"
-                :color="getStatusColor(selectedRequest.status)"
+                :label="selectedRequest._status"
+                :color="getStatusColor(selectedRequest._status)"
               />
             </div>
             <div v-if="selectedRequest.fixer_price">
@@ -165,11 +165,11 @@ import { supabase } from 'src/boot/supabase'
 const $q = useQuasar()
 
 const columns = [
-  { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'customer_name', label: 'Customer', field: 'customer_name', align: 'left' },
-  { name: 'category', label: 'Category', field: 'category', align: 'left' },
-  { name: 'description', label: 'Description', field: 'description', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'center' },
+  { name: 'id', label: 'ID', field: '_id', align: 'left' },
+  { name: 'customer_name', label: 'Customer', field: '_customer_name', align: 'left' },
+  { name: 'category', label: 'Category', field: '_category', align: 'left' },
+  { name: 'description', label: 'Description', field: '_description', align: 'left' },
+  { name: 'status', label: 'Status', field: '_status', align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
 
@@ -183,6 +183,7 @@ const showDetailsDialog = ref(false)
 const showEditDialog = ref(false)
 const selectedRequest = ref(null)
 const editingId = ref(null)
+const editingKeyColumn = ref('id')
 
 const formData = ref({
   status: '',
@@ -191,13 +192,34 @@ const formData = ref({
   final_price: null,
 })
 
+const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
+
+const normalizeRequest = (request) => ({
+  ...request,
+  _id: request.id ?? request.request_id ?? request.uuid ?? null,
+  _keyColumn:
+    request.id !== undefined && request.id !== null
+      ? 'id'
+      : request.request_id !== undefined && request.request_id !== null
+        ? 'request_id'
+        : 'id',
+  _customer_name:
+    request.customer_name ?? request.full_name ?? request.customer_full_name ?? request.user_name ?? 'Unknown',
+  _category: request.category ?? request.service_category ?? request.request_category ?? request.specialty ?? 'Unspecified',
+  _description: request.description ?? request.description_of_issue ?? '',
+  _status: request.status ?? request.request_status ?? 'pending',
+})
+
 const filteredRequests = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+
   return requests.value.filter((req) => {
     const matchesSearch =
-      req.customer_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      req.category.toLowerCase().includes(searchQuery.value.toLowerCase())
+      normalizeText(req._customer_name).toLowerCase().includes(query) ||
+      normalizeText(req._category).toLowerCase().includes(query) ||
+      normalizeText(req._description).toLowerCase().includes(query)
 
-    const matchesStatus = !filterStatus.value || req.status === filterStatus.value
+    const matchesStatus = !filterStatus.value || normalizeText(req._status) === filterStatus.value
 
     return matchesSearch && matchesStatus
   })
@@ -211,7 +233,7 @@ const loadRequests = async () => {
       .select('*')
 
     if (error) throw error
-    requests.value = data || []
+    requests.value = (data || []).map(normalizeRequest)
   } catch (error) {
     console.error('Error loading requests:', error)
     $q.notify({
@@ -230,9 +252,10 @@ const viewRequest = (request) => {
 }
 
 const editRequest = (request) => {
-  editingId.value = request.id
+  editingId.value = request._id
+  editingKeyColumn.value = request._keyColumn || 'id'
   formData.value = {
-    status: request.status,
+    status: request._status,
     fixer_price: request.fixer_price,
     customer_price: request.customer_price,
     final_price: request.final_price,
@@ -245,7 +268,7 @@ const saveRequest = async () => {
     const { error } = await supabase
       .from('request')
       .update(formData.value)
-      .eq('id', editingId.value)
+      .eq(editingKeyColumn.value, editingId.value)
 
     if (error) throw error
     $q.notify({
@@ -265,7 +288,7 @@ const saveRequest = async () => {
   }
 }
 
-const deleteRequest = async (id) => {
+const deleteRequest = async (request) => {
   try {
     await $q.dialog({
       title: 'Confirm',
@@ -274,7 +297,10 @@ const deleteRequest = async (id) => {
       persistent: true,
     })
 
-    const { error } = await supabase.from('request').delete().eq('id', id)
+    const { error } = await supabase
+      .from('request')
+      .delete()
+      .eq(request._keyColumn || 'id', request._id)
 
     if (error) throw error
     $q.notify({

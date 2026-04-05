@@ -185,11 +185,15 @@ const formData = ref({
   resolution: '',
 })
 
+const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
+
 const filteredComplaints = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+
   return complaints.value.filter((comp) => {
     const matchesSearch =
-      comp.complainant_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      comp.subject.toLowerCase().includes(searchQuery.value.toLowerCase())
+      normalizeText(comp.complainant_name).toLowerCase().includes(query) ||
+      normalizeText(comp.subject).toLowerCase().includes(query)
 
     const matchesStatus = !filterStatus.value || comp.status === filterStatus.value
 

@@ -222,6 +222,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -230,19 +231,19 @@ const loading = ref(true)
 const error = ref(null)
 const allOrders = ref([])
 const showNotifications = ref(false)
-const notifications = ref([])
+const { notifications, unreadCount, setRecipientEmail, loadNotifications, markAsRead } =
+  useNotificationCenter()
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const knownOfferPrices = ref(new Map())
-const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
-
-const markAsRead = (index) => {
-  notifications.value[index].read = true
-}
 
 const openNotification = (notif, index) => {
   markAsRead(index)
   showNotifications.value = false
+  if (notif?.routePath) {
+    router.push(notif.routePath)
+    return
+  }
   if (notif?.requestId) {
     router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
     return
@@ -297,6 +298,8 @@ const fetchAllOrders = async () => {
       loading.value = false
       return
     }
+
+    setRecipientEmail(user.email)
 
     // Look up user_id from users table
     let userId = null
@@ -354,8 +357,10 @@ const initializeIncomingOfferTracking = async () => {
 
   if (!user) return
 
+  setRecipientEmail(user.email)
+
   const { data: customer } = await supabase
-    .from('users')
+  knownOfferPrices.value = new Map((requests || []).map((r) => [r.request_id, r.fixer_price]))
     .select('user_id')
     .ilike('email', user.email)
     .maybeSingle()
@@ -401,20 +406,7 @@ const subscribeToIncomingOffers = () => {
         knownOfferPrices.value.set(requestId, nextFixerPrice)
         if (!hasNewBid) return
 
-        const notificationItem = {
-          fixerName: 'Fixer',
-          message: `Sent an offer of ${nextFixerPrice} EGP for request #${requestId}.`,
-          time: new Date().toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          read: false,
-          requestId,
-        }
-
-        notifications.value.unshift(notificationItem)
+        void loadNotifications()
 
         $q.notify({
           type: 'info',
@@ -428,6 +420,7 @@ const subscribeToIncomingOffers = () => {
 
 onMounted(async () => {
   await initializeIncomingOfferTracking()
+  await loadNotifications()
   subscribeToIncomingOffers()
 })
 

@@ -290,6 +290,7 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 
 const route = useRoute()
 const router = useRouter()
@@ -299,12 +300,18 @@ const loading = ref(true)
 const error = ref(null)
 const incomingOffers = ref([])
 const showNotifications = ref(false)
-const notifications = ref([])
+const {
+  notifications,
+  unreadCount,
+  setRecipientEmail,
+  loadNotifications,
+  markAsRead,
+  recordNotificationForRecipient,
+} = useNotificationCenter()
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const messageSubscription = ref(null)
 const transientFixerMessages = ref(new Map())
-const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
 const myBargainChannel = ref(null)
 const statusFilter = ref('all')
 const statusFilterOptions = [
@@ -367,13 +374,14 @@ const getFixerMessage = (req) => {
   return transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
 }
 
-const markAsRead = (index) => {
-  notifications.value[index].read = true
-}
-
 const openNotification = (notif, index) => {
   markAsRead(index)
   showNotifications.value = false
+
+  if (notif?.routePath) {
+    router.push(notif.routePath)
+    return
+  }
 
   if (notif?.requestId) {
     router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
@@ -396,6 +404,8 @@ const fetchIncomingOffers = async () => {
       loading.value = false
       return
     }
+
+    setRecipientEmail(user.email)
 
     const { data: customer } = await supabase
       .from('users')
@@ -430,7 +440,7 @@ const fetchIncomingOffers = async () => {
       if (technicianIds.length) {
         const { data: techRows } = await supabase
           .from('technician')
-          .select('technician_id, full_name, phone_number, years_of_experience')
+          .select('technician_id, full_name, email, phone_number, years_of_experience')
           .in('technician_id', technicianIds)
 
         technicianMap = (techRows || []).reduce((acc, t) => {
@@ -444,6 +454,8 @@ const fetchIncomingOffers = async () => {
         fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
       }))
     }
+
+    await loadNotifications()
   } catch (err) {
     error.value = 'An unexpected error occurred.'
     console.error(err)
@@ -498,19 +510,7 @@ const subscribeToFixerBidNotifications = () => {
     .on('broadcast', { event: 'fixer-bid-notification' }, ({ payload }) => {
       if (!payload) return
 
-      const notif = {
-        fixerName: `Fixer ${payload.fixerName || 'Name'}`,
-        message: `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.`,
-        time: new Date().toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        read: false,
-        requestId: payload.requestId,
-      }
-      notifications.value.unshift(notif)
+      void loadNotifications()
       $q.notify({
         type: 'info',
         icon: 'notifications_active',
@@ -591,6 +591,21 @@ const submitBargain = async () => {
   } else {
     bargainTarget.value.customer_price = price
     bargainDialog.value = false
+
+    if (bargainTarget.value.fixerInfo?.email) {
+      void recordNotificationForRecipient(bargainTarget.value.fixerInfo.email, {
+        title: 'Customer',
+        message: `Sent a counter-offer of ${price} EGP for request #${bargainTarget.value.request_id}.`,
+        requestId: bargainTarget.value.request_id,
+        type: 'counter-offer',
+        icon: 'handshake',
+        payload: {
+          requestId: bargainTarget.value.request_id,
+          price,
+        },
+      })
+    }
+
     $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
 
     // Broadcast notification to fixer via their specific channel
@@ -612,6 +627,7 @@ const submitBargain = async () => {
 
 onMounted(async () => {
   await fetchIncomingOffers()
+  await loadNotifications()
   subscribeToIncomingOffers()
   subscribeToFixerMessages()
   subscribeToFixerBidNotifications()

@@ -90,7 +90,7 @@
                 />
               </div>
 
-              <div v-if="authStore.isAdmin" class="text-center q-mt-md">
+              <!-- <div v-if="authStore.isAdmin" class="text-center q-mt-md">
                 <q-btn
                   flat
                   color="primary"
@@ -98,7 +98,7 @@
                   style="margin: 0 auto !important"
                   @click="navigateWithPress('/admin', 'admin')"
                 />
-              </div>
+              </div> -->
             </q-card-section>
           </q-card>
         </div>

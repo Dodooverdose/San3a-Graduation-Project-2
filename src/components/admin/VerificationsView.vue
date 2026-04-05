@@ -25,15 +25,15 @@
       v-else
       :rows="filteredTechnicians"
       :columns="columns"
-      row-key="id"
+      row-key="_id"
       :loading="loading"
       class="q-mt-md"
     >
       <template v-slot:body-cell-verified="props">
         <q-td :props="props">
           <q-badge
-            :label="props.row.verified ? 'Approved' : 'Pending'"
-            :color="props.row.verified ? 'green' : 'orange'"
+            :label="props.row._isApproved ? 'Approved' : 'Pending'"
+            :color="props.row._isApproved ? 'green' : 'orange'"
           />
         </q-td>
       </template>
@@ -55,7 +55,7 @@
             round
             icon="check"
             size="sm"
-            @click="approveTechnician(props.row.id)"
+            @click="approveTechnician(props.row)"
             color="positive"
             title="Approve"
           />
@@ -65,7 +65,7 @@
             round
             icon="close"
             size="sm"
-            @click="rejectTechnician(props.row.id)"
+            @click="rejectTechnician(props.row)"
             color="negative"
             title="Reject"
           />
@@ -84,18 +84,18 @@
 
         <q-card-section v-if="selectedTechnician">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedTechnician.id }}</div>
-            <div><strong>Name:</strong> {{ selectedTechnician.name }}</div>
-            <div><strong>Email:</strong> {{ selectedTechnician.email }}</div>
-            <div><strong>Phone:</strong> {{ selectedTechnician.phone }}</div>
+            <div><strong>ID:</strong> {{ selectedTechnician._id }}</div>
+            <div><strong>Name:</strong> {{ selectedTechnician._name }}</div>
+            <div><strong>Email:</strong> {{ selectedTechnician._email }}</div>
+            <div><strong>Phone:</strong> {{ selectedTechnician._phone }}</div>
             <div>
               <strong>Specialty:</strong> {{ selectedTechnician.specialty || 'Not specified' }}
             </div>
             <div>
               <strong>Status:</strong>
               <q-badge
-                :label="selectedTechnician.verified ? 'Approved' : 'Pending'"
-                :color="selectedTechnician.verified ? 'green' : 'orange'"
+                :label="selectedTechnician._isApproved ? 'Approved' : 'Pending'"
+                :color="selectedTechnician._isApproved ? 'green' : 'orange'"
               />
             </div>
             <div><strong>Registered:</strong> {{ formatDate(selectedTechnician.created_at) }}</div>
@@ -121,10 +121,10 @@ import { supabase } from 'src/boot/supabase'
 const $q = useQuasar()
 
 const columns = [
-  { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'email', label: 'Email', field: 'email', align: 'left' },
-  { name: 'phone', label: 'Phone', field: 'phone', align: 'left' },
+  { name: 'id', label: 'ID', field: '_id', align: 'left' },
+  { name: 'name', label: 'Name', field: '_name', align: 'left' },
+  { name: 'email', label: 'Email', field: '_email', align: 'left' },
+  { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
   { name: 'specialty', label: 'Specialty', field: 'specialty', align: 'left' },
   { name: 'verified', label: 'Status', field: 'verified', align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
@@ -136,11 +136,42 @@ const searchQuery = ref('')
 const showDetailsDialog = ref(false)
 const selectedTechnician = ref(null)
 
+const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
+
+const isApprovedTechnician = (technician) => {
+  if (typeof technician.verified === 'boolean') return technician.verified
+  if (typeof technician.is_verified === 'boolean') return technician.is_verified
+
+  const status = normalizeText(
+    technician.verification_status ?? technician.approval_status ?? technician.status,
+  ).toLowerCase()
+
+  if (!status) return false
+  return ['approved', 'verified', 'active'].includes(status)
+}
+
+const normalizeTechnician = (technician) => ({
+  ...technician,
+  _id: technician.id ?? technician.technician_id ?? technician.user_id ?? null,
+  _keyColumn:
+    technician.id !== undefined && technician.id !== null
+      ? 'id'
+      : technician.technician_id !== undefined && technician.technician_id !== null
+        ? 'technician_id'
+        : 'id',
+  _name: technician.name ?? technician.full_name ?? 'Unknown',
+  _email: technician.email ?? '',
+  _phone: technician.phone ?? technician.phone_number ?? '',
+  _isApproved: isApprovedTechnician(technician),
+})
+
 const filteredTechnicians = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+
   return pendingTechnicians.value.filter(
     (tech) =>
-      tech.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      tech.email.toLowerCase().includes(searchQuery.value.toLowerCase()),
+      normalizeText(tech._name).toLowerCase().includes(query) ||
+      normalizeText(tech._email).toLowerCase().includes(query),
   )
 })
 
@@ -150,10 +181,10 @@ const loadPendingTechnicians = async () => {
     const { data, error } = await supabase
       .from('technician')
       .select('*')
-      .eq('verified', false)
 
     if (error) throw error
-    pendingTechnicians.value = data || []
+    const normalized = (data || []).map(normalizeTechnician)
+    pendingTechnicians.value = normalized.filter((tech) => !tech._isApproved)
   } catch (error) {
     console.error('Error loading pending technicians:', error)
     $q.notify({
@@ -171,12 +202,28 @@ const viewTechnician = (technician) => {
   showDetailsDialog.value = true
 }
 
-const approveTechnician = async (id) => {
+const approveTechnician = async (technician) => {
   try {
+    const updatePayload = {
+      updated_at: new Date().toISOString(),
+    }
+
+    if ('verified' in technician) {
+      updatePayload.verified = true
+    } else if ('is_verified' in technician) {
+      updatePayload.is_verified = true
+    } else if ('verification_status' in technician) {
+      updatePayload.verification_status = 'approved'
+    } else if ('approval_status' in technician) {
+      updatePayload.approval_status = 'approved'
+    } else if ('status' in technician) {
+      updatePayload.status = 'approved'
+    }
+
     const { error } = await supabase
       .from('technician')
-      .update({ verified: true, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .update(updatePayload)
+      .eq(technician._keyColumn || 'id', technician._id)
 
     if (error) throw error
     $q.notify({
@@ -195,7 +242,7 @@ const approveTechnician = async (id) => {
   }
 }
 
-const rejectTechnician = async (id) => {
+const rejectTechnician = async (technician) => {
   try {
     await $q.dialog({
       title: 'Confirm',
@@ -204,7 +251,10 @@ const rejectTechnician = async (id) => {
       persistent: true,
     })
 
-    const { error } = await supabase.from('technician').delete().eq('id', id)
+    const { error } = await supabase
+      .from('technician')
+      .delete()
+      .eq(technician._keyColumn || 'id', technician._id)
 
     if (error) throw error
     $q.notify({
