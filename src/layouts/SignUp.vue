@@ -14,7 +14,9 @@
             <!-- Logo -->
             <div class="auth-logo">
               <div class="brand-row">
-                <div class="brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+                <div class="brand-icon">
+                  <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+                </div>
                 <span class="brand-text">San3a</span>
               </div>
               <h1 class="auth-title">Create Your Account</h1>
@@ -31,7 +33,7 @@
               indicator-color="primary"
               align="justify"
             >
-              <q-tab name="customer" label="I Need Services" />
+              <q-tab name="customer" label="I'm a Customer" />
               <q-tab name="fixer" label="I'm a Technician" />
             </q-tabs>
 
@@ -41,46 +43,109 @@
                 <q-form @submit.prevent="onSubmit" class="auth-form">
                   <div class="field-group">
                     <label class="field-label">Full Name</label>
-                    <q-input v-model="form.fullName" placeholder="Ahmed Hassan" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && val.length > 0) || 'Name is required']">
+                    <q-input
+                      v-model="form.fullName"
+                      placeholder="Ahmed Hassan"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+                    >
                       <template v-slot:prepend><q-icon name="person" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Email Address</label>
-                    <q-input v-model="form.email" type="email" placeholder="your.email@example.com" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required']">
+                    <q-input
+                      v-model="form.email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[
+                        (val) =>
+                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="mail" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Phone Number</label>
-                    <q-input v-model="form.phoneNumber" type="tel" placeholder="1XX XXX XXXX" prefix="+20" mask="### ### ####" outlined dense hide-bottom-space class="san3a-input"
+                    <q-input
+                      v-model="form.phoneNumber"
+                      type="tel"
+                      placeholder="1XX XXX XXXX"
+                      prefix="+20"
+                      mask="### ### ####"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
                       :rules="[
-                        (val) => (val && val.replace(/\s/g, '').length === 10) || 'Enter a valid phone number',
-                        (val) => /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') || 'Number must start with 10, 11, 12, or 15',
-                      ]">
+                        (val) =>
+                          (val && val.replace(/\s/g, '').length === 10) ||
+                          'Enter a valid phone number',
+                        (val) =>
+                          /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') ||
+                          'Number must start with 10, 11, 12, or 15',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="phone" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Password</label>
-                    <q-input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Create a strong password" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && val.length >= 6) || 'Password must be at least 6 characters']">
+                    <q-input
+                      v-model="form.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="Create a strong password"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[
+                        (val) =>
+                          (val && val.length >= 6) || 'Password must be at least 6 characters',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
-                      <template v-slot:append><q-icon :name="showPassword ? 'visibility' : 'visibility_off'" class="cursor-pointer" color="grey-5" @click="showPassword = !showPassword" /></template>
+                      <template v-slot:append
+                        ><q-icon
+                          :name="showPassword ? 'visibility' : 'visibility_off'"
+                          class="cursor-pointer"
+                          color="grey-5"
+                          @click="showPassword = !showPassword"
+                      /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Confirm Password</label>
-                    <q-input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="Confirm your password" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => val === form.password || 'Passwords must match']">
+                    <q-input
+                      v-model="form.confirmPassword"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      placeholder="Confirm your password"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[(val) => val === form.password || 'Passwords must match']"
+                    >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
-                      <template v-slot:append><q-icon :name="showConfirmPassword ? 'visibility' : 'visibility_off'" class="cursor-pointer" color="grey-5" @click="showConfirmPassword = !showConfirmPassword" /></template>
+                      <template v-slot:append
+                        ><q-icon
+                          :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+                          class="cursor-pointer"
+                          color="grey-5"
+                          @click="showConfirmPassword = !showConfirmPassword"
+                      /></template>
                     </q-input>
                   </div>
 
@@ -90,7 +155,16 @@
                     </template>
                   </q-checkbox>
 
-                  <q-btn unelevated no-caps color="primary" label="Create Customer Account" class="submit-btn" :disable="!isSignUpEnabled" :loading="loading" @click="onSubmit" />
+                  <q-btn
+                    unelevated
+                    no-caps
+                    color="primary"
+                    label="Create Customer Account"
+                    class="submit-btn"
+                    :disable="!isSignUpEnabled"
+                    :loading="loading"
+                    @click="onSubmit"
+                  />
                 </q-form>
               </q-tab-panel>
 
@@ -99,69 +173,164 @@
                 <q-form @submit.prevent="onSubmit" class="auth-form">
                   <div class="field-group">
                     <label class="field-label">Full Name</label>
-                    <q-input v-model="form.fullName" placeholder="Mohamed Samir" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && val.length > 0) || 'Name is required']">
+                    <q-input
+                      v-model="form.fullName"
+                      placeholder="Mohamed Samir"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+                    >
                       <template v-slot:prepend><q-icon name="person" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Email Address</label>
-                    <q-input v-model="form.email" type="email" placeholder="your.email@example.com" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required']">
+                    <q-input
+                      v-model="form.email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[
+                        (val) =>
+                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="mail" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Phone Number</label>
-                    <q-input v-model="form.phoneNumber" type="tel" placeholder="1XX XXX XXXX" prefix="+20" mask="### ### ####" outlined dense hide-bottom-space class="san3a-input"
+                    <q-input
+                      v-model="form.phoneNumber"
+                      type="tel"
+                      placeholder="1XX XXX XXXX"
+                      prefix="+20"
+                      mask="### ### ####"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
                       :rules="[
-                        (val) => (val && val.replace(/\s/g, '').length === 10) || 'Enter a valid phone number',
-                        (val) => /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') || 'Number must start with 10, 11, 12, or 15',
-                      ]">
+                        (val) =>
+                          (val && val.replace(/\s/g, '').length === 10) ||
+                          'Enter a valid phone number',
+                        (val) =>
+                          /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') ||
+                          'Number must start with 10, 11, 12, or 15',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="phone" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Password</label>
-                    <q-input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Create a strong password" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => (val && val.length >= 6) || 'Password must be at least 6 characters']">
+                    <q-input
+                      v-model="form.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="Create a strong password"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[
+                        (val) =>
+                          (val && val.length >= 6) || 'Password must be at least 6 characters',
+                      ]"
+                    >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
-                      <template v-slot:append><q-icon :name="showPassword ? 'visibility' : 'visibility_off'" class="cursor-pointer" color="grey-5" @click="showPassword = !showPassword" /></template>
+                      <template v-slot:append
+                        ><q-icon
+                          :name="showPassword ? 'visibility' : 'visibility_off'"
+                          class="cursor-pointer"
+                          color="grey-5"
+                          @click="showPassword = !showPassword"
+                      /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Confirm Password</label>
-                    <q-input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="Confirm your password" outlined dense hide-bottom-space class="san3a-input"
-                      :rules="[(val) => val === form.password || 'Passwords must match']">
+                    <q-input
+                      v-model="form.confirmPassword"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      placeholder="Confirm your password"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      class="san3a-input"
+                      :rules="[(val) => val === form.password || 'Passwords must match']"
+                    >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
-                      <template v-slot:append><q-icon :name="showConfirmPassword ? 'visibility' : 'visibility_off'" class="cursor-pointer" color="grey-5" @click="showConfirmPassword = !showConfirmPassword" /></template>
+                      <template v-slot:append
+                        ><q-icon
+                          :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+                          class="cursor-pointer"
+                          color="grey-5"
+                          @click="showConfirmPassword = !showConfirmPassword"
+                      /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Specialty</label>
-                    <q-select v-model="form.specialty" :options="specialtyOptions" emit-value map-options outlined dense hide-bottom-space placeholder="Select your specialty" class="san3a-input"
-                      :rules="[(val) => !!val || 'Please select a specialty']">
+                    <q-select
+                      v-model="form.specialty"
+                      :options="specialtyOptions"
+                      emit-value
+                      map-options
+                      outlined
+                      dense
+                      hide-bottom-space
+                      placeholder="Select your specialty"
+                      class="san3a-input"
+                      :rules="[(val) => !!val || 'Please select a specialty']"
+                    >
                       <template v-slot:prepend><q-icon name="build" color="grey-5" /></template>
                     </q-select>
                   </div>
 
                   <div class="field-group">
                     <label class="field-label">Years of Experience</label>
-                    <q-input v-model.number="form.yearsOfExperience" type="number" placeholder="e.g., 5" outlined dense hide-bottom-space min="0" step="1" class="san3a-input"
-                      :rules="[(val) => (val !== null && val !== '' && Number.isInteger(Number(val)) && Number(val) >= 0) || 'Enter a valid number']">
-                      <template v-slot:prepend><q-icon name="workspace_premium" color="grey-5" /></template>
+                    <q-input
+                      v-model.number="form.yearsOfExperience"
+                      type="number"
+                      placeholder="e.g., 5"
+                      outlined
+                      dense
+                      hide-bottom-space
+                      min="0"
+                      step="1"
+                      class="san3a-input"
+                      :rules="[
+                        (val) =>
+                          (val !== null &&
+                            val !== '' &&
+                            Number.isInteger(Number(val)) &&
+                            Number(val) >= 0) ||
+                          'Enter a valid number',
+                      ]"
+                    >
+                      <template v-slot:prepend
+                        ><q-icon name="workspace_premium" color="grey-5"
+                      /></template>
                     </q-input>
                   </div>
 
                   <!-- Info box -->
                   <div class="info-box">
                     <q-icon name="info" size="18px" />
-                    <p>After registration, you'll need to complete your profile and verification before you can start receiving job requests.</p>
+                    <p>
+                      After registration, you'll need to complete your profile and verification
+                      before you can start receiving job requests.
+                    </p>
                   </div>
 
                   <q-checkbox v-model="form.agreeTerms" dense class="terms-check">
@@ -170,7 +339,16 @@
                     </template>
                   </q-checkbox>
 
-                  <q-btn unelevated no-caps color="secondary" label="Create Technician Account" class="submit-btn" :disable="!isSignUpEnabled" :loading="loading" @click="onSubmit" />
+                  <q-btn
+                    unelevated
+                    no-caps
+                    color="secondary"
+                    label="Create Technician Account"
+                    class="submit-btn"
+                    :disable="!isSignUpEnabled"
+                    :loading="loading"
+                    @click="onSubmit"
+                  />
                 </q-form>
               </q-tab-panel>
             </q-tab-panels>
@@ -302,7 +480,10 @@ const onSubmit = async () => {
     ])
 
     if (existingUser || existingTechnician) {
-      $q.notify({ type: 'negative', message: 'An account with this email already exists. Please sign in instead.' })
+      $q.notify({
+        type: 'negative',
+        message: 'An account with this email already exists. Please sign in instead.',
+      })
       loading.value = false
       return
     }
@@ -341,7 +522,10 @@ const onSubmit = async () => {
       console.warn('Profile insert failed:', insertError.message)
     }
 
-    $q.notify({ type: 'positive', message: `Welcome ${form.value.fullName}! Account created successfully.` })
+    $q.notify({
+      type: 'positive',
+      message: `Welcome ${form.value.fullName}! Account created successfully.`,
+    })
 
     const selectedRole = form.value.role
     form.value = {
@@ -395,7 +579,9 @@ const onSubmit = async () => {
   margin-bottom: 28px;
   transition: color 0.2s;
 }
-.back-link:hover { color: var(--san3a-primary); }
+.back-link:hover {
+  color: var(--san3a-primary);
+}
 
 .auth-card {
   background: #fff;
@@ -553,7 +739,9 @@ const onSubmit = async () => {
   font-weight: 700;
   cursor: pointer;
 }
-.switch-link:hover { text-decoration: underline; }
+.switch-link:hover {
+  text-decoration: underline;
+}
 
 .auth-footer {
   text-align: center;
@@ -566,9 +754,13 @@ const onSubmit = async () => {
   color: var(--san3a-primary);
   cursor: pointer;
 }
-.footer-link:hover { text-decoration: underline; }
+.footer-link:hover {
+  text-decoration: underline;
+}
 
 @media (max-width: 480px) {
-  .auth-card { padding: 24px 18px; }
+  .auth-card {
+    padding: 24px 18px;
+  }
 }
 </style>
