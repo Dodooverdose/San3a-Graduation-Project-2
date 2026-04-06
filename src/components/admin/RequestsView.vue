@@ -1,21 +1,20 @@
 <template>
   <div class="requests-view">
-    <div class="q-mb-md">
+    <div class="view-toolbar q-mb-md">
       <q-select
         v-model="filterStatus"
         :options="statusOptions"
         outlined
         dense
         label="Filter by Status"
-        style="max-width: 250px"
+        class="toolbar-filter"
       />
       <q-input
         v-model="searchQuery"
         outlined
         dense
         placeholder="Search requests..."
-        class="q-ml-md"
-        style="max-width: 300px"
+        class="toolbar-search"
       >
         <template v-slot:prepend>
           <q-icon name="search" />
@@ -28,7 +27,7 @@
       :columns="columns"
       row-key="_id"
       :loading="loading"
-      class="q-mt-md"
+      class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-status="props">
         <q-td :props="props">
@@ -71,7 +70,7 @@
 
     <!-- View Details Dialog -->
     <q-dialog v-model="showDetailsDialog">
-      <q-card style="min-width: 500px">
+      <q-card class="admin-dialog-card" style="min-width: 500px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Request Details</div>
           <q-space />
@@ -112,7 +111,7 @@
 
     <!-- Edit Dialog -->
     <q-dialog v-model="showEditDialog">
-      <q-card style="min-width: 400px">
+      <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Edit Request</div>
           <q-space />
@@ -169,11 +168,20 @@ const columns = [
   { name: 'customer_name', label: 'Customer', field: '_customer_name', align: 'left' },
   { name: 'category', label: 'Category', field: '_category', align: 'left' },
   { name: 'description', label: 'Description', field: '_description', align: 'left' },
-  { name: 'status', label: 'Status', field: '_status', align: 'center' },
+  { name: 'status', label: 'Request Status', field: '_status', align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
 
 const statusOptions = ['pending', 'assigned', 'in-progress', 'completed', 'cancelled']
+
+const serviceTypeLabels = {
+  plumber: 'Plumbing',
+  carpenter: 'Carpentry',
+  electrician: 'Electrical',
+  kitchen_fitter: 'Kitchen Utilities',
+  painter: 'Painting',
+  drapery_seamstress: 'Drapery Seamstress',
+}
 
 const requests = ref([])
 const loading = ref(false)
@@ -204,10 +212,21 @@ const normalizeRequest = (request) => ({
         ? 'request_id'
         : 'id',
   _customer_name:
-    request.customer_name ?? request.full_name ?? request.customer_full_name ?? request.user_name ?? 'Unknown',
-  _category: request.category ?? request.service_category ?? request.request_category ?? request.specialty ?? 'Unspecified',
+    request.users?.full_name ??
+    request.customer_name ??
+    request.full_name ??
+    request.customer_full_name ??
+    request.user_name ??
+    'Unknown',
+  _category:
+    serviceTypeLabels[request.service_type] ??
+    request.category ??
+    request.service_category ??
+    request.request_category ??
+    request.specialty ??
+    'Unspecified',
   _description: request.description ?? request.description_of_issue ?? '',
-  _status: request.status ?? request.request_status ?? 'pending',
+  _status: request.request_status ?? request.status ?? 'pending',
 })
 
 const filteredRequests = computed(() => {
@@ -230,7 +249,7 @@ const loadRequests = async () => {
   try {
     const { data, error } = await supabase
       .from('request')
-      .select('*')
+      .select('*, users:user_id(full_name, email)')
 
     if (error) throw error
     requests.value = (data || []).map(normalizeRequest)
@@ -333,6 +352,7 @@ const getStatusColor = (status) => {
 }
 
 const formatDate = (date) => {
+  if (!date) return '-'
   return new Date(date).toLocaleString()
 }
 
@@ -342,5 +362,52 @@ loadRequests()
 <style scoped>
 .requests-view {
   width: 100%;
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-filter {
+  width: 240px;
+  max-width: 100%;
+}
+
+.toolbar-search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.admin-table {
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table :deep(thead tr) {
+  background: var(--san3a-gray-100);
+}
+
+.admin-table :deep(th) {
+  color: var(--san3a-gray-700);
+  font-weight: 700;
+}
+
+.admin-table :deep(tbody tr:hover) {
+  background: #f9fcfc;
+}
+
+.admin-dialog-card {
+  border-radius: 14px;
+}
+
+@media (max-width: 600px) {
+  .toolbar-filter,
+  .toolbar-search {
+    width: 100%;
+  }
 }
 </style>

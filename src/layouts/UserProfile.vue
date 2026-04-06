@@ -1,83 +1,338 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated class="fixed-top">
-      <q-toolbar>
-        <q-toolbar-title>User Profile</q-toolbar-title>
+    <q-header class="app-header-teal">
+      <q-toolbar class="app-toolbar">
+        <div class="header-brand">
+          <div class="header-brand-icon-w">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
+          <span class="header-brand-name-w">Profile</span>
+        </div>
       </q-toolbar>
     </q-header>
 
     <q-page-container>
       <q-page class="profile-page">
-        <div class="profile-card">
-          <q-btn
-            flat
-            round
-            class="profile-avatar-btn"
-            aria-label="Change profile picture"
-            @click="openFilePicker"
-          >
-            <q-avatar size="140px" class="profile-avatar">
-              <img :src="avatarUrl" alt="Profile picture" />
-            </q-avatar>
-          </q-btn>
-          <input
-            ref="fileInputRef"
-            class="visually-hidden"
-            type="file"
-            accept="image/*"
-            @change="onFileChange"
-          />
+        <div v-if="loading" class="state-center">
+          <q-spinner-dots size="48px" color="primary" />
+          <div class="text-grey-7 q-mt-sm">Loading profile...</div>
+        </div>
 
-          <div class="profile-info">
-            <div v-if="profileLoading" class="text-grey-7">Loading profile...</div>
-            <template v-else>
-              <div class="profile-name">{{ profileName || 'Unknown User' }}</div>
-              <div class="profile-email">{{ profileEmail || 'No email found' }}</div>
-              <div v-if="isFixer && specialtyLabel" class="profile-extra">
-                Specialty: {{ specialtyLabel }}
-              </div>
-              <div v-if="isFixer && yearsOfExperience !== null" class="profile-extra">
-                Years of experience: {{ yearsOfExperience }}
-              </div>
-            </template>
-          </div>
-
-          <div class="profile-actions">
-            <q-btn color="secondary" class="action-btn" @click="showSettings = !showSettings">
-              <q-icon
-                name="settings"
-                class="gear-icon"
-                :class="{ 'gear-spin': showSettings }"
-                size="sm"
+        <div v-else class="profile-wrap san3a-animate-in">
+          <section class="profile-hero">
+            <div class="hero-left">
+              <q-btn
+                flat
+                round
+                class="avatar-btn"
+                aria-label="Change profile picture"
+                @click="openFilePicker"
+              >
+                <q-avatar size="112px" class="profile-avatar">
+                  <img :src="avatarUrl" alt="Profile picture" />
+                </q-avatar>
+                <div class="avatar-overlay">
+                  <q-icon name="camera_alt" size="20px" color="white" />
+                </div>
+              </q-btn>
+              <input
+                ref="fileInputRef"
+                class="visually-hidden"
+                type="file"
+                accept="image/*"
+                @change="onFileChange"
               />
-              <span class="q-ml-sm">Settings</span>
-            </q-btn>
-            <transition name="slide-fade">
-              <div v-if="showSettings" class="settings-options">
-                <q-btn flat label="Change Language" class="settings-btn" icon="language" />
-                <div class="dark-mode-row">
-                  <q-icon name="dark_mode" size="sm" />
-                  <span>Dark Mode</span>
-                  <q-toggle v-model="darkMode" color="primary" />
+
+              <div>
+                <div class="hero-name-row">
+                  <h1 class="hero-name">{{ profileName || 'Unknown User' }}</h1>
+                  <q-badge
+                    :color="isTechnician ? 'primary' : 'secondary'"
+                    text-color="white"
+                    class="role-badge"
+                  >
+                    {{ isTechnician ? 'Technician' : 'Customer' }}
+                  </q-badge>
+                  <q-badge
+                    v-if="isVerifiedAccount"
+                    color="positive"
+                    text-color="white"
+                    class="verify-badge"
+                  >
+                    <q-icon name="verified" size="12px" class="q-mr-xs" /> Verified
+                  </q-badge>
+                </div>
+                <div class="hero-subline">{{ profileEmail || 'No email found' }}</div>
+                <div class="hero-meta">
+                  <span>{{ roleCity }}</span>
+                  <span>Joined {{ memberSinceLabel }}</span>
+                  <span v-if="isTechnician">{{ jobsCompleted }} completed jobs</span>
                 </div>
               </div>
-            </transition>
-            <q-btn color="negative" label="Log Out" class="action-btn" @click="goToMain" />
-          </div>
+            </div>
+
+            <div class="hero-right">
+              <q-btn
+                unelevated
+                no-caps
+                color="primary"
+                icon="edit"
+                :label="editing ? 'Cancel Editing' : 'Edit Profile'"
+                @click="toggleEditing"
+              />
+            </div>
+          </section>
+
+          <section v-if="completionPercent < 100" class="completion-card">
+            <div class="completion-ring">
+              <q-circular-progress
+                show-value
+                :value="completionPercent"
+                size="82px"
+                :thickness="0.18"
+                color="primary"
+                track-color="grey-3"
+                class="text-primary text-weight-bold"
+              >
+                {{ completionPercent }}%
+              </q-circular-progress>
+            </div>
+            <div class="completion-content">
+              <div class="completion-title">Complete your profile</div>
+              <div class="completion-sub">A complete profile improves trust and visibility.</div>
+              <ul class="missing-list" v-if="missingItems.length">
+                <li v-for="item in missingItems" :key="item">
+                  <q-icon name="warning" size="14px" color="warning" />
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="profile-grid">
+            <div class="left-col">
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Personal Information</div>
+                    <q-icon name="person" color="grey-6" />
+                  </div>
+
+                  <div class="form-grid">
+                    <q-input
+                      v-model="form.full_name"
+                      label="Full Name"
+                      outlined
+                      dense
+                      :readonly="!editing"
+                    />
+                    <q-input
+                      v-model="form.phone_number"
+                      label="Phone Number"
+                      outlined
+                      dense
+                      :readonly="!editing"
+                    />
+                    <q-input :model-value="profileEmail" label="Email" outlined dense readonly>
+                      <template #append>
+                        <q-icon v-if="emailVerified" name="check_circle" color="positive" />
+                      </template>
+                    </q-input>
+                    <q-input
+                      v-if="isTechnician"
+                      v-model="form.specialty"
+                      label="Specialty"
+                      outlined
+                      dense
+                      :readonly="!editing"
+                    />
+                    <q-input
+                      v-if="isTechnician"
+                      v-model.number="form.years_of_experience"
+                      type="number"
+                      min="0"
+                      label="Years of Experience"
+                      outlined
+                      dense
+                      :readonly="!editing"
+                    />
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Security</div>
+                    <q-icon name="security" color="grey-6" />
+                  </div>
+
+                  <div class="security-row">
+                    <div>
+                      <div class="row-title">Password</div>
+                      <div class="row-sub">Manage your account password securely.</div>
+                    </div>
+                    <q-btn
+                      flat
+                      color="primary"
+                      no-caps
+                      label="Change"
+                      @click="goToPage('/reset-password')"
+                    />
+                  </div>
+
+                  <div class="security-row">
+                    <div>
+                      <div class="row-title">Two-factor Authentication</div>
+                      <div class="row-sub">Add an extra protection layer to your account.</div>
+                    </div>
+                    <q-toggle v-model="twoFactorEnabled" color="primary" disable />
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Preferences</div>
+                    <q-icon name="settings" color="grey-6" />
+                  </div>
+
+                  <div class="pref-row">
+                    <q-icon name="language" color="grey-6" />
+                    <span>Language</span>
+                    <q-space />
+                    <q-select
+                      v-model="language"
+                      :options="languageOptions"
+                      dense
+                      outlined
+                      emit-value
+                      map-options
+                      style="min-width: 140px"
+                    />
+                  </div>
+
+                  <div class="pref-row">
+                    <q-icon name="dark_mode" color="grey-6" />
+                    <span>Dark Mode</span>
+                    <q-space />
+                    <q-toggle v-model="darkMode" color="primary" />
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <q-card v-if="isTechnician" flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Services and Expertise</div>
+                    <q-icon name="construction" color="grey-6" />
+                  </div>
+
+                  <div class="chips-wrap">
+                    <q-chip
+                      v-for="service in serviceChips"
+                      :key="service"
+                      dense
+                      color="primary"
+                      text-color="white"
+                      class="service-chip"
+                    >
+                      {{ service }}
+                    </q-chip>
+                    <div v-if="serviceChips.length === 0" class="row-sub">
+                      No services added yet.
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <div class="right-col">
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Account Stats</div>
+                    <q-icon name="trending_up" color="grey-6" />
+                  </div>
+                  <div class="stats-list">
+                    <div class="stats-item" v-for="item in statItems" :key="item.label">
+                      <div class="stats-label">{{ item.label }}</div>
+                      <div class="stats-value">{{ item.value }}</div>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Verification Status</div>
+                    <q-icon name="verified_user" color="grey-6" />
+                  </div>
+
+                  <div class="verify-row">
+                    <span>Email Verified</span>
+                    <q-badge :color="emailVerified ? 'positive' : 'warning'" text-color="white">
+                      {{ emailVerified ? 'Verified' : 'Pending' }}
+                    </q-badge>
+                  </div>
+                  <div v-if="isTechnician" class="verify-row">
+                    <span>Technician Verification</span>
+                    <q-badge :color="isVerifiedAccount ? 'positive' : 'warning'" text-color="white">
+                      {{ technicianVerificationLabel }}
+                    </q-badge>
+                  </div>
+                </q-card-section>
+              </q-card>
+
+              <q-card flat bordered class="profile-card">
+                <q-card-section>
+                  <div class="card-head">
+                    <div class="card-title">Recent Activity</div>
+                    <q-icon name="history" color="grey-6" />
+                  </div>
+
+                  <div v-if="recentActivity.length === 0" class="row-sub">
+                    No recent activity yet.
+                  </div>
+                  <div v-else class="activity-list">
+                    <div v-for="item in recentActivity" :key="item.id" class="activity-item">
+                      <div class="activity-main">{{ item.title }}</div>
+                      <div class="activity-time">{{ item.time }}</div>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </section>
+
+          <transition name="slide-up">
+            <div v-if="editing" class="sticky-save">
+              <q-btn flat no-caps label="Discard" color="grey-7" @click="discardChanges" />
+              <q-btn
+                unelevated
+                no-caps
+                color="primary"
+                label="Save Changes"
+                :loading="saving"
+                @click="saveProfile"
+              />
+            </div>
+          </transition>
         </div>
       </q-page>
     </q-page-container>
 
-    <q-footer v-if="!profileLoading" elevated class="bottom-nav">
+    <q-footer v-if="!loading" elevated class="bottom-nav">
       <q-tabs
         v-model="activeTab"
         active-color="white"
         indicator-color="transparent"
         class="nav-tabs"
-        narrow-indicator
         dense
       >
-        <template v-if="isFixer">
+        <template v-if="isTechnician">
           <q-tab
             name="requests"
             icon="request_page"
@@ -92,7 +347,7 @@
           />
           <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
         </template>
-        <template v-else-if="userRole === 'customer'">
+        <template v-else>
           <q-tab name="home" icon="home" label="Home" @click="goToPage('/home')" />
           <q-tab
             name="offers"
@@ -116,30 +371,252 @@ import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+
+const loading = ref(true)
+const saving = ref(false)
+const editing = ref(false)
+const activeTab = ref('profile')
+const darkMode = ref($q.dark.isActive)
+const language = ref('en')
+const twoFactorEnabled = ref(false)
+
 const fileInputRef = ref(null)
 const avatarUrl = ref('/icons/pfp.png')
-const activeTab = ref('profile')
-const showSettings = ref(false)
-const darkMode = ref($q.dark.isActive)
-const profileLoading = ref(true)
-const profileName = ref('')
-const profileEmail = ref('')
-const userRole = ref('')
-const specialty = ref('')
-const yearsOfExperience = ref(null)
-const isFixer = computed(() => userRole.value === 'fixer')
-const specialtyLabel = computed(() =>
-  specialty.value
-    ? specialty.value
-        .split('_')
-        .join(' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase())
-    : '',
-)
 let objectUrl = null
 
+const profileName = ref('')
+const profileEmail = ref('')
+const memberSince = ref(null)
+const roleCity = ref('Cairo')
+const userRole = ref('customer')
+const customerId = ref(null)
+const technicianId = ref(null)
+const technicianVerificationStatus = ref('pending')
+const technicianIsVerified = ref(false)
+
+const requestsPosted = ref(0)
+const activeRequests = ref(0)
+const completedRequests = ref(0)
+const acceptedJobs = ref(0)
+const jobsCompleted = ref(0)
+const responseRate = ref('--')
+const recentActivity = ref([])
+
+const form = ref({
+  full_name: '',
+  phone_number: '',
+  specialty: '',
+  years_of_experience: null,
+})
+
+const initialForm = ref({
+  full_name: '',
+  phone_number: '',
+  specialty: '',
+  years_of_experience: null,
+})
+
+const languageOptions = [
+  { label: 'English', value: 'en' },
+  { label: 'Arabic', value: 'ar' },
+]
+
+const isTechnician = computed(() => userRole.value === 'fixer')
+const emailVerified = computed(() => Boolean(currentAuthUser.value?.email_confirmed_at))
+const isVerifiedAccount = computed(() =>
+  isTechnician.value ? technicianIsVerified.value : emailVerified.value,
+)
+const technicianVerificationLabel = computed(() => {
+  if (technicianVerificationStatus.value === 'approved' || technicianIsVerified.value)
+    return 'Verified'
+  if (technicianVerificationStatus.value === 'rejected') return 'Rejected'
+  return 'Pending'
+})
+
+const memberSinceLabel = computed(() => {
+  if (!memberSince.value) return 'recently'
+  const d = new Date(memberSince.value)
+  if (Number.isNaN(d.getTime())) return 'recently'
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+})
+
+const serviceChips = computed(() => {
+  if (!form.value.specialty) return []
+  return [
+    String(form.value.specialty)
+      .replaceAll('_', ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase()),
+  ]
+})
+
+const statItems = computed(() => {
+  if (isTechnician.value) {
+    return [
+      { label: 'Accepted Jobs', value: acceptedJobs.value },
+      { label: 'Jobs Completed', value: jobsCompleted.value },
+      { label: 'Response Rate', value: responseRate.value },
+    ]
+  }
+
+  return [
+    { label: 'Requests Posted', value: requestsPosted.value },
+    { label: 'Active Requests', value: activeRequests.value },
+    { label: 'Completed Requests', value: completedRequests.value },
+  ]
+})
+
+const completionPercent = computed(() => {
+  const checks = [
+    Boolean(form.value.full_name),
+    Boolean(profileEmail.value),
+    Boolean(form.value.phone_number),
+  ]
+
+  if (isTechnician.value) {
+    checks.push(Boolean(form.value.specialty))
+    checks.push(form.value.years_of_experience !== null && form.value.years_of_experience !== '')
+    checks.push(technicianIsVerified.value)
+  }
+
+  const completed = checks.filter(Boolean).length
+  return Math.round((completed / checks.length) * 100)
+})
+
+const missingItems = computed(() => {
+  const items = []
+  if (!form.value.phone_number) items.push('Add phone number')
+  if (isTechnician.value && !form.value.specialty) items.push('Add your specialty')
+  if (isTechnician.value && !technicianIsVerified.value)
+    items.push('Complete technician verification')
+  return items.slice(0, 3)
+})
+
+const currentAuthUser = ref(null)
+
+const setInitialForm = (row) => {
+  const next = {
+    full_name: row?.full_name || '',
+    phone_number: row?.phone_number || '',
+    specialty: row?.specialty || '',
+    years_of_experience:
+      row?.years_of_experience !== undefined && row?.years_of_experience !== null
+        ? Number(row.years_of_experience)
+        : null,
+  }
+  form.value = { ...next }
+  initialForm.value = { ...next }
+}
+
+const loadCustomerProfile = async (email, metadata) => {
+  const { data } = await supabase
+    .from('users')
+    .select('user_id, full_name, email, phone_number, date_created, created_at')
+    .ilike('email', email)
+    .maybeSingle()
+
+  customerId.value = data?.user_id ?? null
+  profileName.value = data?.full_name || metadata?.full_name || ''
+  profileEmail.value = data?.email || email || ''
+  memberSince.value = data?.date_created || data?.created_at || null
+  setInitialForm(data || metadata || {})
+}
+
+const loadTechnicianProfile = async (email, metadata) => {
+  const { data } = await supabase
+    .from('technician')
+    .select(
+      'technician_id, full_name, email, phone_number, specialty, years_of_experience, date_created, created_at',
+    )
+    .ilike('email', email)
+    .maybeSingle()
+
+  technicianId.value = data?.technician_id ?? null
+  profileName.value = data?.full_name || metadata?.full_name || ''
+  profileEmail.value = data?.email || email || ''
+  memberSince.value = data?.date_created || data?.created_at || null
+  setInitialForm(data || metadata || {})
+}
+
+const loadVerificationState = async () => {
+  if (!technicianId.value) return
+  const { data } = await supabase
+    .from('technician_verification_state')
+    .select('is_verified, verification_status')
+    .eq('technician_id', technicianId.value)
+    .maybeSingle()
+
+  technicianIsVerified.value = data?.is_verified === true
+  technicianVerificationStatus.value = data?.verification_status || 'pending'
+}
+
+const formatActivityTime = (value) => {
+  if (!value) return 'Just now'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Just now'
+  const diffMin = Math.floor((Date.now() - date.getTime()) / 60000)
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`
+  return `${Math.floor(diffMin / 1440)}d ago`
+}
+
+const loadCustomerStats = async () => {
+  if (!customerId.value) return
+
+  const { data: requests } = await supabase
+    .from('request')
+    .select('request_id, request_status, request_date, created_at, description_of_issue')
+    .eq('user_id', customerId.value)
+    .order('request_id', { ascending: false })
+    .limit(8)
+
+  const rows = requests || []
+  requestsPosted.value = rows.length
+  activeRequests.value = rows.filter((r) => {
+    const status = String(r.request_status || '').toLowerCase()
+    return status !== 'completed' && status !== 'cancelled'
+  }).length
+  completedRequests.value = rows.filter(
+    (r) => String(r.request_status || '').toLowerCase() === 'completed',
+  ).length
+
+  recentActivity.value = rows.slice(0, 5).map((r) => ({
+    id: `req-${r.request_id}`,
+    title: `Request #${r.request_id} is ${r.request_status || 'pending'}`,
+    time: formatActivityTime(r.request_date || r.created_at),
+  }))
+}
+
+const loadTechnicianStats = async () => {
+  if (!technicianId.value) return
+
+  const { data: jobs } = await supabase
+    .from('request')
+    .select('request_id, request_status, request_date, created_at')
+    .eq('technician_id', technicianId.value)
+    .order('request_id', { ascending: false })
+    .limit(40)
+
+  const rows = jobs || []
+  acceptedJobs.value = rows.filter(
+    (r) => String(r.request_status || '').toLowerCase() === 'accepted',
+  ).length
+  jobsCompleted.value = rows.filter(
+    (r) => String(r.request_status || '').toLowerCase() === 'completed',
+  ).length
+  responseRate.value = rows.length
+    ? `${Math.round((acceptedJobs.value / rows.length) * 100)}%`
+    : '--'
+
+  recentActivity.value = rows.slice(0, 5).map((r) => ({
+    id: `job-${r.request_id}`,
+    title: `Job #${r.request_id} status: ${r.request_status || 'pending'}`,
+    time: formatActivityTime(r.request_date || r.created_at),
+  }))
+}
+
 const loadProfile = async () => {
-  profileLoading.value = true
+  loading.value = true
   try {
     const {
       data: { user },
@@ -150,169 +627,417 @@ const loadProfile = async () => {
       return
     }
 
-    const userEmail = user.email || ''
-    profileEmail.value = userEmail
-    specialty.value = ''
-    yearsOfExperience.value = null
+    currentAuthUser.value = user
+    const email = user.email || ''
+    const metadata = user.user_metadata || {}
 
-    const [{ data: tech }, { data: customer }] = await Promise.all([
-      supabase
-        .from('technician')
-        .select('full_name, email, specialty, years_of_experience')
-        .ilike('email', userEmail)
-        .maybeSingle(),
-      supabase.from('users').select('full_name, email').ilike('email', userEmail).maybeSingle(),
-    ])
-
-    if (tech) {
+    if (metadata.role === 'fixer') {
       userRole.value = 'fixer'
-      profileName.value = tech.full_name || user.user_metadata?.full_name || ''
-      profileEmail.value = tech.email || userEmail
-      specialty.value = tech.specialty || user.user_metadata?.specialty || ''
-      yearsOfExperience.value = tech.years_of_experience ?? null
-      return
-    }
-
-    if (customer) {
+      await loadTechnicianProfile(email, metadata)
+      await Promise.all([loadVerificationState(), loadTechnicianStats()])
+    } else {
       userRole.value = 'customer'
-      profileName.value = customer.full_name || user.user_metadata?.full_name || ''
-      profileEmail.value = customer.email || userEmail
-      return
+      await loadCustomerProfile(email, metadata)
+      await loadCustomerStats()
     }
-
-    if (user.user_metadata?.role === 'fixer') {
-      userRole.value = 'fixer'
-      profileName.value = user.user_metadata?.full_name || ''
-      specialty.value = user.user_metadata?.specialty || ''
-      yearsOfExperience.value = user.user_metadata?.years_of_experience ?? null
-      return
-    }
-
-    userRole.value = 'customer'
-    profileName.value = user.user_metadata?.full_name || ''
-  } catch (err) {
-    console.error('Failed to load profile:', err)
+  } catch (error) {
+    console.error('Failed to load profile:', error)
     $q.notify({ type: 'negative', message: 'Failed to load profile data.' })
   } finally {
-    profileLoading.value = false
+    loading.value = false
   }
 }
 
-onMounted(loadProfile)
+const toggleEditing = () => {
+  if (editing.value) {
+    discardChanges()
+    return
+  }
+  editing.value = true
+}
 
-const openFilePicker = () => {
-  fileInputRef.value?.click()
+const discardChanges = () => {
+  form.value = { ...initialForm.value }
+  editing.value = false
+}
+
+const saveProfile = async () => {
+  saving.value = true
+  try {
+    const targetTable = isTechnician.value ? 'technician' : 'users'
+    const idColumn = isTechnician.value ? 'technician_id' : 'user_id'
+    const idValue = isTechnician.value ? technicianId.value : customerId.value
+
+    if (!idValue) throw new Error('Missing profile id.')
+
+    const payload = {
+      full_name: form.value.full_name,
+      phone_number: form.value.phone_number,
+    }
+
+    if (isTechnician.value) {
+      payload.specialty = form.value.specialty || null
+      payload.years_of_experience =
+        form.value.years_of_experience === null || form.value.years_of_experience === ''
+          ? null
+          : Number(form.value.years_of_experience)
+    }
+
+    const { error } = await supabase.from(targetTable).update(payload).eq(idColumn, idValue)
+    if (error) throw error
+
+    initialForm.value = { ...form.value }
+    profileName.value = form.value.full_name
+    editing.value = false
+    $q.notify({ type: 'positive', message: 'Profile updated successfully.', position: 'top-right' })
+  } catch (error) {
+    console.error('Failed to save profile:', error)
+    $q.notify({ type: 'negative', message: error?.message || 'Failed to save profile.' })
+  } finally {
+    saving.value = false
+  }
+}
+
+const openFilePicker = () => fileInputRef.value?.click()
+
+const onFileChange = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (objectUrl) URL.revokeObjectURL(objectUrl)
+  objectUrl = URL.createObjectURL(file)
+  avatarUrl.value = objectUrl
 }
 
 const goToPage = (route) => {
   if (route) router.push(route)
 }
 
-const goToMain = () => {
-  router.push('/')
-}
-
-const onFileChange = (event) => {
-  const file = event.target.files?.[0]
-
-  if (!file) {
-    return
-  }
-
-  if (objectUrl) {
-    URL.revokeObjectURL(objectUrl)
-  }
-
-  objectUrl = URL.createObjectURL(file)
-  avatarUrl.value = objectUrl
-}
+onMounted(loadProfile)
 
 onBeforeUnmount(() => {
-  if (objectUrl) {
-    URL.revokeObjectURL(objectUrl)
-  }
+  if (objectUrl) URL.revokeObjectURL(objectUrl)
 })
 
 watch(darkMode, (val) => {
   document.body.classList.add('dark-transition')
   $q.dark.set(val)
-  setTimeout(() => {
-    document.body.classList.remove('dark-transition')
-  }, 600)
+  setTimeout(() => document.body.classList.remove('dark-transition'), 500)
 })
 </script>
 
 <style scoped>
-.profile-page {
-  min-height: calc(100vh - 56px);
+.app-header-teal {
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover)) !important;
+}
+
+.app-toolbar {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-brand-icon-w {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  padding-bottom: 92px;
 }
 
-.profile-card {
-  width: 100%;
-  max-width: 360px;
+.header-brand-name-w {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.profile-page {
+  min-height: calc(100vh - 56px);
+  padding: 24px 16px 92px;
+  background: linear-gradient(160deg, var(--san3a-bg), #f0f5f5);
+}
+
+.profile-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.state-center {
+  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+}
+
+.profile-hero {
+  background: #fff;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar-btn {
+  padding: 0;
+  min-height: unset;
+  position: relative;
+  border-radius: 50% !important;
 }
 
 .profile-avatar {
-  background: #f5f5f7;
-  margin-top: -295px;
+  background: var(--san3a-gray-100);
+  border: 4px solid #fff;
+  box-shadow: var(--san3a-shadow-lg);
 }
 
-.profile-avatar-btn {
+.avatar-overlay {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--san3a-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--san3a-shadow-sm);
+}
+
+.hero-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-name {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  color: var(--san3a-gray-900);
+  font-weight: 800;
+}
+
+.hero-subline {
+  margin-top: 4px;
+  color: var(--san3a-gray-600);
+  font-size: 14px;
+}
+
+.hero-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--san3a-gray-500);
+  font-size: 13px;
+}
+
+.role-badge,
+.verify-badge {
+  border-radius: 999px;
+}
+
+.completion-card {
+  border: 1px solid #bfe4e5;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(13, 115, 119, 0.08), rgba(255, 107, 53, 0.1));
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.completion-content {
+  flex: 1;
+}
+
+.completion-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
+}
+
+.completion-sub {
+  margin-top: 2px;
+  color: var(--san3a-gray-600);
+  font-size: 14px;
+}
+
+.missing-list {
+  margin: 10px 0 0;
   padding: 0;
-  min-height: unset;
-}
-
-.profile-actions {
-  width: 100%;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 6px;
 }
 
-.profile-info {
-  width: 100%;
-  text-align: center;
+.missing-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--san3a-gray-700);
 }
 
-.profile-name {
-  font-size: 22px;
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.left-col,
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-card {
+  border-radius: 12px;
+  border-color: var(--san3a-gray-200) !important;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 19px;
   font-weight: 700;
-  color: #1f2937;
-  line-height: 1.2;
+  color: var(--san3a-gray-900);
 }
 
-.profile-email {
-  margin-top: 6px;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.security-row,
+.pref-row,
+.verify-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.security-row + .security-row,
+.pref-row + .pref-row,
+.verify-row + .verify-row {
+  border-top: 1px solid var(--san3a-gray-100);
+}
+
+.row-title {
   font-size: 14px;
-  color: #6b7280;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
 }
 
-.profile-extra {
-  margin-top: 10px;
+.row-sub {
+  font-size: 13px;
+  color: var(--san3a-gray-500);
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-chip {
+  border-radius: 999px;
+}
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.stats-item + .stats-item {
+  border-top: 1px solid var(--san3a-gray-100);
+}
+
+.stats-label {
   font-size: 14px;
-  font-weight: 600;
-  color: #2e7d32;
+  color: var(--san3a-gray-600);
 }
 
-.action-btn {
-  width: 100%;
+.stats-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
 }
 
-.gear-icon {
-  transition: transform 0.4s ease;
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.gear-spin {
-  transform: rotate(180deg);
+.activity-item {
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.activity-main {
+  font-size: 14px;
+  color: var(--san3a-gray-800);
+}
+
+.activity-time {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--san3a-gray-500);
+}
+
+.sticky-save {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 60px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid var(--san3a-gray-200);
+  box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.08);
+  z-index: 30;
 }
 
 .visually-hidden {
@@ -326,47 +1051,8 @@ watch(darkMode, (val) => {
   border: 0;
 }
 
-.settings-options {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
-  transform-origin: top;
-}
-
-.slide-fade-enter-active {
-  transition: all 0.35s ease-out;
-}
-
-.slide-fade-leave-active {
-  transition: all 0.25s ease-in;
-}
-
-.slide-fade-enter-from {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-
-.settings-btn {
-  width: 100%;
-  justify-content: flex-start;
-}
-
-.dark-mode-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px 6px 12px;
-}
-
 .bottom-nav {
-  background: linear-gradient(135deg, #2e7d32, #388e3c) !important;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover)) !important;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
 }
 
@@ -379,7 +1065,6 @@ watch(darkMode, (val) => {
   font-size: 11px;
   text-transform: none;
   opacity: 0.75;
-  transition: opacity 0.2s ease;
 }
 
 .nav-tabs :deep(.q-tab--active) {
@@ -388,5 +1073,46 @@ watch(darkMode, (val) => {
 
 .nav-tabs :deep(.q-tab__icon) {
   font-size: 24px;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+@media (max-width: 1024px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-page {
+    padding: 16px 12px 92px;
+  }
+
+  .profile-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-name {
+    font-size: 24px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

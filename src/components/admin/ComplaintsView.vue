@@ -1,21 +1,20 @@
 <template>
   <div class="complaints-view">
-    <div class="q-mb-md">
+    <div class="view-toolbar q-mb-md">
       <q-select
         v-model="filterStatus"
         :options="statusOptions"
         outlined
         dense
         label="Filter by Status"
-        style="max-width: 250px"
+        class="toolbar-filter"
       />
       <q-input
         v-model="searchQuery"
         outlined
         dense
         placeholder="Search complaints..."
-        class="q-ml-md"
-        style="max-width: 300px"
+        class="toolbar-search"
       >
         <template v-slot:prepend>
           <q-icon name="search" />
@@ -28,7 +27,7 @@
       :columns="columns"
       row-key="id"
       :loading="loading"
-      class="q-mt-md"
+      class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-status="props">
         <q-td :props="props">
@@ -71,7 +70,7 @@
 
     <!-- View Details Dialog -->
     <q-dialog v-model="showDetailsDialog">
-      <q-card style="min-width: 500px">
+      <q-card class="admin-dialog-card" style="min-width: 500px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Complaint Details</div>
           <q-space />
@@ -113,7 +112,7 @@
 
     <!-- Edit Dialog -->
     <q-dialog v-model="showEditDialog">
-      <q-card style="min-width: 400px">
+      <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Edit Complaint</div>
           <q-space />
@@ -204,9 +203,7 @@ const filteredComplaints = computed(() => {
 const loadComplaints = async () => {
   loading.value = true
   try {
-    const { data, error } = await supabase
-      .from('complaint')
-      .select('*')
+    const { data, error } = await supabase.from('complaint').select('*')
 
     if (error) throw error
     complaints.value = data || []
@@ -322,5 +319,52 @@ loadComplaints()
 <style scoped>
 .complaints-view {
   width: 100%;
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-filter {
+  width: 240px;
+  max-width: 100%;
+}
+
+.toolbar-search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.admin-table {
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table :deep(thead tr) {
+  background: var(--san3a-gray-100);
+}
+
+.admin-table :deep(th) {
+  color: var(--san3a-gray-700);
+  font-weight: 700;
+}
+
+.admin-table :deep(tbody tr:hover) {
+  background: #f9fcfc;
+}
+
+.admin-dialog-card {
+  border-radius: 14px;
+}
+
+@media (max-width: 600px) {
+  .toolbar-filter,
+  .toolbar-search {
+    width: 100%;
+  }
 }
 </style>

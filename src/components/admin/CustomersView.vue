@@ -1,14 +1,19 @@
 <template>
   <div class="customers-view">
-    <div class="q-mb-md">
-      <q-btn color="primary" label="Add User" icon="add" @click="showAddDialog = true" />
+    <div class="view-toolbar q-mb-md">
+      <q-btn
+        color="primary"
+        label="Add User"
+        icon="add"
+        class="toolbar-btn"
+        @click="showAddDialog = true"
+      />
       <q-input
         v-model="searchQuery"
         outlined
         dense
         placeholder="Search users..."
-        class="q-ml-md"
-        style="max-width: 300px"
+        class="toolbar-search"
       >
         <template v-slot:prepend>
           <q-icon name="search" />
@@ -21,7 +26,7 @@
       :columns="columns"
       row-key="_id"
       :loading="loading"
-      class="q-mt-md"
+      class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-actions="props">
         <q-td :props="props">
@@ -49,7 +54,7 @@
 
     <!-- Add/Edit Dialog -->
     <q-dialog v-model="showAddDialog">
-      <q-card style="min-width: 400px">
+      <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ editingId ? 'Edit' : 'Add' }} User</div>
           <q-space />
@@ -147,9 +152,7 @@ const filteredCustomers = computed(() => {
 const loadCustomers = async () => {
   loading.value = true
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
+    const { data, error } = await supabase.from('users').select('*')
 
     if (error) throw error
     users.value = (data || []).map(normalizeCustomer)
@@ -254,6 +257,51 @@ loadCustomers()
 <style scoped>
 .customers-view {
   width: 100%;
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  font-weight: 700;
+}
+
+.toolbar-search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.admin-table {
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table :deep(thead tr) {
+  background: var(--san3a-gray-100);
+}
+
+.admin-table :deep(th) {
+  color: var(--san3a-gray-700);
+  font-weight: 700;
+}
+
+.admin-table :deep(tbody tr:hover) {
+  background: #f9fcfc;
+}
+
+.admin-dialog-card {
+  border-radius: 14px;
+}
+
+@media (max-width: 600px) {
+  .toolbar-search {
+    width: 100%;
+  }
 }
 </style>
 

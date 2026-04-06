@@ -17,11 +17,13 @@
     <div class="kpi-grid q-mb-md">
       <q-card v-for="item in kpiCards" :key="item.label" flat bordered class="kpi-card">
         <q-card-section>
-          <div class="row items-center no-wrap">
-            <q-icon :name="item.icon" size="24px" :color="item.color" class="q-mr-sm" />
-            <div class="text-subtitle2 text-grey-8">{{ item.label }}</div>
+          <div class="kpi-head">
+            <div class="kpi-icon-wrap">
+              <q-icon :name="item.icon" size="21px" :color="item.color" />
+            </div>
+            <div class="kpi-label">{{ item.label }}</div>
           </div>
-          <div class="text-h5 text-weight-bold q-mt-sm">{{ formatNumber(item.value) }}</div>
+          <div class="kpi-number">{{ formatNumber(item.value) }}</div>
         </q-card-section>
       </q-card>
     </div>
@@ -32,7 +34,9 @@
           <div class="text-subtitle1 text-weight-medium">Requests by Status</div>
           <div class="text-caption text-grey-7 q-mb-md">Current distribution in request table</div>
 
-          <div v-if="requestStatusBars.length === 0" class="text-grey-7">No request data found.</div>
+          <div v-if="requestStatusBars.length === 0" class="text-grey-7">
+            No request data found.
+          </div>
 
           <div v-for="bar in requestStatusBars" :key="bar.label" class="bar-row">
             <div class="row items-center justify-between q-mb-xs">
@@ -63,7 +67,10 @@
             <div class="activity-label text-caption text-grey-8">{{ day.label }}</div>
             <div class="activity-bars">
               <div class="mini-bar-wrap">
-                <div class="mini-bar mini-bar--request" :style="{ width: `${day.requestRatio}%` }"></div>
+                <div
+                  class="mini-bar mini-bar--request"
+                  :style="{ width: `${day.requestRatio}%` }"
+                ></div>
               </div>
               <div class="mini-bar-wrap q-mt-xs">
                 <div
@@ -125,7 +132,9 @@ const toDateKey = (value) => {
 }
 
 const getRowDate = (row) => {
-  return row.created_at ?? row.updated_at ?? row.inserted_at ?? row.createdAt ?? row.updatedAt ?? null
+  return (
+    row.created_at ?? row.updated_at ?? row.inserted_at ?? row.createdAt ?? row.updatedAt ?? null
+  )
 }
 
 const buildLast7DayBuckets = () => {
@@ -267,6 +276,14 @@ onMounted(loadAnalytics)
   width: 100%;
 }
 
+.analytics-view .text-h5 {
+  color: var(--san3a-gray-900);
+}
+
+.analytics-view .text-grey-7 {
+  color: var(--san3a-gray-500) !important;
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -275,6 +292,47 @@ onMounted(loadAnalytics)
 
 .kpi-card {
   border-radius: 12px;
+  border-color: var(--san3a-gray-200) !important;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.kpi-card:hover {
+  box-shadow: var(--san3a-shadow-md);
+  transform: translateY(-2px);
+}
+
+.kpi-icon-wrap {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex: 0 0 28px;
+}
+
+.kpi-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpi-label {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--san3a-gray-600);
+}
+
+.kpi-number {
+  margin-top: 8px;
+  margin-left: 36px;
+  font-size: 2.05rem;
+  line-height: 1.05;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
 }
 
 .charts-grid {
@@ -285,6 +343,7 @@ onMounted(loadAnalytics)
 
 .chart-card {
   border-radius: 12px;
+  border-color: var(--san3a-gray-200) !important;
 }
 
 .bar-row + .bar-row {
@@ -320,11 +379,11 @@ onMounted(loadAnalytics)
 }
 
 .mini-bar--request {
-  background: #1976d2;
+  background: var(--san3a-primary);
 }
 
 .mini-bar--complaint {
-  background: #d32f2f;
+  background: var(--san3a-secondary);
 }
 
 .legend-dot {
@@ -335,11 +394,11 @@ onMounted(loadAnalytics)
 }
 
 .legend-dot--request {
-  background: #1976d2;
+  background: var(--san3a-primary);
 }
 
 .legend-dot--complaint {
-  background: #d32f2f;
+  background: var(--san3a-secondary);
 }
 
 @media (max-width: 599px) {

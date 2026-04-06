@@ -1,25 +1,60 @@
 // Quasar SCSS (& Sass) Variables
 // --------------------------------------------------
-// To customize the look and feel of this app, you can override
-// the Sass/SCSS variables found in Quasar's source Sass/SCSS files.
+// San3a Design System — Deep Teal + Warm Orange
 
-// Check documentation for full list of Quasar variables
+$primary: #0d7377;
+$secondary: #ff6b35;
+$accent: #0a5c5f;
 
-// Your own variables (that are declared here) and Quasar's own
-// ones will be available out of the box in your .vue/.scss/.sass files
+$dark: #1a1a1a;
+$dark-page: #111827;
 
-// It's highly recommended to change the default colors
-// to match your app's branding.
-// Tip: Use the "Theme Builder" on Quasar's documentation website.
+$positive: #10b981;
+$negative: #ef4444;
+$info: #3b82f6;
+$warning: #f59e0b;
 
-$primary: #2fbd22;
-$secondary: #26a69a;
-$accent: #9c27b0;
+/* Global design token fallback for all layouts */
+:root {
+  --san3a-primary: #0d7377;
+  --san3a-primary-hover: #0a5c5f;
+  --san3a-primary-light: #e6f5f5;
+  --san3a-secondary: #ff6b35;
+  --san3a-secondary-hover: #e55a2b;
+  --san3a-secondary-light: #fff3ef;
 
-$dark: #1d1d1d;
-$dark-page: #121212;
+  --san3a-bg: #fafaf9;
+  --san3a-surface: #ffffff;
+  --san3a-foreground: #1a1a1a;
 
-$positive: #21ba45;
-$negative: #c10015;
-$info: #31ccec;
-$warning: #f2c037;
+  --san3a-gray-50: #f9fafb;
+  --san3a-gray-100: #f3f4f6;
+  --san3a-gray-200: #e5e7eb;
+  --san3a-gray-300: #d1d5db;
+  --san3a-gray-400: #9ca3af;
+  --san3a-gray-500: #6b7280;
+  --san3a-gray-600: #4b5563;
+  --san3a-gray-700: #374151;
+  --san3a-gray-800: #1f2937;
+  --san3a-gray-900: #111827;
+
+  --san3a-success: #10b981;
+  --san3a-success-light: #d1fae5;
+  --san3a-warning: #f59e0b;
+  --san3a-warning-light: #fef3c7;
+  --san3a-error: #ef4444;
+  --san3a-error-light: #fee2e2;
+  --san3a-info: #3b82f6;
+  --san3a-info-light: #dbeafe;
+
+  --san3a-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --san3a-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --san3a-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --san3a-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  --san3a-radius-sm: 6px;
+  --san3a-radius-md: 8px;
+  --san3a-radius-lg: 12px;
+  --san3a-radius-xl: 16px;
+  --san3a-radius-2xl: 20px;
+}

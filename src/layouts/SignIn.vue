@@ -1,106 +1,120 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn flat round dense icon="arrow_back" @click="goBack" />
-        <q-toolbar-title style="display: flex; align-items: center">
-          Sanعa
-          <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
-        </q-toolbar-title>
-      </q-toolbar>
-    </q-header>
-
     <q-page-container>
-      <q-page class="flex flex-center">
-        <div class="q-pa-lg" style="max-width: 500px; width: 100%; position: relative; z-index: 2">
-          <q-card>
-            <q-card-section class="text-h6 text-center q-pb-none"> Sign In </q-card-section>
+      <q-page class="auth-page">
+        <div class="auth-wrapper san3a-animate-in">
+          <!-- Back link -->
+          <div class="back-link" @click="goBack">
+            <q-icon name="arrow_back" size="18px" />
+            <span>Back to Home</span>
+          </div>
 
-            <q-card-section>
-              <q-form @submit.prevent="onSubmit" class="q-gutter-y-md">
+          <!-- Auth Card -->
+          <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+              <div class="brand-row">
+                <div class="brand-icon">
+                  <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+                </div>
+                <span class="brand-text">San3a</span>
+              </div>
+              <h1 class="auth-title">Welcome Back!</h1>
+              <p class="auth-subtitle">Sign in to continue to your account</p>
+            </div>
+
+            <!-- Form -->
+            <q-form @submit.prevent="onSubmit" class="auth-form">
+              <div class="field-group">
+                <label class="field-label">Email or Phone Number</label>
                 <q-input
                   v-model="form.identifier"
-                  label="Email or Phone Number"
-                  filled
+                  placeholder="your.email@example.com"
                   outlined
+                  dense
                   hide-bottom-space
+                  class="san3a-input"
                   :rules="[
                     (val) => (val && val.trim().length > 0) || 'Email or phone number is required',
                   ]"
-                />
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="mail" color="grey-5" />
+                  </template>
+                </q-input>
+              </div>
 
+              <div class="field-group">
+                <label class="field-label">Password</label>
                 <q-input
                   v-model="form.password"
-                  label="Password"
                   :type="showPassword ? 'text' : 'password'"
-                  filled
+                  placeholder="Enter your password"
                   outlined
+                  dense
                   hide-bottom-space
+                  class="san3a-input"
                   :rules="[
                     (val) => (val && val.length >= 6) || 'Password must be at least 6 characters',
                   ]"
                 >
+                  <template v-slot:prepend>
+                    <q-icon name="lock" color="grey-5" />
+                  </template>
                   <template v-slot:append>
                     <q-icon
                       :name="showPassword ? 'visibility' : 'visibility_off'"
                       class="cursor-pointer"
+                      color="grey-5"
                       @click="showPassword = !showPassword"
                     />
                   </template>
                 </q-input>
+              </div>
 
-                <q-checkbox v-model="form.rememberMe" label="Remember me" />
-
-                <q-btn
-                  unelevated
-                  color="primary"
-                  label="Sign In"
-                  size="lg"
-                  class="full-width"
-                  :disable="!isSignInEnabled"
-                  :loading="loading"
-                  @click="onSubmit"
-                />
-              </q-form>
-
-              <div
-                class="text-center q-mt-md"
-                style="display: flex; align-items: center; justify-content: center"
-              >
-                <span>Don't have an account?</span>
-                <q-btn
-                  flat
+              <div class="remember-row">
+                <q-checkbox
+                  v-model="form.rememberMe"
+                  label="Remember me"
                   dense
-                  color="primary"
-                  label="Sign Up"
-                  class="q-ml-xs auth-action-btn"
-                  :class="pressedAction === 'signup' ? 'auth-action-btn--pressed' : ''"
-                  @click="goToSignUp"
+                  class="remember-check"
                 />
+                <span class="forgot-link" @click="onForgotPassword">Forgot password?</span>
               </div>
 
-              <div class="text-center q-mt-md">
-                <q-btn
-                  flat
-                  color="primary"
-                  label="Forgot Password?"
-                  style="margin: 0 auto !important"
-                  :loading="forgotLoading"
-                  @click="onForgotPassword"
-                />
-              </div>
+              <q-btn
+                unelevated
+                no-caps
+                color="primary"
+                label="Sign In"
+                class="submit-btn"
+                :disable="!isSignInEnabled"
+                :loading="loading"
+                @click="onSubmit"
+              />
+            </q-form>
 
-              <!-- <div v-if="authStore.isAdmin" class="text-center q-mt-md">
-                <q-btn
-                  flat
-                  color="primary"
-                  label="Go to Admin Panel"
-                  style="margin: 0 auto !important"
-                  @click="navigateWithPress('/admin', 'admin')"
-                />
-              </div> -->
-            </q-card-section>
-          </q-card>
+            <!-- Divider -->
+            <div class="auth-divider">
+              <div class="divider-line"></div>
+              <span class="divider-text">or</span>
+              <div class="divider-line"></div>
+            </div>
+
+            <!-- Sign Up link -->
+            <p class="switch-text">
+              Don't have an account?
+              <span class="switch-link" @click="goToSignUp">Sign up for free</span>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <p class="auth-footer">
+            By signing in, you agree to our
+            <span class="footer-link">Terms of Service</span>
+            and
+            <span class="footer-link">Privacy Policy</span>
+          </p>
         </div>
       </q-page>
     </q-page-container>
@@ -117,29 +131,13 @@ import { useAuthStore } from 'src/stores/authStore'
 const router = useRouter()
 const $q = useQuasar()
 const authStore = useAuthStore()
-const pressedAction = ref(null)
 
 onMounted(() => {
-  // Initialize auth store on component mount
   authStore.initSession()
 })
 
-const navigateWithPress = (path, action) => {
-  pressedAction.value = action
-
-  window.setTimeout(() => {
-    router.push(path)
-    pressedAction.value = null
-  }, 160)
-}
-
-const goToSignUp = () => {
-  navigateWithPress('/signup', 'signup')
-}
-
-const goBack = () => {
-  router.push('/signup')
-}
+const goBack = () => router.push('/')
+const goToSignUp = () => router.push('/signup')
 
 const form = ref({
   identifier: '',
@@ -159,7 +157,6 @@ const isSignInEnabled = computed(() => {
 const isEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
 
 const lookupEmailByPhone = async (phone) => {
-  // Try users table first
   let { data } = await supabase
     .from('users')
     .select('email')
@@ -167,10 +164,7 @@ const lookupEmailByPhone = async (phone) => {
     .limit(1)
     .single()
 
-  if (data?.email)
-    return data.email
-
-    // Then try technician table
+  if (data?.email) return data.email
   ;({ data } = await supabase
     .from('technician')
     .select('email')
@@ -183,7 +177,6 @@ const lookupEmailByPhone = async (phone) => {
 
 const onForgotPassword = async () => {
   const identifier = form.value.identifier.trim()
-
   let email = identifier
 
   if (!isEmail(identifier)) {
@@ -207,11 +200,7 @@ const onForgotPassword = async () => {
       $q.notify({ type: 'negative', message: error.message })
       return
     }
-    $q.notify({
-      type: 'positive',
-      message: 'Check Your Email.',
-      timeout: 3000,
-    })
+    $q.notify({ type: 'positive', message: 'Check Your Email.', timeout: 3000 })
     setTimeout(() => window.location.reload(), 3000)
   } catch (err) {
     $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
@@ -239,7 +228,6 @@ const onSubmit = async () => {
   try {
     let email = identifier
 
-    // If it's not an email, treat it as a phone number and look up the email
     if (!isEmail(identifier)) {
       email = await lookupEmailByPhone(identifier)
       if (!email) {
@@ -248,7 +236,6 @@ const onSubmit = async () => {
       }
     }
 
-    // Use authStore for sign-in
     const { success, error } = await authStore.signIn(email, form.value.password)
 
     if (!success) {
@@ -262,16 +249,13 @@ const onSubmit = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Sign in successful! Welcome back.',
+      message: 'Welcome back. You are signed in.',
+      icon: 'check_circle',
+      position: 'top-right',
+      timeout: 1400,
+      progress: true,
     })
 
-    form.value = {
-      identifier: '',
-      password: '',
-      rememberMe: false,
-    }
-
-    // Redirect based on role
     const path = authStore.getRedirectPath()
     router.push(path)
   } catch (err) {
@@ -284,26 +268,189 @@ const onSubmit = async () => {
 </script>
 
 <style scoped>
-.auth-action-btn {
-  transition:
-    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 160ms ease;
+.auth-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--san3a-bg), var(--san3a-primary-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
-.auth-action-btn--pressed {
-  transform: translateY(1px) scale(0.97);
-  opacity: 0.9;
-}
-</style>
-
-<style scoped>
-.q-page {
-  padding: 0 16px;
+.auth-wrapper {
+  width: 100%;
+  max-width: 440px;
 }
 
-.q-btn {
-  margin: 0 auto !important;
-  display: block !important;
-  margin-right: 15px !important;
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--san3a-gray-600);
+  cursor: pointer;
+  margin-bottom: 28px;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: var(--san3a-primary);
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: var(--san3a-radius-2xl);
+  box-shadow: var(--san3a-shadow-xl);
+  padding: 40px 32px;
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.brand-text {
+  font-size: 30px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
+  margin: 0 0 6px;
+}
+
+.auth-subtitle {
+  font-size: 15px;
+  color: var(--san3a-gray-500);
+  margin: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--san3a-gray-700);
+}
+
+.san3a-input :deep(.q-field__control) {
+  height: 44px;
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.remember-check {
+  font-size: 14px;
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: var(--san3a-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--san3a-gray-200);
+}
+
+.divider-text {
+  font-size: 13px;
+  color: var(--san3a-gray-500);
+}
+
+.switch-text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--san3a-gray-600);
+  margin: 0;
+}
+
+.switch-link {
+  color: var(--san3a-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+.switch-link:hover {
+  text-decoration: underline;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--san3a-gray-500);
+  margin-top: 24px;
+}
+
+.footer-link {
+  color: var(--san3a-primary);
+  cursor: pointer;
+}
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
 }
 </style>

@@ -1,18 +1,19 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated class="fixed-top">
-      <q-toolbar>
-        <q-toolbar-title style="display: flex; align-items: center">
-          Sanعa
-          <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
-        </q-toolbar-title>
+    <!-- Header -->
+    <q-header class="app-header">
+      <q-toolbar class="app-toolbar">
+        <div class="header-brand">
+          <div class="header-brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <span class="header-brand-name">San3a</span>
+        </div>
         <q-space />
         <q-btn
           flat
           round
           dense
           icon="notifications"
-          aria-label="Notifications"
+          class="notif-btn"
           @click="showNotifications = !showNotifications"
         >
           <q-badge v-if="unreadCount > 0" color="red" floating>{{ unreadCount }}</q-badge>
@@ -20,10 +21,11 @@
       </q-toolbar>
     </q-header>
 
+    <!-- Notifications -->
     <q-dialog v-model="showNotifications" position="top" seamless>
-      <q-card style="width: 380px; max-width: 95vw; margin-top: 60px">
+      <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="text-h6">Notifications</div>
+          <div class="notif-title">Notifications</div>
           <q-space />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
@@ -32,37 +34,40 @@
           <q-item
             v-for="(notif, i) in notifications"
             :key="i"
-            :class="{ 'bg-blue-1': !notif.read }"
+            :class="{ 'notif-unread': !notif.read }"
             clickable
             @click="openNotification(notif, i)"
           >
-            <q-item-section avatar>
-              <q-avatar color="primary" text-color="white" icon="build" />
-            </q-item-section>
+            <q-item-section avatar
+              ><q-avatar size="40px" class="notif-avatar"
+                ><q-icon name="build" size="20px" /></q-avatar
+            ></q-item-section>
             <q-item-section>
-              <q-item-label>{{ notif.fixerName }}</q-item-label>
+              <q-item-label class="text-weight-bold">{{ notif.fixerName }}</q-item-label>
               <q-item-label caption>{{ notif.message }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
-        <q-card-section v-else class="text-center text-grey-5 q-py-lg">
-          No notifications yet
-        </q-card-section>
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg"
+          >No notifications yet</q-card-section
+        >
       </q-card>
     </q-dialog>
 
     <q-page-container>
       <q-page class="page-content">
-        <div v-if="loading" class="state-wrap">
+        <!-- Loading -->
+        <div v-if="loading" class="state-center">
           <q-spinner color="primary" size="48px" />
           <div class="q-mt-md text-grey-7">Loading incoming offers...</div>
         </div>
 
-        <div v-else-if="error" class="state-wrap">
+        <!-- Error -->
+        <div v-else-if="error" class="state-center">
           <q-icon name="error_outline" size="72px" color="negative" />
           <div class="state-title">Could not load offers</div>
-          <div class="state-subtitle">{{ error }}</div>
+          <div class="state-sub">{{ error }}</div>
           <q-btn
             unelevated
             color="primary"
@@ -74,19 +79,21 @@
           />
         </div>
 
-        <div v-else-if="incomingOffers.length === 0" class="state-wrap">
+        <!-- Empty -->
+        <div v-else-if="incomingOffers.length === 0" class="state-center">
           <q-icon name="mark_email_read" size="72px" color="grey-4" />
           <div class="state-title">No incoming offers yet</div>
-          <div class="state-subtitle">When a fixer sends a price, it will appear here.</div>
+          <div class="state-sub">When a fixer sends a price, it will appear here.</div>
         </div>
 
-        <div v-else class="offers-container">
+        <!-- Offers list -->
+        <div v-else class="offers-shell san3a-animate-in">
           <div class="page-title">Incoming Offers</div>
-          <div class="row items-center justify-between q-col-gutter-sm q-mb-md">
-            <q-badge color="primary" class="q-pa-sm text-body2">
-              {{ filteredOffers.length }} {{ filteredOffers.length === 1 ? 'offer' : 'offers' }}
-            </q-badge>
-
+          <div class="row items-center justify-between q-mb-md">
+            <q-badge color="primary" class="q-pa-sm text-body2"
+              >{{ filteredOffers.length }}
+              {{ filteredOffers.length === 1 ? 'offer' : 'offers' }}</q-badge
+            >
             <q-select
               v-model="statusFilter"
               :options="statusFilterOptions"
@@ -99,140 +106,137 @@
             />
           </div>
 
-          <div v-if="filteredOffers.length === 0" class="state-wrap state-wrap-inline">
+          <div v-if="filteredOffers.length === 0" class="state-center-inline">
             <q-icon name="filter_alt_off" size="56px" color="grey-4" />
-            <div class="state-subtitle">No offers for selected status.</div>
+            <div class="state-sub">No offers for selected status.</div>
           </div>
 
-          <q-card
-            v-for="req in filteredOffers"
-            :key="req.request_id"
-            flat
-            bordered
-            class="offer-card q-mb-sm"
-          >
-            <q-card-section class="q-py-sm">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-subtitle2 text-weight-bold">Request #{{ req.request_id }}</div>
-                <q-badge
-                  :color="statusColor(req.request_status)"
-                  :label="req.request_status || 'pending'"
-                  class="text-capitalize"
-                />
-              </div>
+          <div v-for="req in filteredOffers" :key="req.request_id" class="offer-card">
+            <div class="offer-card-header">
+              <span class="offer-id">Request #{{ req.request_id }}</span>
+              <q-badge
+                :color="statusColor(req.request_status)"
+                :label="req.request_status || 'pending'"
+                class="text-capitalize"
+              />
+            </div>
 
-              <div class="text-body2 text-grey-8 q-mb-sm" style="white-space: pre-line">
-                {{ req.description_of_issue || 'No description' }}
-              </div>
+            <p class="offer-desc">{{ req.description_of_issue || 'No description' }}</p>
 
-              <div class="price-row q-mb-sm">
-                <q-chip dense color="orange-2" text-color="orange-9" icon="build">
-                  Fixer offer: {{ req.fixer_price }} EGP
-                </q-chip>
-                <q-chip
-                  v-if="req.customer_price"
-                  dense
-                  color="green-2"
-                  text-color="green-9"
-                  icon="person"
-                >
-                  Your budget: {{ req.customer_price }} EGP
-                </q-chip>
-              </div>
-
-              <div v-if="getFixerMessage(req)" class="fixer-message q-mb-sm">
-                <div class="fixer-message-title">Fixer message</div>
-                <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
-              </div>
-
-              <div v-if="req.fixerInfo" class="fixer-info q-mb-sm">
-                <div class="fixer-title">Fixer Details</div>
-                <div class="fixer-detail-row">
-                  <q-icon name="person" size="14px" color="grey-7" />
-                  <span>{{ req.fixerInfo.full_name || 'Unknown fixer' }}</span>
-                </div>
-                <div v-if="req.fixerInfo.phone_number" class="fixer-detail-row">
-                  <q-icon name="phone" size="14px" color="grey-7" />
-                  <span>{{ req.fixerInfo.phone_number }}</span>
-                </div>
-                <div
-                  v-if="
-                    req.fixerInfo.years_of_experience !== null &&
-                    req.fixerInfo.years_of_experience !== undefined
-                  "
-                  class="fixer-detail-row"
-                >
-                  <q-icon name="workspace_premium" size="14px" color="grey-7" />
-                  <span>{{ req.fixerInfo.years_of_experience }} years of experience</span>
-                </div>
-              </div>
-
-              <div class="meta-row">
-                <div v-if="req.request_date" class="meta-item">
-                  <q-icon name="event" size="14px" color="grey-6" />
-                  <span>{{ formatDate(req.request_date) }}</span>
-                </div>
-                <div v-if="req.service_location" class="meta-item">
-                  <q-icon name="location_on" size="14px" color="grey-6" />
-                  <span>{{ req.service_location }}</span>
-                </div>
-                <div v-if="req.payment_method" class="meta-item">
-                  <q-icon name="payments" size="14px" color="grey-6" />
-                  <span class="text-capitalize">{{ req.payment_method }}</span>
-                </div>
-              </div>
-
-              <div
-                v-if="!req.request_status || req.request_status.toLowerCase() === 'pending'"
-                class="action-row q-mt-sm"
+            <div class="price-row">
+              <q-chip dense color="orange-2" text-color="orange-9" icon="build"
+                >Fixer offer: {{ req.fixer_price }} EGP</q-chip
               >
-                <q-btn
-                  unelevated
-                  dense
-                  color="positive"
-                  icon="check_circle"
-                  label="Accept"
-                  class="action-btn"
-                  :loading="req._accepting"
-                  @click="acceptOffer(req)"
-                />
-                <q-btn
-                  unelevated
-                  dense
-                  color="negative"
-                  icon="cancel"
-                  label="Reject"
-                  class="action-btn"
-                  :loading="req._rejecting"
-                  @click="rejectOffer(req)"
-                />
-                <q-btn
-                  unelevated
-                  dense
-                  color="orange"
-                  icon="gavel"
-                  label="Bargain"
-                  class="action-btn"
-                  @click="openBargain(req)"
-                />
+              <q-chip
+                v-if="req.customer_price"
+                dense
+                color="green-2"
+                text-color="green-9"
+                icon="person"
+                >Your budget: {{ req.customer_price }} EGP</q-chip
+              >
+            </div>
+
+            <div v-if="getFixerMessage(req)" class="fixer-message">
+              <div class="fixer-message-title">Fixer message</div>
+              <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
+            </div>
+
+            <div v-if="req.fixerInfo" class="fixer-info">
+              <div class="fixer-info-title">Fixer Details</div>
+              <div class="fixer-detail-row">
+                <q-icon name="person" size="14px" color="grey-7" /><span>{{
+                  req.fixerInfo.full_name || 'Unknown fixer'
+                }}</span>
               </div>
-            </q-card-section>
-          </q-card>
+              <div v-if="req.fixerInfo.phone_number" class="fixer-detail-row">
+                <q-icon name="phone" size="14px" color="grey-7" /><span>{{
+                  req.fixerInfo.phone_number
+                }}</span>
+              </div>
+              <div
+                v-if="
+                  req.fixerInfo.years_of_experience !== null &&
+                  req.fixerInfo.years_of_experience !== undefined
+                "
+                class="fixer-detail-row"
+              >
+                <q-icon name="workspace_premium" size="14px" color="grey-7" /><span
+                  >{{ req.fixerInfo.years_of_experience }} years of experience</span
+                >
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <div v-if="req.request_date" class="meta-item">
+                <q-icon name="event" size="14px" color="grey-6" /><span>{{
+                  formatDate(req.request_date)
+                }}</span>
+              </div>
+              <div v-if="req.service_location" class="meta-item">
+                <q-icon name="location_on" size="14px" color="grey-6" /><span>{{
+                  req.service_location
+                }}</span>
+              </div>
+              <div v-if="req.payment_method" class="meta-item">
+                <q-icon name="payments" size="14px" color="grey-6" /><span
+                  class="text-capitalize"
+                  >{{ req.payment_method }}</span
+                >
+              </div>
+            </div>
+
+            <div
+              v-if="!req.request_status || req.request_status.toLowerCase() === 'pending'"
+              class="action-row"
+            >
+              <q-btn
+                unelevated
+                dense
+                color="positive"
+                icon="check_circle"
+                label="Accept"
+                no-caps
+                class="action-btn"
+                :loading="req._accepting"
+                @click="acceptOffer(req)"
+              />
+              <q-btn
+                unelevated
+                dense
+                color="negative"
+                icon="cancel"
+                label="Reject"
+                no-caps
+                class="action-btn"
+                :loading="req._rejecting"
+                @click="rejectOffer(req)"
+              />
+              <q-btn
+                unelevated
+                dense
+                color="warning"
+                icon="gavel"
+                label="Bargain"
+                no-caps
+                class="action-btn"
+                @click="openBargain(req)"
+              />
+            </div>
+          </div>
         </div>
       </q-page>
     </q-page-container>
 
     <!-- Bargain Dialog -->
     <q-dialog v-model="bargainDialog" persistent>
-      <q-card style="min-width: 300px; border-radius: 14px">
+      <q-card class="bargain-card">
         <q-card-section>
-          <div class="text-h6 text-weight-bold" style="color: #e65100">Make an Offer</div>
+          <div class="bargain-title">Make an Offer</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Fixer's price:
-            <strong>{{ bargainTarget?.fixer_price }} EGP</strong>
+            Fixer's price: <strong>{{ bargainTarget?.fixer_price }} EGP</strong>
           </div>
         </q-card-section>
-
         <q-form ref="bargainForm">
           <q-card-section class="q-pt-none">
             <q-input
@@ -247,14 +251,14 @@
               @keyup.enter="submitBargain"
             />
           </q-card-section>
-
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="grey-7" v-close-popup />
             <q-btn
               unelevated
               label="Send Offer"
-              color="orange"
+              color="warning"
               icon="send"
+              no-caps
               :loading="bargainLoading"
               @click="submitBargain"
             />
@@ -262,6 +266,8 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- Bottom Nav -->
     <q-footer elevated class="bottom-nav">
       <q-tabs
         v-model="activeTab"
@@ -324,21 +330,14 @@ const statusFilterOptions = [
 
 const requestIdFilter = computed(() => {
   const raw = route.query.requestId
-  if (!raw) return null
-  return String(raw)
+  return raw ? String(raw) : null
 })
 
 const filteredOffers = computed(() => {
   let offers = incomingOffers.value
-
-  if (requestIdFilter.value) {
-    offers = offers.filter((r) => String(r.request_id) === requestIdFilter.value)
-    return offers
-  }
-
-  if (statusFilter.value === 'all') {
-    return offers
-  }
+  if (requestIdFilter.value)
+    return offers.filter((r) => String(r.request_id) === requestIdFilter.value)
+  if (statusFilter.value === 'all') return offers
   return offers.filter((r) => (r.request_status || 'pending').toLowerCase() === statusFilter.value)
 })
 
@@ -350,8 +349,7 @@ const statusColor = (status) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z'
-  const d = new Date(utcStr)
-  return d.toLocaleDateString('en-US', {
+  return new Date(utcStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -362,27 +360,21 @@ const formatDate = (dateStr) => {
 
 const setTransientFixerMessage = (requestId, message) => {
   const next = new Map(transientFixerMessages.value)
-  if (message) {
-    next.set(requestId, message)
-  } else {
-    next.delete(requestId)
-  }
+  if (message) next.set(requestId, message)
+  else next.delete(requestId)
   transientFixerMessages.value = next
 }
 
-const getFixerMessage = (req) => {
-  return transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
-}
+const getFixerMessage = (req) =>
+  transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
 
 const openNotification = (notif, index) => {
   markAsRead(index)
   showNotifications.value = false
-
   if (notif?.routePath) {
     router.push(notif.routePath)
     return
   }
-
   if (notif?.requestId) {
     router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
     return
@@ -393,68 +385,56 @@ const openNotification = (notif, index) => {
 const fetchIncomingOffers = async () => {
   loading.value = true
   error.value = null
-
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
     if (!user) {
-      error.value = 'You must be signed in to view incoming offers.'
+      error.value = 'You must be signed in.'
       loading.value = false
       return
     }
-
     setRecipientEmail(user.email)
-
     const { data: customer } = await supabase
       .from('users')
       .select('user_id')
       .ilike('email', user.email)
       .maybeSingle()
-
     if (!customer?.user_id) {
       customerUserId.value = null
       incomingOffers.value = []
       loading.value = false
       return
     }
-
     customerUserId.value = customer.user_id
-
     const { data, error: fetchErr } = await supabase
       .from('request')
       .select('*')
       .eq('user_id', customer.user_id)
       .not('fixer_price', 'is', null)
       .order('request_date', { ascending: false })
-
     if (fetchErr) {
       error.value = fetchErr.message
       incomingOffers.value = []
     } else {
       const offers = data || []
       const technicianIds = [...new Set(offers.map((r) => r.technician_id).filter(Boolean))]
-
       let technicianMap = {}
       if (technicianIds.length) {
         const { data: techRows } = await supabase
           .from('technician')
           .select('technician_id, full_name, email, phone_number, years_of_experience')
           .in('technician_id', technicianIds)
-
         technicianMap = (techRows || []).reduce((acc, t) => {
           acc[t.technician_id] = t
           return acc
         }, {})
       }
-
       incomingOffers.value = offers.map((r) => ({
         ...r,
         fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
       }))
     }
-
     await loadNotifications()
   } catch (err) {
     error.value = 'An unexpected error occurred.'
@@ -466,9 +446,7 @@ const fetchIncomingOffers = async () => {
 
 const subscribeToIncomingOffers = () => {
   if (!customerUserId.value) return
-
   offersSubscription.value?.unsubscribe()
-
   offersSubscription.value = supabase
     .channel(`incoming-offers-${customerUserId.value}`)
     .on(
@@ -479,18 +457,13 @@ const subscribeToIncomingOffers = () => {
         table: 'request',
         filter: `user_id=eq.${customerUserId.value}`,
       },
-      () => {
-        // Refresh offers list when database changes
-        // Notifications are handled by Broadcast in subscribeToFixerBidNotifications()
-        fetchIncomingOffers()
-      },
+      () => fetchIncomingOffers(),
     )
     .subscribe()
 }
 
 const subscribeToFixerMessages = () => {
   messageSubscription.value?.unsubscribe()
-
   messageSubscription.value = supabase
     .channel('customer-offer-events')
     .on('broadcast', { event: 'fixer-bid-message' }, ({ payload }) => {
@@ -503,13 +476,10 @@ const subscribeToFixerMessages = () => {
 
 const subscribeToFixerBidNotifications = () => {
   if (!customerUserId.value) return
-
-  // Listen on customer-specific channel
   myBargainChannel.value = supabase
     .channel(`bargain-customer-${customerUserId.value}`)
     .on('broadcast', { event: 'fixer-bid-notification' }, ({ payload }) => {
       if (!payload) return
-
       notifications.value.unshift({
         id: `rt-customer-${payload.requestId}-${Date.now()}`,
         title: `Fixer ${payload.fixerName || 'Fixer'}`,
@@ -528,7 +498,6 @@ const subscribeToFixerBidNotifications = () => {
         type: 'offer',
         payload,
       })
-
       void loadNotifications()
       $q.notify({
         type: 'info',
@@ -544,15 +513,11 @@ const acceptOffer = async (req) => {
   req._accepting = true
   const { error: err } = await supabase
     .from('request')
-    .update({
-      request_status: 'accepted',
-      final_price: req.fixer_price,
-    })
+    .update({ request_status: 'accepted', final_price: req.fixer_price })
     .eq('request_id', req.request_id)
   req._accepting = false
-  if (err) {
-    $q.notify({ type: 'negative', message: 'Failed to accept: ' + err.message })
-  } else {
+  if (err) $q.notify({ type: 'negative', message: 'Failed to accept: ' + err.message })
+  else {
     req.request_status = 'accepted'
     $q.notify({ type: 'positive', message: 'Offer accepted!' })
   }
@@ -565,15 +530,13 @@ const rejectOffer = async (req) => {
     .update({ request_status: 'cancelled' })
     .eq('request_id', req.request_id)
   req._rejecting = false
-  if (err) {
-    $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
-  } else {
+  if (err) $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
+  else {
     req.request_status = 'cancelled'
     $q.notify({ type: 'warning', message: 'Offer rejected.' })
   }
 }
 
-// Bargain
 const bargainDialog = ref(false)
 const bargainTarget = ref(null)
 const bargainPrice = ref(null)
@@ -588,16 +551,12 @@ const openBargain = (req) => {
 
 const waitForSubscribed = (channel) =>
   new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error('Channel subscription timed out'))
-    }, 6000)
-
+    const timeoutId = setTimeout(() => reject(new Error('Channel subscription timed out')), 6000)
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         clearTimeout(timeoutId)
         resolve()
       }
-
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         clearTimeout(timeoutId)
         reject(new Error(`Channel subscription failed: ${status}`))
@@ -621,15 +580,11 @@ const submitBargain = async () => {
     console.error('[Bargain] Supabase error:', err)
     $q.notify({ type: 'negative', message: 'Failed to save offer: ' + err.message })
   } else if (!data || data.length === 0) {
-    console.warn('[Bargain] 0 rows updated — check RLS policies on the request table.')
-    $q.notify({
-      type: 'warning',
-      message: 'Update blocked — check database permissions.',
-    })
+    console.warn('[Bargain] 0 rows updated')
+    $q.notify({ type: 'warning', message: 'Update blocked — check database permissions.' })
   } else {
     bargainTarget.value.customer_price = price
     bargainDialog.value = false
-
     let fixerEmail = bargainTarget.value.fixerInfo?.email || null
     if (!fixerEmail && bargainTarget.value.technician_id) {
       const { data: technicianRow } = await supabase
@@ -639,26 +594,18 @@ const submitBargain = async () => {
         .maybeSingle()
       fixerEmail = technicianRow?.email || null
     }
-
     if (fixerEmail) {
-      const savedNotification = await recordNotificationForRecipient(
-        fixerEmail,
-        {
+      const savedNotification = await recordNotificationForRecipient(fixerEmail, {
         title: 'Customer',
         message: `Sent a counter-offer of ${price} EGP for request #${bargainTarget.value.request_id}.`,
         requestId: bargainTarget.value.request_id,
         routePath: '/service-provider?tab=requests',
         type: 'counter-offer',
         icon: 'handshake',
-        payload: {
-          requestId: bargainTarget.value.request_id,
-          price,
-        },
-      },
-      )
-
+        payload: { requestId: bargainTarget.value.request_id, price },
+      })
       if (!savedNotification) {
-        console.warn('Counter-offer notification was not saved to notification_center.')
+        console.warn('Counter-offer notification not saved.')
         $q.notify({
           type: 'warning',
           message: 'Counter-offer sent, but notification persistence failed.',
@@ -671,28 +618,18 @@ const submitBargain = async () => {
         message: 'Counter-offer sent, but fixer email was not found for notification.',
       })
     }
-
     $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
-
-    // Broadcast notification to fixer via their specific channel
     const target = bargainTarget.value
     if (target.technician_id) {
       const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)
-
       try {
         await waitForSubscribed(fixerChannel)
         const sendStatus = await fixerChannel.send({
           type: 'broadcast',
           event: 'customer-bargain-notification',
-          payload: {
-            requestId: target.request_id,
-            price: price,
-          },
+          payload: { requestId: target.request_id, price },
         })
-
-        if (sendStatus !== 'ok') {
-          console.warn('Counter-offer broadcast send status:', sendStatus)
-        }
+        if (sendStatus !== 'ok') console.warn('Counter-offer broadcast send status:', sendStatus)
       } catch (broadcastError) {
         console.warn('Counter-offer broadcast failed:', broadcastError)
       } finally {
@@ -709,7 +646,6 @@ onMounted(async () => {
   subscribeToFixerMessages()
   subscribeToFixerBidNotifications()
 })
-
 onBeforeUnmount(() => {
   offersSubscription.value?.unsubscribe()
   messageSubscription.value?.unsubscribe()
@@ -718,12 +654,68 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.page-content {
-  padding-bottom: 80px;
+.app-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+.app-toolbar {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+}
+.header-brand-name {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.notif-btn {
+  color: var(--san3a-gray-600) !important;
+}
+.notif-card {
+  width: 380px;
+  max-width: 95vw;
+  margin-top: 60px;
+  border-radius: var(--san3a-radius-xl) !important;
+}
+.notif-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+.notif-unread {
+  background: var(--san3a-primary-light) !important;
+}
+.notif-avatar {
+  background: var(--san3a-primary) !important;
+  color: #fff !important;
 }
 
-.state-wrap {
-  min-height: calc(100vh - 180px);
+.page-content {
+  background: var(--san3a-bg);
+  padding-bottom: 80px;
+}
+.state-center {
+  min-height: 60vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -731,107 +723,134 @@ onBeforeUnmount(() => {
   text-align: center;
   padding: 24px;
 }
-
+.state-center-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 24px;
+}
 .state-title {
   margin-top: 16px;
   font-size: 22px;
   font-weight: 700;
-  color: #2e3d36;
+  color: var(--san3a-gray-800);
 }
-
-.state-subtitle {
+.state-sub {
   margin-top: 8px;
   font-size: 15px;
-  color: #90a4ae;
+  color: var(--san3a-gray-500);
 }
 
-.offers-container {
+.offers-shell {
   width: 100%;
-  max-width: 540px;
+  max-width: 700px;
   margin: 0 auto;
-  padding: 20px 16px;
+  padding: 24px 16px;
 }
-
-.status-filter {
-  width: 150px;
-}
-
-.state-wrap-inline {
-  min-height: auto;
-  padding: 20px 0 24px;
-}
-
 .page-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
-  color: #1b5e20;
-  margin-bottom: 8px;
+  color: var(--san3a-primary);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.status-filter {
+  width: 160px;
 }
 
 .offer-card {
-  border-radius: 12px !important;
-  border-color: #e8eeeb !important;
+  background: #fff;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-xl);
+  padding: 20px;
+  margin-bottom: 14px;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s,
+    border-color 0.2s;
 }
-
+.offer-card:hover {
+  box-shadow: var(--san3a-shadow-md);
+  transform: translateY(-2px);
+  border-color: rgba(13, 115, 119, 0.24);
+}
+.offer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.offer-id {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--san3a-gray-900);
+}
+.offer-desc {
+  font-size: 14px;
+  color: var(--san3a-gray-700);
+  line-height: 1.6;
+  margin: 0 0 12px;
+  white-space: pre-line;
+}
 .price-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 12px;
 }
-
 .meta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 12px;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #78909c;
+  color: var(--san3a-gray-500);
 }
 
 .fixer-info {
-  border: 1px solid #e8eeeb;
-  border-radius: 10px;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-lg);
   padding: 10px 12px;
-  background: #fafdfb;
+  background: var(--san3a-gray-50);
+  margin-bottom: 12px;
 }
-
-.fixer-title {
+.fixer-info-title {
   font-size: 12px;
   font-weight: 700;
-  color: #2e7d32;
+  color: var(--san3a-primary);
   margin-bottom: 6px;
 }
-
 .fixer-detail-row {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #455a64;
-}
-
-.fixer-message {
-  border-left: 3px solid #f9a825;
-  background: #fff8e1;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-
-.fixer-message-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #e65100;
+  color: var(--san3a-gray-600);
   margin-bottom: 2px;
 }
 
+.fixer-message {
+  border-left: 3px solid var(--san3a-warning);
+  background: var(--san3a-warning-light);
+  border-radius: var(--san3a-radius-md);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+.fixer-message-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--san3a-secondary);
+  margin-bottom: 2px;
+}
 .fixer-message-body {
   font-size: 13px;
-  color: #5d4037;
+  color: var(--san3a-gray-700);
   white-space: pre-line;
 }
 
@@ -840,34 +859,66 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
 }
-
 .action-btn {
-  border-radius: 20px;
-  font-size: 12px;
-  padding: 0 14px;
+  border-radius: 999px !important;
+  font-size: 13px;
+  padding: 4px 16px !important;
+  font-weight: 700;
 }
+
+.bargain-card {
+  min-width: 300px;
+  border-radius: var(--san3a-radius-xl) !important;
+}
+.bargain-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--san3a-secondary);
+}
+
+.page-content :deep(.q-btn:focus-visible),
+.page-content :deep(.q-tab:focus-visible),
+.page-content :deep(.q-field__control:focus-within) {
+  outline: 3px solid rgba(13, 115, 119, 0.22);
+  outline-offset: 2px;
+}
+
+.page-content :deep(.q-field--outlined .q-field__control:hover) {
+  border-color: rgba(13, 115, 119, 0.32) !important;
+}
+
 .bottom-nav {
-  background: linear-gradient(135deg, #2e7d32, #388e3c) !important;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover)) !important;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
 }
-
 .nav-tabs {
   height: 60px;
 }
-
 .nav-tabs :deep(.q-tab) {
   min-height: 60px;
   font-size: 11px;
   text-transform: none;
   opacity: 0.75;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
-
 .nav-tabs :deep(.q-tab--active) {
   opacity: 1;
 }
-
 .nav-tabs :deep(.q-tab__icon) {
   font-size: 24px;
+}
+
+@media (max-width: 600px) {
+  .offers-shell {
+    padding: 18px 14px;
+  }
+  .page-title {
+    font-size: 24px;
+  }
+  .status-filter {
+    width: 140px;
+  }
 }
 </style>

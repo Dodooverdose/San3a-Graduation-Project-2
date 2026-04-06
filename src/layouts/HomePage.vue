@@ -1,18 +1,19 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated class="fixed-top">
-      <q-toolbar>
-        <q-toolbar-title style="display: flex; align-items: center">
-          Sanعa
-          <img src="/icons/White.png" alt="San3a" style="height: 40px; margin-left: 10px" />
-        </q-toolbar-title>
+    <!-- Header -->
+    <q-header class="app-header">
+      <q-toolbar class="app-toolbar">
+        <div class="header-brand">
+          <div class="header-brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <span class="header-brand-name">San3a</span>
+        </div>
         <q-space />
         <q-btn
           flat
           round
           dense
           icon="notifications"
-          aria-label="Notifications"
+          class="notif-btn"
           @click="showNotifications = !showNotifications"
         >
           <q-badge v-if="unreadCount > 0" color="red" floating>{{ unreadCount }}</q-badge>
@@ -22,9 +23,9 @@
 
     <!-- Notifications Panel -->
     <q-dialog v-model="showNotifications" position="top" seamless>
-      <q-card style="width: 380px; max-width: 95vw; margin-top: 60px">
+      <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="text-h6">Notifications</div>
+          <div class="notif-card-title">Notifications</div>
           <q-space />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
@@ -33,15 +34,17 @@
           <q-item
             v-for="(notif, i) in notifications"
             :key="i"
-            :class="{ 'bg-blue-1': !notif.read }"
+            :class="{ 'notif-unread': !notif.read }"
             clickable
             @click="openNotification(notif, i)"
           >
             <q-item-section avatar>
-              <q-avatar color="primary" text-color="white" icon="build" />
+              <q-avatar size="40px" class="notif-avatar">
+                <q-icon name="build" size="20px" />
+              </q-avatar>
             </q-item-section>
             <q-item-section>
-              <q-item-label>{{ notif.fixerName }}</q-item-label>
+              <q-item-label class="notif-name">{{ notif.fixerName }}</q-item-label>
               <q-item-label caption>{{ notif.message }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
             </q-item-section>
@@ -69,102 +72,108 @@
             </q-item-section>
           </q-item>
         </q-list>
-        <q-card-section v-else class="text-center text-grey-5 q-py-lg">
-          No Offers Yet
-        </q-card-section>
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg"
+          >No Offers Yet</q-card-section
+        >
       </q-card>
     </q-dialog>
+
     <q-page-container>
       <q-page class="page-content">
-        <div class="home-shell q-pa-md">
-          <q-card flat bordered class="hero-card q-mb-lg">
-            <q-card-section class="hero-card__content">
+        <div class="home-shell">
+          <!-- Hero Card -->
+          <div class="hero-card san3a-animate-in">
+            <div class="hero-deco"></div>
+            <div class="hero-content">
               <div class="hero-copy">
                 <div class="hero-eyebrow">Welcome back</div>
                 <div class="hero-title">What do you need help with today?</div>
                 <div class="hero-subtitle">
-                  Pick a service, review your latest requests, or jump straight into the requests tab.
+                  Pick a service, review your latest requests, or jump straight into the requests
+                  tab.
                 </div>
               </div>
-
               <div class="hero-actions">
                 <q-btn
-                  color="white"
-                  text-color="primary"
                   unelevated
+                  no-caps
+                  class="hero-btn-primary"
                   icon="assignment"
                   label="Requests"
                   @click="goToPage('/incoming-offers')"
                 />
-                <q-btn flat color="white" icon="person" label="Profile" @click="goToPage('/profile')" />
+                <q-btn
+                  flat
+                  no-caps
+                  class="hero-btn-ghost"
+                  icon="person"
+                  label="Profile"
+                  @click="goToPage('/profile')"
+                />
               </div>
-            </q-card-section>
-          </q-card>
+            </div>
+          </div>
 
-          <div class="home-grid">
-          <div
-            v-for="(item, idx) in items"
-            :key="idx"
-            class="grid-item"
-            @click="goToPage(item.route)"
-          >
-            <q-card flat bordered class="icon-card">
-              <div class="icon-box">
+          <!-- Services Grid -->
+          <div class="services-grid">
+            <div
+              v-for="(item, idx) in items"
+              :key="idx"
+              class="service-item san3a-animate-in"
+              :class="`san3a-stagger-${idx + 1}`"
+              @click="goToPage(item.route)"
+            >
+              <div class="service-icon-box">
                 <img :src="item.icon" alt="icon" />
               </div>
-              <div class="label">{{ item.label }}</div>
-            </q-card>
+              <div class="service-label">{{ item.label }}</div>
+            </div>
           </div>
 
-          </div>
-
-          <q-card flat bordered class="recent-requests-card q-mt-lg" @click="goToPage('/incoming-offers')">
-            <q-card-section class="row items-center justify-between q-pb-sm">
+          <!-- Recent Requests -->
+          <div class="recent-card san3a-animate-in" @click="goToPage('/incoming-offers')">
+            <div class="recent-header">
               <div>
-                <div class="text-subtitle1 text-weight-bold">Recent Requests</div>
-                <div class="text-caption text-grey-7">A quick look at your latest two requests</div>
+                <div class="recent-title">Recent Requests</div>
+                <div class="recent-sub">A quick look at your latest two requests</div>
               </div>
-              <q-chip outline color="primary" icon="chevron_right">Open Requests</q-chip>
-            </q-card-section>
-
+              <q-chip outline color="primary" icon="chevron_right" clickable>Open Requests</q-chip>
+            </div>
             <q-separator />
-
-            <q-card-section>
+            <div class="recent-body">
               <div v-if="loadingRecentRequests" class="text-center q-py-md text-grey-6">
                 Loading recent requests...
               </div>
-
               <div v-else-if="recentRequests.length === 0" class="text-center q-py-lg text-grey-6">
                 No requests yet. Create your first request from the service categories above.
               </div>
-
               <div v-else class="recent-list">
-                <div v-for="req in recentRequests" :key="req._id" class="recent-request-item">
+                <div v-for="req in recentRequests" :key="req._id" class="recent-item">
                   <div class="row items-start no-wrap q-gutter-sm">
-                    <q-avatar size="40px" color="primary" text-color="white" icon="assignment" />
+                    <q-avatar size="40px" class="recent-avatar">
+                      <q-icon name="assignment" size="20px" />
+                    </q-avatar>
                     <div class="recent-request-copy">
                       <div class="row items-center q-gutter-sm q-mb-xs">
-                        <div class="text-weight-medium">Request #{{ req._id }}</div>
+                        <div class="recent-req-id">Request #{{ req._id }}</div>
                         <q-badge :color="getStatusColor(req._status)">{{ req._status }}</q-badge>
                       </div>
-                      <div class="text-body2 text-grey-8">
-                        {{ req._category }}
-                      </div>
-                      <div class="text-caption text-grey-6 recent-request-description">
+                      <div class="recent-req-cat">{{ req._category }}</div>
+                      <div class="recent-req-desc">
                         {{ req._description || 'No description provided' }}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </q-card-section>
-          </q-card>
+            </div>
+          </div>
         </div>
       </q-page>
     </q-page-container>
 
-    <!-- Bottom Navigation Bar -->
-    <q-footer elevated class="bottom-nav">
+    <!-- Bottom Navigation -->
+    <q-footer class="bottom-nav" elevated>
       <q-tabs
         v-model="activeTab"
         active-color="white"
@@ -201,7 +210,6 @@ const { notifications, unreadCount, setRecipientEmail, loadNotifications, markAs
 
 const showNotifications = ref(false)
 const activeTab = ref('home')
-
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const knownOfferPrices = ref(new Map())
@@ -211,17 +219,14 @@ const loadingRecentRequests = ref(false)
 const openNotification = (notif, index) => {
   markAsRead(index)
   showNotifications.value = false
-
   if (notif?.routePath) {
     router.push(notif.routePath)
     return
   }
-
   if (notif?.requestId) {
     router.push({ path: '/incoming-offers', query: { requestId: String(notif.requestId) } })
     return
   }
-
   router.push('/incoming-offers')
 }
 
@@ -241,25 +246,19 @@ const initializeIncomingOfferTracking = async () => {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
   if (!user) return
-
   setRecipientEmail(user.email)
-
   const { data: customer } = await supabase
     .from('users')
     .select('user_id')
     .ilike('email', user.email)
     .maybeSingle()
-
   if (!customer?.user_id) return
   customerUserId.value = customer.user_id
-
   const { data: requests } = await supabase
     .from('request')
     .select('request_id, fixer_price')
     .eq('user_id', customer.user_id)
-
   knownOfferPrices.value = new Map((requests || []).map((r) => [r.request_id, r.fixer_price]))
 }
 
@@ -273,7 +272,6 @@ const normalizeRequest = (request) => ({
 
 const loadRecentRequests = async () => {
   if (!customerUserId.value) return
-
   loadingRecentRequests.value = true
   try {
     const { data, error } = await supabase
@@ -282,7 +280,6 @@ const loadRecentRequests = async () => {
       .eq('user_id', customerUserId.value)
       .order('request_id', { ascending: false })
       .limit(2)
-
     if (error) throw error
     recentRequests.value = (data || []).map(normalizeRequest)
   } catch (error) {
@@ -294,7 +291,6 @@ const loadRecentRequests = async () => {
 
 const subscribeToIncomingOffers = () => {
   if (!customerUserId.value) return
-
   offersSubscription.value?.unsubscribe()
   offersSubscription.value = supabase
     .channel(`home-incoming-offers-${customerUserId.value}`)
@@ -311,18 +307,14 @@ const subscribeToIncomingOffers = () => {
         const requestId = next.request_id
         const nextFixerPrice = next.fixer_price
         const prevFixerPrice = knownOfferPrices.value.get(requestId)
-
         const hasNewBid =
           nextFixerPrice !== null &&
           nextFixerPrice !== undefined &&
           (prevFixerPrice === null ||
             prevFixerPrice === undefined ||
             prevFixerPrice !== nextFixerPrice)
-
         knownOfferPrices.value.set(requestId, nextFixerPrice)
-
         if (!hasNewBid) return
-
         await loadNotifications()
         $q.notify({
           type: 'info',
@@ -362,7 +354,6 @@ const getStatusColor = (status) => {
     cancelled: 'red',
     accepted: 'teal',
   }
-
   return map[String(status || '').toLowerCase()] || 'grey'
 }
 
@@ -377,50 +368,118 @@ const items = ref([
 </script>
 
 <style scoped>
+/* Header */
+.app-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+.app-toolbar {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+}
+.header-brand-name {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.notif-btn {
+  color: var(--san3a-gray-600) !important;
+}
+
+/* Notification Card */
+.notif-card {
+  width: 380px;
+  max-width: 95vw;
+  margin-top: 60px;
+  border-radius: var(--san3a-radius-xl) !important;
+}
+.notif-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--san3a-gray-900);
+}
+.notif-unread {
+  background: var(--san3a-primary-light) !important;
+}
+.notif-avatar {
+  background: var(--san3a-primary) !important;
+  color: #fff !important;
+}
+.notif-name {
+  font-weight: 600;
+}
+
+/* Page */
 .page-content {
   display: flex;
   flex-direction: column;
-  padding-bottom: 72px; /* space for fixed bottom nav */
+  padding-bottom: 80px;
+  background: var(--san3a-bg);
 }
 
 .home-shell {
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
+  padding: 24px 16px;
 }
 
+/* Hero Card */
 .hero-card {
-  border-radius: 20px;
-  background: linear-gradient(135deg, #1b5e20, #43a047 55%, #66bb6a);
-  color: #ffffff;
+  border-radius: var(--san3a-radius-2xl);
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover));
+  color: #fff;
   overflow: hidden;
   position: relative;
+  margin-bottom: 28px;
+  padding: 28px 24px;
+  box-shadow: var(--san3a-shadow-md);
 }
 
-.hero-card::after {
-  content: '';
+.hero-deco {
   position: absolute;
   right: -40px;
   top: -40px;
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.hero-card__content {
+.hero-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  position: relative;
-  z-index: 1;
 }
 
 .hero-copy {
   max-width: 560px;
 }
-
 .hero-eyebrow {
   font-size: 12px;
   font-weight: 700;
@@ -428,20 +487,19 @@ const items = ref([
   letter-spacing: 0.12em;
   opacity: 0.85;
 }
-
 .hero-title {
   font-size: 28px;
-  line-height: 1.1;
+  line-height: 1.15;
   font-weight: 800;
-  margin-top: 6px;
+  margin-top: 8px;
+  letter-spacing: -0.01em;
 }
-
 .hero-subtitle {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 14px;
-  line-height: 1.6;
-  max-width: 520px;
+  line-height: 1.65;
   opacity: 0.92;
+  max-width: 56ch;
 }
 
 .hero-actions {
@@ -450,153 +508,215 @@ const items = ref([
   gap: 10px;
   align-items: flex-end;
 }
+.hero-btn-primary {
+  background: #fff !important;
+  color: var(--san3a-primary) !important;
+  font-weight: 700;
+  padding: 8px 20px !important;
+}
+.hero-btn-ghost {
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 999px;
+}
 
-.home-grid {
-  width: 100%;
-  max-width: 900px;
+/* Services Grid */
+.services-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  justify-items: center;
-  padding: 12px 0 0;
+  gap: 16px;
+  margin-bottom: 28px;
 }
 
-.grid-item {
-  width: 100%;
+.service-item {
   cursor: pointer;
-}
-
-.icon-card {
+  background: #fff;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-xl);
+  padding: 20px 12px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px 12px 14px;
-  border-radius: 16px !important;
-  background: #f7f9f8;
-  border: 1px solid #e8eeeb !important;
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
-
-.icon-card:hover {
+.service-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.15);
+  box-shadow: var(--san3a-shadow-lg);
+  border-color: rgba(13, 115, 119, 0.28);
 }
-
-.icon-card:active {
+.service-item:active {
   transform: scale(0.97);
 }
+.service-item:focus-visible {
+  outline: 3px solid rgba(13, 115, 119, 0.24);
+  outline-offset: 2px;
+}
 
-.icon-box {
+.service-icon-box {
   width: 72px;
   height: 72px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border-radius: var(--san3a-radius-xl);
+  background: linear-gradient(135deg, var(--san3a-primary-light), #c2eded);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.icon-box img {
+.service-icon-box img {
   width: 48px;
   height: 48px;
   object-fit: contain;
 }
 
-.label {
+.service-label {
   margin-top: 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  color: #2e3d36;
+  color: var(--san3a-gray-800);
   line-height: 1.3;
 }
 
-.recent-requests-card {
-  border-radius: 18px;
-  background: linear-gradient(180deg, #ffffff, #f7fbf8);
-  border: 1px solid #e3ece6 !important;
+/* Recent Requests */
+.recent-card {
+  background: #fff;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-2xl);
   cursor: pointer;
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  overflow: hidden;
 }
-
-.recent-requests-card:hover {
+.recent-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(28, 72, 41, 0.08);
+  box-shadow: var(--san3a-shadow-lg);
+  border-color: rgba(13, 115, 119, 0.24);
+}
+.recent-card:focus-visible {
+  outline: 3px solid rgba(13, 115, 119, 0.24);
+  outline-offset: 2px;
 }
 
+.recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+.recent-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
+  line-height: 1.25;
+}
+.recent-sub {
+  font-size: 13px;
+  color: var(--san3a-gray-500);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.recent-body {
+  padding: 16px 20px;
+}
 .recent-list {
   display: grid;
   gap: 12px;
 }
 
-.recent-request-item {
-  border-radius: 14px;
-  padding: 12px;
-  background: #ffffff;
-  border: 1px solid #edf2ee;
+.recent-item {
+  border-radius: var(--san3a-radius-lg);
+  padding: 14px;
+  background: var(--san3a-gray-50);
+  border: 1px solid var(--san3a-gray-200);
+}
+
+.recent-avatar {
+  background: var(--san3a-primary) !important;
+  color: #fff !important;
 }
 
 .recent-request-copy {
   flex: 1;
   min-width: 0;
 }
-
-.recent-request-description {
+.recent-req-id {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--san3a-gray-900);
+}
+.recent-req-cat {
+  font-size: 13px;
+  color: var(--san3a-gray-700);
+}
+.recent-req-desc {
+  font-size: 12px;
+  color: var(--san3a-gray-600);
   display: -webkit-box;
-  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-@media (max-width: 599px) {
-  .hero-card__content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero-title {
-    font-size: 24px;
-  }
-
-  .hero-actions {
-    width: 100%;
-    align-items: stretch;
-  }
-
-  .hero-actions .q-btn {
-    width: 100%;
-  }
+.page-content :deep(.q-btn:focus-visible),
+.page-content :deep(.q-tab:focus-visible) {
+  outline: 3px solid rgba(13, 115, 119, 0.22);
+  outline-offset: 2px;
 }
 
-/* Bottom Navigation */
+/* Bottom Nav */
 .bottom-nav {
-  background: linear-gradient(135deg, #2e7d32, #388e3c) !important;
+  background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover)) !important;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
 }
-
 .nav-tabs {
   height: 60px;
 }
-
 .nav-tabs :deep(.q-tab) {
   min-height: 60px;
   font-size: 11px;
   text-transform: none;
   opacity: 0.75;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
-
 .nav-tabs :deep(.q-tab--active) {
   opacity: 1;
 }
-
 .nav-tabs :deep(.q-tab__icon) {
   font-size: 24px;
+}
+
+@media (max-width: 599px) {
+  .home-shell {
+    padding: 18px 14px;
+  }
+  .hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .hero-title {
+    font-size: 22px;
+  }
+  .hero-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 600px) {
+  .services-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 </style>

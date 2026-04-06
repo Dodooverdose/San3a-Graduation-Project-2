@@ -1,10 +1,119 @@
-// app global css in SCSS form
+﻿// San3a Design System - Global Styles
 
+// Design Tokens
+:root {
+  // Brand
+  --san3a-primary: #0d7377;
+  --san3a-primary-hover: #0a5c5f;
+  --san3a-primary-light: #e6f5f5;
+  --san3a-secondary: #ff6b35;
+  --san3a-secondary-hover: #e55a2b;
+  --san3a-secondary-light: #fff3ef;
+
+  // Backgrounds
+  --san3a-bg: #fafaf9;
+  --san3a-surface: #ffffff;
+  --san3a-foreground: #1a1a1a;
+
+  // Grays
+  --san3a-gray-50: #f9fafb;
+  --san3a-gray-100: #f3f4f6;
+  --san3a-gray-200: #e5e7eb;
+  --san3a-gray-300: #d1d5db;
+  --san3a-gray-400: #9ca3af;
+  --san3a-gray-500: #6b7280;
+  --san3a-gray-600: #4b5563;
+  --san3a-gray-700: #374151;
+  --san3a-gray-800: #1f2937;
+  --san3a-gray-900: #111827;
+
+  // Semantic
+  --san3a-success: #10b981;
+  --san3a-success-light: #d1fae5;
+  --san3a-warning: #f59e0b;
+  --san3a-warning-light: #fef3c7;
+  --san3a-error: #ef4444;
+  --san3a-error-light: #fee2e2;
+  --san3a-info: #3b82f6;
+  --san3a-info-light: #dbeafe;
+
+  // Shadows
+  --san3a-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --san3a-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --san3a-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --san3a-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  // Radius
+  --san3a-radius-sm: 6px;
+  --san3a-radius-md: 8px;
+  --san3a-radius-lg: 12px;
+  --san3a-radius-xl: 16px;
+  --san3a-radius-2xl: 20px;
+}
+
+// Global Typography
+body {
+  font-family:
+    'Manrope',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--san3a-bg);
+  color: var(--san3a-foreground);
+}
+
+.brand-logo-mark {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  display: block;
+}
+
+// Quasar Overrides
 .q-field__native,
 .q-field__control {
   cursor: text;
 }
 
+// Inputs
+.q-field--outlined .q-field__control {
+  border-radius: var(--san3a-radius-md) !important;
+}
+
+.q-field--filled .q-field__control {
+  border-radius: var(--san3a-radius-md) var(--san3a-radius-md) 0 0 !important;
+}
+
+// Cards
+.q-card {
+  border-radius: var(--san3a-radius-xl) !important;
+}
+
+// Buttons
+.q-btn {
+  border-radius: var(--san3a-radius-md) !important;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// Badges
+.q-badge {
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+// Tabs
+.q-tab {
+  text-transform: none;
+  font-weight: 600;
+}
+
+// Dark Mode Transition
 body.dark-transition,
 body.dark-transition *,
 body.dark-transition *::before,
@@ -19,4 +128,169 @@ body.dark-transition *::after {
 body.body--dark .social-img[alt='X'] {
   filter: brightness(0) invert(1);
   transition: filter 0.5s ease;
+}
+
+/* Global Dark Theme Tokens + Surfaces */
+body.body--dark {
+  --san3a-bg: #0f1720;
+  --san3a-surface: #16212b;
+  --san3a-foreground: #e6edf3;
+
+  --san3a-gray-50: #1b2630;
+  --san3a-gray-100: #23313d;
+  --san3a-gray-200: #30414f;
+  --san3a-gray-300: #45586a;
+  --san3a-gray-400: #6d8092;
+  --san3a-gray-500: #8da0b2;
+  --san3a-gray-600: #a9b9c8;
+  --san3a-gray-700: #c0ceda;
+  --san3a-gray-800: #d4e0ea;
+  --san3a-gray-900: #e6edf3;
+
+  --san3a-primary-light: rgba(13, 115, 119, 0.22);
+  --san3a-secondary-light: rgba(255, 107, 53, 0.2);
+}
+
+body.body--dark,
+body.body--dark #q-app,
+body.body--dark .q-layout,
+body.body--dark .q-page,
+body.body--dark .q-page-container {
+  background: var(--san3a-bg) !important;
+  color: var(--san3a-foreground) !important;
+}
+
+body.body--dark .q-card,
+body.body--dark .q-table,
+body.body--dark .q-field__control,
+body.body--dark .q-menu,
+body.body--dark .q-dialog__inner > .q-card {
+  background: var(--san3a-surface) !important;
+  color: var(--san3a-foreground) !important;
+  border-color: var(--san3a-gray-200) !important;
+}
+
+/* Targeted dark mode overrides for custom layout blocks */
+body.body--dark .app-header {
+  background: rgba(22, 33, 43, 0.95) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.body--dark .service-item,
+body.body--dark .recent-card,
+body.body--dark .offer-card,
+body.body--dark .req-card,
+body.body--dark .profile-hero,
+body.body--dark .completion-card,
+body.body--dark .profile-card,
+body.body--dark .activity-item,
+body.body--dark .fixer-info,
+body.body--dark .section-tabs,
+body.body--dark .bargain-card {
+  background: var(--san3a-surface) !important;
+  border-color: var(--san3a-gray-200) !important;
+}
+
+body.body--dark .section-tabs :deep(.q-tab--active),
+body.body--dark .section-tabs .q-tab--active {
+  background: var(--san3a-gray-100) !important;
+  box-shadow: none !important;
+}
+
+body.body--dark .state-title,
+body.body--dark .tab-title,
+body.body--dark .offer-id,
+body.body--dark .req-id,
+body.body--dark .recent-title,
+body.body--dark .card-title,
+body.body--dark .stats-value,
+body.body--dark .hero-name {
+  color: var(--san3a-gray-900) !important;
+}
+
+body.body--dark .state-sub,
+body.body--dark .meta-item,
+body.body--dark .offer-desc,
+body.body--dark .req-desc,
+body.body--dark .req-customer,
+body.body--dark .service-label,
+body.body--dark .recent-sub,
+body.body--dark .stats-label,
+body.body--dark .activity-main,
+body.body--dark .activity-time,
+body.body--dark .row-sub,
+body.body--dark .hero-subline,
+body.body--dark .hero-meta {
+  color: var(--san3a-gray-500) !important;
+}
+
+body.body--dark .q-field__label,
+body.body--dark .q-field__native,
+body.body--dark .q-item__label {
+  color: var(--san3a-foreground) !important;
+}
+
+body.body--dark .q-separator,
+body.body--dark .q-table__middle,
+body.body--dark .q-table__top,
+body.body--dark .q-table thead tr,
+body.body--dark .q-table tbody tr {
+  border-color: var(--san3a-gray-200) !important;
+}
+
+// Animation Utilities
+@keyframes san3a-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes san3a-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes san3a-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.san3a-animate-in {
+  animation: san3a-fade-in 0.5s ease both;
+}
+
+.san3a-stagger-1 {
+  animation-delay: 0.05s;
+}
+.san3a-stagger-2 {
+  animation-delay: 0.1s;
+}
+.san3a-stagger-3 {
+  animation-delay: 0.15s;
+}
+.san3a-stagger-4 {
+  animation-delay: 0.2s;
+}
+.san3a-stagger-5 {
+  animation-delay: 0.25s;
+}
+.san3a-stagger-6 {
+  animation-delay: 0.3s;
 }
