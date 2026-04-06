@@ -5,6 +5,7 @@ import {
   createWebHistory,
   createWebHashHistory,
 } from 'vue-router'
+import { Dark } from 'quasar'
 import routes from './routes'
 import { supabase } from 'src/boot/supabase'
 import { useAuthStore } from 'src/stores/authStore'
@@ -37,6 +38,11 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
   Router.beforeEach(async (to) => {
     const authStore = useAuthStore()
+
+    // Keep public pages in light mode regardless of previous authenticated theme toggle.
+    if (!to.meta.requiresAuth) {
+      Dark.set(false)
+    }
 
     // Handle Supabase recovery tokens that land in the route path.
     // In hash-mode routing, the URL fragment is used by Vue Router,
@@ -77,7 +83,9 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
         if (!authStore.isAdminVerified) {
           // Admin table verification failed, but allow if role is admin in metadata
-          console.warn('Admin table verification failed, but allowing access due to admin role in metadata')
+          console.warn(
+            'Admin table verification failed, but allowing access due to admin role in metadata',
+          )
           authStore.isAdminVerified = true
         }
       }

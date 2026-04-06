@@ -8,6 +8,15 @@
           </div>
           <span class="header-brand-name-w">Profile</span>
         </div>
+        <q-space />
+        <q-btn
+          flat
+          no-caps
+          icon="logout"
+          label="Log Out"
+          class="header-logout-btn"
+          @click="logout"
+        />
       </q-toolbar>
     </q-header>
 
@@ -712,6 +721,17 @@ const goToPage = (route) => {
   if (route) router.push(route)
 }
 
+const logout = async () => {
+  try {
+    await supabase.auth.signOut()
+    $q.dark.set(false)
+    router.push('/signin')
+  } catch (error) {
+    console.error('Logout failed:', error)
+    $q.notify({ type: 'negative', message: 'Failed to log out. Please try again.' })
+  }
+}
+
 onMounted(loadProfile)
 
 onBeforeUnmount(() => {
@@ -756,6 +776,13 @@ watch(darkMode, (val) => {
   color: #fff;
   font-size: 22px;
   font-weight: 800;
+}
+
+.header-logout-btn {
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
 }
 
 .profile-page {

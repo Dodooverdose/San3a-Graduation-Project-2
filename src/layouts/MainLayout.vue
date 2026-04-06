@@ -4,7 +4,9 @@
     <q-header class="landing-header">
       <q-toolbar class="landing-toolbar">
         <div class="brand" @click="scrollToTop">
-          <div class="brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <div class="brand-icon">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
           <span class="brand-name">San3a</span>
         </div>
         <q-space />
@@ -174,7 +176,9 @@
             <div class="footer-grid">
               <div class="footer-brand">
                 <div class="brand" style="margin-bottom: 16px">
-                  <div class="brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+                  <div class="brand-icon">
+                    <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+                  </div>
                   <span class="brand-name" style="color: #fff">San3a</span>
                 </div>
                 <p class="footer-desc">
@@ -292,6 +296,34 @@ const countRows = async (tableName, idColumn, applyFilter) => {
 }
 
 const loadLandingMetrics = async () => {
+  const { data: landingMetrics, error: rpcError } = await supabase
+    .rpc('get_landing_metrics')
+    .maybeSingle()
+
+  if (!rpcError && landingMetrics) {
+    const customers = Number(landingMetrics.customers_count || 0)
+    const technicians = Number(landingMetrics.technicians_count || 0)
+    const totalRequests = Number(landingMetrics.total_requests || 0)
+    const completedRequests = Number(landingMetrics.completed_requests || 0)
+    const serviceCounts = landingMetrics.active_service_counts || {}
+
+    const completionRate =
+      totalRequests > 0 ? `${Math.round((completedRequests / totalRequests) * 100)}%` : '--'
+
+    stats.value = [
+      { number: formatCompact(customers), label: 'Customers' },
+      { number: formatCompact(technicians), label: 'Technicians' },
+      { number: formatCompact(totalRequests), label: 'Requests Posted' },
+      { number: completionRate, label: 'Completion Rate' },
+    ]
+
+    services.value = serviceCatalog.map((service) => ({
+      ...service,
+      count: Number(serviceCounts[service.key] || 0),
+    }))
+    return
+  }
+
   const [customers, technicians, totalRequests, completedRequests, serviceRowsRes] =
     await Promise.all([
       countRows('users', 'user_id'),
