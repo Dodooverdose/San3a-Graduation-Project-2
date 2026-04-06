@@ -673,6 +673,25 @@ const openCounterOfferDialog = (req) => {
   offerDialogOpen.value = true
 }
 
+const waitForSubscribed = (channel) =>
+  new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Channel subscription timed out'))
+    }, 6000)
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        clearTimeout(timeoutId)
+        resolve()
+      }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        clearTimeout(timeoutId)
+        reject(new Error(`Channel subscription failed: ${status}`))
+      }
+    })
+  })
+
 const acceptCustomerOffer = async (req) => {
   if (!req?.request_id) return
   const acceptedPrice = Number(req.customer_price)
@@ -765,11 +784,22 @@ const submitOffer = async () => {
     return
   }
 
-  if (offerTarget.value.customer_email) {
-    void recordNotificationForRecipient(offerTarget.value.customer_email, {
+  let customerEmail = offerTarget.value.customer_email || null
+  if (!customerEmail && offerTarget.value.user_id) {
+    const { data: customerRow } = await supabase
+      .from('users')
+      .select('email')
+      .eq('user_id', offerTarget.value.user_id)
+      .maybeSingle()
+    customerEmail = customerRow?.email || null
+  }
+
+  if (customerEmail) {
+    const savedNotification = await recordNotificationForRecipient(customerEmail, {
       title: `Fixer ${fullName.value || 'Fixer'}`,
       message: `Sent an offer of ${normalizedPrice} EGP for request #${offerTarget.value.request_id}.`,
       requestId: offerTarget.value.request_id,
+      routePath: `/incoming-offers?requestId=${offerTarget.value.request_id}`,
       type: 'offer',
       icon: 'build',
       payload: {
@@ -777,6 +807,20 @@ const submitOffer = async () => {
         price: normalizedPrice,
         fixerName: fullName.value,
       },
+    })
+
+    if (!savedNotification) {
+      console.warn('Offer notification was not saved to notification_center.')
+      $q.notify({
+        type: 'warning',
+        message: 'Offer sent, but notification persistence failed.',
+      })
+    }
+  } else {
+    console.warn('Offer notification skipped: customer email not found.')
+    $q.notify({
+      type: 'warning',
+      message: 'Offer sent, but customer email was not found for notification.',
     })
   }
 
@@ -798,16 +842,27 @@ const submitOffer = async () => {
   // Broadcast notification to customer via their specific channel
   if (offerTarget.value.user_id) {
     const customerChannel = supabase.channel(`bargain-customer-${offerTarget.value.user_id}`)
-    await customerChannel.send({
-      type: 'broadcast',
-      event: 'fixer-bid-notification',
-      payload: {
-        requestId: offerTarget.value.request_id,
-        price: normalizedPrice,
-        fixerName: fullName.value,
-      },
-    })
-    supabase.removeChannel(customerChannel)
+
+    try {
+      await waitForSubscribed(customerChannel)
+      const sendStatus = await customerChannel.send({
+        type: 'broadcast',
+        event: 'fixer-bid-notification',
+        payload: {
+          requestId: offerTarget.value.request_id,
+          price: normalizedPrice,
+          fixerName: fullName.value,
+        },
+      })
+
+      if (sendStatus !== 'ok') {
+        console.warn('Offer broadcast send status:', sendStatus)
+      }
+    } catch (broadcastError) {
+      console.warn('Offer broadcast failed:', broadcastError)
+    } finally {
+      supabase.removeChannel(customerChannel)
+    }
   }
 
   await fetchRequests()
@@ -821,6 +876,26 @@ const subscribeToCounterOffers = () => {
     .channel(`bargain-fixer-${technicianId.value}`)
     .on('broadcast', { event: 'customer-bargain-notification' }, ({ payload }) => {
       if (!payload) return
+
+      notifications.value.unshift({
+        id: `rt-fixer-${payload.requestId}-${Date.now()}`,
+        title: 'Customer',
+        fixerName: 'Customer',
+        message: `Sent a counter-offer of ${payload.price} EGP for request #${payload.requestId}.`,
+        time: new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        requestId: payload.requestId,
+        routePath: '/service-provider?tab=requests',
+        icon: 'handshake',
+        type: 'counter-offer',
+        payload,
+      })
+
       void loadNotifications()
       $q.notify({
         type: 'info',

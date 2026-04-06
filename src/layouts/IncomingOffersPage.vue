@@ -510,6 +510,25 @@ const subscribeToFixerBidNotifications = () => {
     .on('broadcast', { event: 'fixer-bid-notification' }, ({ payload }) => {
       if (!payload) return
 
+      notifications.value.unshift({
+        id: `rt-customer-${payload.requestId}-${Date.now()}`,
+        title: `Fixer ${payload.fixerName || 'Fixer'}`,
+        fixerName: `Fixer ${payload.fixerName || 'Fixer'}`,
+        message: `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.`,
+        time: new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        requestId: payload.requestId,
+        routePath: `/incoming-offers?requestId=${payload.requestId}`,
+        icon: 'build',
+        type: 'offer',
+        payload,
+      })
+
       void loadNotifications()
       $q.notify({
         type: 'info',
@@ -567,6 +586,25 @@ const openBargain = (req) => {
   bargainDialog.value = true
 }
 
+const waitForSubscribed = (channel) =>
+  new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Channel subscription timed out'))
+    }, 6000)
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        clearTimeout(timeoutId)
+        resolve()
+      }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        clearTimeout(timeoutId)
+        reject(new Error(`Channel subscription failed: ${status}`))
+      }
+    })
+  })
+
 const submitBargain = async () => {
   const valid = await bargainForm.value?.validate()
   if (!valid) return
@@ -592,17 +630,45 @@ const submitBargain = async () => {
     bargainTarget.value.customer_price = price
     bargainDialog.value = false
 
-    if (bargainTarget.value.fixerInfo?.email) {
-      void recordNotificationForRecipient(bargainTarget.value.fixerInfo.email, {
+    let fixerEmail = bargainTarget.value.fixerInfo?.email || null
+    if (!fixerEmail && bargainTarget.value.technician_id) {
+      const { data: technicianRow } = await supabase
+        .from('technician')
+        .select('email')
+        .eq('technician_id', bargainTarget.value.technician_id)
+        .maybeSingle()
+      fixerEmail = technicianRow?.email || null
+    }
+
+    if (fixerEmail) {
+      const savedNotification = await recordNotificationForRecipient(
+        fixerEmail,
+        {
         title: 'Customer',
         message: `Sent a counter-offer of ${price} EGP for request #${bargainTarget.value.request_id}.`,
         requestId: bargainTarget.value.request_id,
+        routePath: '/service-provider?tab=requests',
         type: 'counter-offer',
         icon: 'handshake',
         payload: {
           requestId: bargainTarget.value.request_id,
           price,
         },
+      },
+      )
+
+      if (!savedNotification) {
+        console.warn('Counter-offer notification was not saved to notification_center.')
+        $q.notify({
+          type: 'warning',
+          message: 'Counter-offer sent, but notification persistence failed.',
+        })
+      }
+    } else {
+      console.warn('Counter-offer notification skipped: fixer email not found.')
+      $q.notify({
+        type: 'warning',
+        message: 'Counter-offer sent, but fixer email was not found for notification.',
       })
     }
 
@@ -612,15 +678,26 @@ const submitBargain = async () => {
     const target = bargainTarget.value
     if (target.technician_id) {
       const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)
-      await fixerChannel.send({
-        type: 'broadcast',
-        event: 'customer-bargain-notification',
-        payload: {
-          requestId: target.request_id,
-          price: price,
-        },
-      })
-      supabase.removeChannel(fixerChannel)
+
+      try {
+        await waitForSubscribed(fixerChannel)
+        const sendStatus = await fixerChannel.send({
+          type: 'broadcast',
+          event: 'customer-bargain-notification',
+          payload: {
+            requestId: target.request_id,
+            price: price,
+          },
+        })
+
+        if (sendStatus !== 'ok') {
+          console.warn('Counter-offer broadcast send status:', sendStatus)
+        }
+      } catch (broadcastError) {
+        console.warn('Counter-offer broadcast failed:', broadcastError)
+      } finally {
+        supabase.removeChannel(fixerChannel)
+      }
     }
   }
 }

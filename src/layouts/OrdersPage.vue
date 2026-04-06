@@ -360,7 +360,7 @@ const initializeIncomingOfferTracking = async () => {
   setRecipientEmail(user.email)
 
   const { data: customer } = await supabase
-  knownOfferPrices.value = new Map((requests || []).map((r) => [r.request_id, r.fixer_price]))
+    .from('users')
     .select('user_id')
     .ilike('email', user.email)
     .maybeSingle()

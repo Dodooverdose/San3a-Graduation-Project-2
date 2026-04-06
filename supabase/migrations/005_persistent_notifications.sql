@@ -73,25 +73,45 @@ ALTER TABLE public.notification_center ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "notification_center_select_own" ON public.notification_center;
 CREATE POLICY "notification_center_select_own" ON public.notification_center
   FOR SELECT
-  USING (recipient_email = auth.jwt()->>'email');
+  USING (LOWER(recipient_email) = LOWER(auth.jwt()->>'email'));
 
 DROP POLICY IF EXISTS "notification_center_insert_own" ON public.notification_center;
-CREATE POLICY "notification_center_insert_own" ON public.notification_center
+DROP POLICY IF EXISTS "notification_center_insert_by_authenticated" ON public.notification_center;
+CREATE POLICY "notification_center_insert_by_authenticated" ON public.notification_center
   FOR INSERT
-  WITH CHECK (recipient_email = auth.jwt()->>'email');
+  WITH CHECK (
+    auth.role() = 'authenticated'
+    AND NULLIF(TRIM(recipient_email), '') IS NOT NULL
+  );
 
 DROP POLICY IF EXISTS "notification_center_update_own" ON public.notification_center;
 CREATE POLICY "notification_center_update_own" ON public.notification_center
   FOR UPDATE
-  USING (recipient_email = auth.jwt()->>'email')
-  WITH CHECK (recipient_email = auth.jwt()->>'email');
+  USING (LOWER(recipient_email) = LOWER(auth.jwt()->>'email'))
+  WITH CHECK (LOWER(recipient_email) = LOWER(auth.jwt()->>'email'));
 
 DROP POLICY IF EXISTS "notification_center_delete_own" ON public.notification_center;
 CREATE POLICY "notification_center_delete_own" ON public.notification_center
   FOR DELETE
-  USING (recipient_email = auth.jwt()->>'email');
+  USING (LOWER(recipient_email) = LOWER(auth.jwt()->>'email'));
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.notification_center TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.notification_center_id_seq TO authenticated;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'notification_center'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.notification_center';
+  END IF;
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.create_notification_center_entry(
   TEXT,
   TEXT,

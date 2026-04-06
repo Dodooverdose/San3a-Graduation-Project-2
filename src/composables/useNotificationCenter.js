@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { supabase } from 'src/boot/supabase'
 
 const formatTime = (dateValue) => {
@@ -32,11 +32,87 @@ export const useNotificationCenter = () => {
   const recipientEmail = ref('')
   const notifications = ref([])
   const loadingNotifications = ref(false)
+  const dbSubscriptionChannel = ref(null)
 
   const unreadCount = computed(() => notifications.value.filter((item) => !item.read).length)
 
+  const upsertNotification = (row) => {
+    const mapped = normalizeNotification(row)
+    const existingIndex = notifications.value.findIndex((item) => item.id === mapped.id)
+
+    if (existingIndex === -1) {
+      notifications.value.unshift(mapped)
+      return mapped
+    }
+
+    notifications.value[existingIndex] = {
+      ...notifications.value[existingIndex],
+      ...mapped,
+    }
+
+    return notifications.value[existingIndex]
+  }
+
+  const stopRealtime = async () => {
+    if (!dbSubscriptionChannel.value) return
+
+    const channel = dbSubscriptionChannel.value
+    dbSubscriptionChannel.value = null
+    await supabase.removeChannel(channel)
+  }
+
+  const startRealtime = async () => {
+    if (!recipientEmail.value) return
+
+    await stopRealtime()
+
+    dbSubscriptionChannel.value = supabase
+      .channel(`notification-center-${recipientEmail.value}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notification_center',
+          filter: `recipient_email=eq.${recipientEmail.value}`,
+        },
+        ({ new: inserted }) => {
+          if (!inserted) return
+          upsertNotification(inserted)
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notification_center',
+          filter: `recipient_email=eq.${recipientEmail.value}`,
+        },
+        ({ new: updated }) => {
+          if (!updated) return
+          upsertNotification(updated)
+        },
+      )
+      .subscribe()
+  }
+
   const setRecipientEmail = (email) => {
-    recipientEmail.value = email || ''
+    const normalizedEmail = String(email || '')
+      .trim()
+      .toLowerCase()
+
+    if (!normalizedEmail) {
+      recipientEmail.value = ''
+      notifications.value = []
+      void stopRealtime()
+      return
+    }
+
+    if (recipientEmail.value === normalizedEmail) return
+
+    recipientEmail.value = normalizedEmail
+    void startRealtime()
   }
 
   const loadNotifications = async () => {
@@ -50,7 +126,7 @@ export const useNotificationCenter = () => {
       const { data, error } = await supabase
         .from('notification_center')
         .select('*')
-        .eq('recipient_email', recipientEmail.value)
+        .ilike('recipient_email', recipientEmail.value)
         .order('created_at', { ascending: false })
         .limit(100)
 
@@ -65,8 +141,11 @@ export const useNotificationCenter = () => {
   const recordNotificationForRecipient = async (email, notification) => {
     if (!email) return null
 
+    const normalizedRecipientEmail = String(email).trim().toLowerCase()
+    if (!normalizedRecipientEmail) return null
+
     const payload = {
-      recipient_email: email,
+      recipient_email: normalizedRecipientEmail,
       title: notification.title || notification.fixerName || 'Notification',
       message: notification.message || '',
       request_id: notification.requestId ? String(notification.requestId) : null,
@@ -79,34 +158,34 @@ export const useNotificationCenter = () => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('create_notification_center_entry', {
-        recipient_email_input: payload.recipient_email,
-        title_input: payload.title,
-        message_input: payload.message,
-        request_id_input: payload.request_id,
-        route_path_input: payload.route_path,
-        notification_type_input: payload.notification_type,
-        icon_input: payload.icon,
-        payload_input: payload.payload,
-        is_read_input: payload.is_read,
-        read_at_input: payload.read_at,
-      })
+      const { error } = await supabase.from('notification_center').insert(payload)
 
       if (error) {
-        if (error.code === 'PGRST202') {
-          console.warn(
-            'Notification RPC is not available yet. Apply the migration and reload the Supabase schema cache.',
-          )
-          return null
-        }
-
         console.warn('Notification persistence failed:', error)
         return null
       }
 
-      const mapped = normalizeNotification(data)
-      if (email === recipientEmail.value) {
-        notifications.value.unshift(mapped)
+      const mapped = {
+        id: null,
+        title: payload.title,
+        fixerName: payload.title,
+        message: payload.message,
+        time: formatTime(new Date().toISOString()),
+        read: payload.is_read,
+        requestId: payload.request_id,
+        routePath: payload.route_path,
+        icon: payload.icon || 'notifications',
+        type: payload.notification_type || 'general',
+        payload: payload.payload || {},
+        createdAt: new Date().toISOString(),
+      }
+
+      if (normalizedRecipientEmail === recipientEmail.value) {
+        notifications.value.unshift({
+          ...mapped,
+          id: `local-${Date.now()}`,
+        })
+        void loadNotifications()
       }
 
       return mapped
@@ -132,7 +211,7 @@ export const useNotificationCenter = () => {
       .from('notification_center')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('id', notification.id)
-      .eq('recipient_email', recipientEmail.value)
+      .ilike('recipient_email', recipientEmail.value)
 
     if (error) {
       console.error('Failed to mark notification as read:', error)
@@ -150,13 +229,17 @@ export const useNotificationCenter = () => {
     const { error } = await supabase
       .from('notification_center')
       .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq('recipient_email', recipientEmail.value)
+      .ilike('recipient_email', recipientEmail.value)
       .eq('is_read', false)
 
     if (error) {
       console.error('Failed to mark all notifications as read:', error)
     }
   }
+
+  onScopeDispose(() => {
+    void stopRealtime()
+  })
 
   return {
     notifications,
