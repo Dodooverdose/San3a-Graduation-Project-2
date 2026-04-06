@@ -725,7 +725,7 @@ const logout = async () => {
   try {
     await supabase.auth.signOut()
     $q.dark.set(false)
-    router.push('/signin')
+    router.push('/')
   } catch (error) {
     console.error('Logout failed:', error)
     $q.notify({ type: 'negative', message: 'Failed to log out. Please try again.' })
