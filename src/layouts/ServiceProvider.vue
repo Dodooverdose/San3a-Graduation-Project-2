@@ -4,7 +4,9 @@
     <q-header class="app-header-teal">
       <q-toolbar class="app-toolbar">
         <div class="header-brand">
-          <div class="header-brand-icon-w"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <div class="header-brand-icon-w">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
           <span class="header-brand-name-w">San3a</span>
         </div>
         <q-space />
@@ -574,16 +576,19 @@ const isOfferAccepted = (req) => {
 const canRespondToCustomerOffer = (req) => {
   if (!req?.myOffer) return false
   if ((req.myOffer.status || 'pending').toLowerCase() !== 'pending') return false
-  if (req.technician_id !== technicianId.value) return false
-  if (req.customer_price === null || req.customer_price === undefined) return false
-  const co = Number(req.customer_price)
+  if (
+    req.myOffer.customer_counter_price === null ||
+    req.myOffer.customer_counter_price === undefined
+  )
+    return false
+  const co = Number(req.myOffer.customer_counter_price)
   const mo = Number(req.myOffer.offered_price)
   if (!Number.isFinite(co) || !Number.isFinite(mo)) return false
   return co !== mo
 }
 
 const fetchRequests = async () => {
-  if (!specialty.value) return
+  if (!specialty.value || !technicianId.value) return
   requestsLoading.value = true
   requestsError.value = null
   const { data, error } = await supabase
@@ -596,20 +601,53 @@ const fetchRequests = async () => {
     requestsLoading.value = false
     return
   }
-  requests.value = (data || []).map((r) => ({
+  const baseRequests = data || []
+  const requestIds = baseRequests.map((r) => r.request_id).filter(Boolean)
+  let myOffersByRequest = {}
+
+  if (requestIds.length) {
+    const { data: myOffers, error: myOffersError } = await supabase
+      .from('request_offers')
+      .select('offer_id, request_id, offered_price, customer_counter_price, status, fixer_message')
+      .eq('technician_id', technicianId.value)
+      .in('request_id', requestIds)
+      .order('updated_at', { ascending: false })
+
+    if (myOffersError) {
+      requestsError.value = myOffersError.message
+      requestsLoading.value = false
+      return
+    }
+
+    myOffersByRequest = (myOffers || []).reduce((acc, offer) => {
+      if (!acc[offer.request_id]) acc[offer.request_id] = offer
+      return acc
+    }, {})
+  }
+
+  requests.value = baseRequests.map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
     myOffer:
-      r.fixer_price && r.technician_id === technicianId.value
-        ? { offered_price: r.fixer_price, status: r.request_status || 'pending' }
-        : null,
+      myOffersByRequest[r.request_id] ||
+      (r.fixer_price && r.technician_id === technicianId.value
+        ? {
+            offer_id: `legacy-${r.request_id}-${technicianId.value}`,
+            request_id: r.request_id,
+            offered_price: r.fixer_price,
+            customer_counter_price: r.customer_price,
+            status: r.request_status || 'pending',
+            fixer_message: null,
+            _legacy: true,
+          }
+        : null),
   }))
   requestsLoading.value = false
 }
 
 const fetchAcceptedOrders = async () => {
-  if (!specialty.value) return
+  if (!specialty.value || !technicianId.value) return
   requestsLoading.value = true
   requestsError.value = null
   const { data, error } = await supabase
@@ -617,33 +655,61 @@ const fetchAcceptedOrders = async () => {
     .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
     .eq('request_status', 'accepted')
+    .eq('technician_id', technicianId.value)
     .order('request_date', { ascending: false })
   if (error) {
     requestsError.value = error.message
     requestsLoading.value = false
     return
   }
-  requests.value = (data || []).map((r) => ({
+  const baseRequests = data || []
+  const requestIds = baseRequests.map((r) => r.request_id).filter(Boolean)
+  let myOffersByRequest = {}
+
+  if (requestIds.length) {
+    const { data: myOffers } = await supabase
+      .from('request_offers')
+      .select('offer_id, request_id, offered_price, customer_counter_price, status, fixer_message')
+      .eq('technician_id', technicianId.value)
+      .in('request_id', requestIds)
+
+    myOffersByRequest = (myOffers || []).reduce((acc, offer) => {
+      if (!acc[offer.request_id] || offer.status === 'accepted') acc[offer.request_id] = offer
+      return acc
+    }, {})
+  }
+
+  requests.value = baseRequests.map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
     myOffer:
-      r.fixer_price && r.technician_id === technicianId.value
-        ? { offered_price: r.fixer_price, status: r.request_status || 'accepted' }
-        : null,
+      myOffersByRequest[r.request_id] ||
+      (r.fixer_price && r.technician_id === technicianId.value
+        ? {
+            offer_id: `legacy-${r.request_id}-${technicianId.value}`,
+            request_id: r.request_id,
+            offered_price: r.fixer_price,
+            customer_counter_price: r.customer_price,
+            status: r.request_status || 'accepted',
+            fixer_message: null,
+            _legacy: true,
+          }
+        : null),
   }))
   requestsLoading.value = false
 }
 
 const openOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value = req.fixer_price || req.customer_price || null
+  offerPrice.value = req.myOffer?.offered_price || req.customer_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
 const openCounterOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value = req.customer_price || req.fixer_price || null
+  offerPrice.value =
+    req.myOffer?.customer_counter_price || req.customer_price || req.myOffer?.offered_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
@@ -664,28 +730,46 @@ const waitForSubscribed = (channel) =>
   })
 
 const acceptCustomerOffer = async (req) => {
-  if (!req?.request_id) return
-  const acceptedPrice = Number(req.customer_price)
+  if (!req?.request_id || !req?.myOffer?.offer_id) return
+  const acceptedPrice = Number(req.myOffer.customer_counter_price)
   if (!Number.isFinite(acceptedPrice) || acceptedPrice <= 0) {
     $q.notify({ type: 'warning', message: 'Customer offer is invalid.' })
     return
   }
   acceptingCounterOfferId.value = req.request_id
-  const { data: updatedRequest, error } = await supabase
+  const { error: offerError } = await supabase
+    .from('request_offers')
+    .update({ status: 'accepted', offered_price: acceptedPrice })
+    .eq('offer_id', req.myOffer.offer_id)
+    .eq('technician_id', technicianId.value)
+
+  if (!offerError) {
+    await supabase
+      .from('request_offers')
+      .update({ status: 'rejected' })
+      .eq('request_id', req.request_id)
+      .neq('offer_id', req.myOffer.offer_id)
+      .eq('status', 'pending')
+  }
+
+  const { data: updatedRequest, error: requestError } = await supabase
     .from('request')
     .update({
       fixer_price: acceptedPrice,
       request_status: 'accepted',
       technician_id: technicianId.value,
       final_price: acceptedPrice,
+      customer_price: acceptedPrice,
     })
     .eq('request_id', req.request_id)
-    .eq('technician_id', technicianId.value)
     .select('request_id, fixer_price, customer_price, request_status, technician_id')
     .maybeSingle()
   acceptingCounterOfferId.value = null
-  if (error) {
-    $q.notify({ type: 'negative', message: 'Failed to accept customer offer: ' + error.message })
+  if (offerError || requestError) {
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to accept customer offer: ' + (offerError?.message || requestError?.message),
+    })
     return
   }
   if (!updatedRequest) {
@@ -712,28 +796,38 @@ const submitOffer = async () => {
   }
   offerSubmitting.value = true
   const trimmedMessage = (offerMessage.value || '').trim()
-  const { data: updatedRequest, error } = await supabase
-    .from('request')
-    .update({
-      fixer_price: normalizedPrice,
-      request_status: 'pending',
-      technician_id: technicianId.value,
-    })
-    .eq('request_id', offerTarget.value.request_id)
-    .select('request_id, fixer_price, technician_id, request_status')
+  const { data: savedOffer, error } = await supabase
+    .from('request_offers')
+    .upsert(
+      {
+        request_id: offerTarget.value.request_id,
+        technician_id: technicianId.value,
+        offered_price: normalizedPrice,
+        fixer_message: trimmedMessage || null,
+        status: 'pending',
+      },
+      { onConflict: 'request_id,technician_id' },
+    )
+    .select('offer_id, request_id, technician_id, offered_price, status, fixer_message')
     .maybeSingle()
   offerSubmitting.value = false
   if (error) {
     $q.notify({ type: 'negative', message: 'Failed to submit offer: ' + error.message })
     return
   }
-  if (!updatedRequest) {
+  if (!savedOffer) {
     $q.notify({
       type: 'negative',
       message: 'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
     })
     return
   }
+
+  await supabase
+    .from('request')
+    .update({ request_status: 'pending' })
+    .eq('request_id', offerTarget.value.request_id)
+    .eq('request_status', 'pending')
 
   let customerEmail = offerTarget.value.customer_email || null
   if (!customerEmail && offerTarget.value.user_id) {
@@ -774,6 +868,7 @@ const submitOffer = async () => {
       payload: {
         customerUserId: offerTarget.value.user_id,
         requestId: offerTarget.value.request_id,
+        offerId: savedOffer.offer_id,
         message: trimmedMessage,
       },
     })
@@ -790,6 +885,7 @@ const submitOffer = async () => {
         event: 'fixer-bid-notification',
         payload: {
           requestId: offerTarget.value.request_id,
+          offerId: savedOffer.offer_id,
           price: normalizedPrice,
           fixerName: fullName.value,
         },

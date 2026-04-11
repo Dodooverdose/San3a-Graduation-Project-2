@@ -2,8 +2,19 @@
   <q-layout view="lHh Lpr lFf">
     <q-header class="app-header-teal">
       <q-toolbar class="app-toolbar">
+        <q-btn
+          flat
+          round
+          dense
+          icon="menu"
+          class="header-action-btn header-menu-btn"
+          title="Open navigation"
+          @click="drawerOpen = !drawerOpen"
+        />
         <div class="header-brand">
-          <div class="header-brand-icon-w"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <div class="header-brand-icon-w">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
           <div>
             <div class="header-brand-name-w">San3a Admin</div>
             <div class="header-brand-sub">Operations Dashboard</div>
@@ -23,31 +34,31 @@
       </q-toolbar>
     </q-header>
 
+    <q-drawer v-model="drawerOpen" side="left" overlay bordered class="admin-drawer">
+      <div class="drawer-title">Management</div>
+      <q-list class="sidebar-list" separator>
+        <q-item
+          v-for="item in navItems"
+          :key="item.key"
+          clickable
+          class="sidebar-item"
+          :active="activeTab === item.key"
+          active-class="sidebar-item-active"
+          @click="selectTab(item.key)"
+        >
+          <q-item-section avatar>
+            <q-icon :name="item.icon" size="20px" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ item.label }}</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-drawer>
+
     <q-page-container>
       <q-page class="admin-page">
         <div class="admin-container">
-          <aside class="admin-sidebar san3a-animate-in">
-            <div class="sidebar-title">Management</div>
-            <q-list class="sidebar-list" separator>
-              <q-item
-                v-for="item in navItems"
-                :key="item.key"
-                clickable
-                class="sidebar-item"
-                :active="activeTab === item.key"
-                active-class="sidebar-item-active"
-                @click="activeTab = item.key"
-              >
-                <q-item-section avatar>
-                  <q-icon :name="item.icon" size="20px" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ item.label }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </aside>
-
           <main class="admin-main san3a-animate-in san3a-stagger-1">
             <section class="kpi-grid">
               <q-card v-for="card in kpiCards" :key="card.label" flat bordered class="kpi-card">
@@ -68,12 +79,14 @@
 
             <section class="admin-workspace">
               <q-tab-panels v-model="activeTab" animated class="admin-panels">
+                <q-tab-panel name="analytics"
+                  ><AnalyticsView @open-section="selectTab"
+                /></q-tab-panel>
                 <q-tab-panel name="technicians"><TechniciansView /></q-tab-panel>
                 <q-tab-panel name="customers"><CustomersView /></q-tab-panel>
                 <q-tab-panel name="requests"><RequestsView /></q-tab-panel>
                 <q-tab-panel name="pending"><VerificationsView /></q-tab-panel>
                 <q-tab-panel name="complaints"><ComplaintsView /></q-tab-panel>
-                <q-tab-panel name="analytics"><AnalyticsView /></q-tab-panel>
               </q-tab-panels>
             </section>
           </main>
@@ -120,7 +133,8 @@ import AnalyticsView from 'src/components/admin/AnalyticsView.vue'
 
 const router = useRouter()
 const $q = useQuasar()
-const activeTab = ref('technicians')
+const activeTab = ref('analytics')
+const drawerOpen = ref(false)
 const metrics = ref({
   pendingVerifications: 0,
   activeRequests: 0,
@@ -137,13 +151,18 @@ const activityItems = ref([])
 const activityLoading = ref(false)
 
 const navItems = [
+  { key: 'analytics', label: 'Analytics', icon: 'insights' },
   { key: 'technicians', label: 'Technicians', icon: 'engineering' },
   { key: 'customers', label: 'Customers', icon: 'person' },
   { key: 'requests', label: 'Requests', icon: 'assignment' },
   { key: 'pending', label: 'Verifications', icon: 'pending_actions' },
   { key: 'complaints', label: 'Complaints', icon: 'flag' },
-  { key: 'analytics', label: 'Analytics', icon: 'insights' },
 ]
+
+const selectTab = (key) => {
+  activeTab.value = key
+  drawerOpen.value = false
+}
 
 const percentageDelta = (current, previous) => {
   if (!previous) return current > 0 ? 100 : 0
@@ -200,8 +219,8 @@ const safeCount = async (table, idColumn, filterFn) => {
 
 const loadMetrics = async () => {
   const next = {
-    pendingVerifications: await safeCount('technician_verification_state', 'technician_id', (q) =>
-      q.eq('verification_status', 'pending'),
+    pendingVerifications: await safeCount('profile_verification_submissions', 'auth_id', (q) =>
+      q.eq('review_status', 'pending'),
     ),
     activeRequests: await safeCount('request', 'request_id', (q) =>
       q.not('request_status', 'in', '(completed,cancelled)'),
@@ -235,7 +254,7 @@ const loadActivity = async () => {
     const [requestsRes, complaintsRes, verificationsRes] = await Promise.all([
       supabase.from('request').select('*').limit(8),
       supabase.from('complaint').select('*').limit(8),
-      supabase.from('technician_verification_state').select('*').limit(8),
+      supabase.from('profile_verification_submissions').select('*').limit(8),
     ])
 
     const rows = []
@@ -261,13 +280,13 @@ const loadActivity = async () => {
       })
     }
     for (const row of verificationsRes.data || []) {
-      const timeValue = rowTime(row)
-      const approved = row.is_verified === true || row.verification_status === 'approved'
+      const timeValue = row.reviewed_at || row.verification_completed_at || row.submitted_at
+      const approved = row.review_status === 'approved'
       rows.push({
-        id: `tech-${row.technician_id}`,
+        id: `verification-${row.auth_id}`,
         timeKey: timeValue,
         tone: approved ? 'success' : 'warning',
-        message: `Technician #${row.technician_id} ${approved ? 'approved' : 'pending verification'}.`,
+        message: `${row.account_type === 'technician' ? 'Technician' : 'User'} verification ${approved ? 'approved' : 'pending review'}.`,
         time: relativeTime(timeValue),
       })
     }
@@ -311,10 +330,13 @@ onMounted(() => {
   margin: 0 auto;
   width: 100%;
 }
+.header-menu-btn {
+  margin-right: 10px;
+}
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .header-brand-icon-w {
   width: 36px;
@@ -354,30 +376,22 @@ onMounted(() => {
   max-width: 1360px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
 }
 
-.admin-sidebar {
-  background: #fff;
-  border: 1px solid var(--san3a-gray-200);
-  border-radius: var(--san3a-radius-xl);
-  padding: 14px;
-  height: calc(100vh - 118px);
-  position: sticky;
-  top: 78px;
-}
-.sidebar-title {
+.drawer-title {
   font-size: 13px;
   font-weight: 700;
   color: var(--san3a-gray-500);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin: 6px 8px 12px;
+  margin: 16px 16px 10px;
 }
 .sidebar-list {
   border-radius: var(--san3a-radius-lg);
   overflow: hidden;
+  padding: 0 10px;
 }
 .sidebar-item {
   border-radius: 10px;
@@ -555,7 +569,7 @@ onMounted(() => {
   border-color: rgba(13, 115, 119, 0.35) !important;
 }
 .admin-workspace :deep(.q-btn:focus-visible),
-.admin-sidebar :deep(.q-item:focus-visible),
+.admin-drawer :deep(.q-item:focus-visible),
 .admin-workspace :deep(.q-field__control:focus-within) {
   outline: 3px solid rgba(13, 115, 119, 0.22);
   outline-offset: 2px;
@@ -563,7 +577,7 @@ onMounted(() => {
 
 @media (max-width: 1250px) {
   .admin-container {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .admin-activity {
     display: none;
@@ -577,15 +591,6 @@ onMounted(() => {
   .admin-container {
     grid-template-columns: 1fr;
   }
-  .admin-sidebar {
-    height: auto;
-    position: static;
-  }
-  .sidebar-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-  }
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -594,9 +599,6 @@ onMounted(() => {
 @media (max-width: 600px) {
   .header-brand-sub {
     display: none;
-  }
-  .sidebar-list {
-    grid-template-columns: 1fr;
   }
   .kpi-grid {
     grid-template-columns: 1fr;

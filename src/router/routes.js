@@ -12,6 +12,10 @@ const routes = [
     component: () => import('layouts/SignIn.vue'),
   },
   {
+    path: '/forgot-password',
+    component: () => import('layouts/ForgotPassword.vue'),
+  },
+  {
     path: '/reset-password',
     component: () => import('layouts/ResetPassword.vue'),
   },
@@ -39,6 +43,16 @@ const routes = [
     path: '/profile',
     meta: { requiresAuth: true },
     component: () => import('layouts/UserProfile.vue'),
+  },
+  {
+    path: '/verify-identity/:step',
+    meta: { requiresAuth: true },
+    component: () => import('layouts/IdentityVerification.vue'),
+  },
+  {
+    path: '/pending-approval',
+    meta: { requiresAuth: true },
+    component: () => import('layouts/PendingApproval.vue'),
   },
   {
     path: '/plumbing',

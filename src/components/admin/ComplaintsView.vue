@@ -27,6 +27,8 @@
       :columns="columns"
       row-key="id"
       :loading="loading"
+      :pagination="tablePagination"
+      :rows-per-page-options="[0]"
       class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-status="props">
@@ -171,6 +173,7 @@ const priorityOptions = ['low', 'medium', 'high', 'critical']
 
 const complaints = ref([])
 const loading = ref(false)
+const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const filterStatus = ref(null)
 const showDetailsDialog = ref(false)

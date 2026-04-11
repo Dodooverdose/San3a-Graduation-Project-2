@@ -26,6 +26,8 @@
       :columns="columns"
       row-key="_id"
       :loading="loading"
+      :pagination="tablePagination"
+      :rows-per-page-options="[0]"
       class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-verified="props">
@@ -136,6 +138,7 @@ const columns = [
 const technicians = ref([])
 const verificationStateMap = ref(new Map())
 const loading = ref(false)
+const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const showAddDialog = ref(false)
 const editingId = ref(null)

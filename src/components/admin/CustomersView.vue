@@ -26,6 +26,8 @@
       :columns="columns"
       row-key="_id"
       :loading="loading"
+      :pagination="tablePagination"
+      :rows-per-page-options="[0]"
       class="q-mt-md admin-table"
     >
       <template v-slot:body-cell-actions="props">
@@ -45,7 +47,7 @@
             round
             icon="delete"
             size="sm"
-            @click="deleteCustomer(props.row.id)"
+            @click="deleteCustomer(props.row)"
             color="negative"
           />
         </q-td>
@@ -118,9 +120,11 @@ const columns = [
 
 const users = ref([])
 const loading = ref(false)
+const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const showAddDialog = ref(false)
 const editingId = ref(null)
+const editingKeyColumn = ref('user_id')
 
 const formData = ref({
   name: '',
@@ -134,6 +138,12 @@ const normalizeText = (value) => (value === null || value === undefined ? '' : S
 const normalizeCustomer = (customer) => ({
   ...customer,
   _id: customer.id ?? customer.user_id ?? null,
+  _keyColumn:
+    customer.id !== undefined && customer.id !== null
+      ? 'id'
+      : customer.user_id !== undefined && customer.user_id !== null
+        ? 'user_id'
+        : 'user_id',
   _name: customer.name ?? customer.full_name ?? 'Unknown',
   _email: customer.email ?? '',
   _phone: customer.phone ?? customer.phone_number ?? '',
@@ -170,11 +180,18 @@ const loadCustomers = async () => {
 
 const saveCustomer = async () => {
   try {
+    const payload = {
+      full_name: formData.value.name,
+      email: formData.value.email,
+      phone_number: formData.value.phone,
+      address: formData.value.address || null,
+    }
+
     if (editingId.value) {
       const { error } = await supabase
         .from('users')
-        .update(formData.value)
-        .eq('id', editingId.value)
+        .update(payload)
+        .eq(editingKeyColumn.value, editingId.value)
 
       if (error) throw error
       $q.notify({
@@ -183,7 +200,7 @@ const saveCustomer = async () => {
         position: 'top',
       })
     } else {
-      const { error } = await supabase.from('users').insert([formData.value])
+      const { error } = await supabase.from('users').insert([payload])
 
       if (error) throw error
       $q.notify({
@@ -206,21 +223,26 @@ const saveCustomer = async () => {
 }
 
 const editCustomer = (customer) => {
-  editingId.value = customer.id
-  formData.value = { ...customer }
+  editingId.value = customer._id
+  editingKeyColumn.value = customer._keyColumn || 'user_id'
+  formData.value = {
+    name: customer._name ?? '',
+    email: customer._email ?? '',
+    phone: customer._phone ?? '',
+    address: customer.address ?? '',
+  }
   showAddDialog.value = true
 }
 
-const deleteCustomer = async (id) => {
+const deleteCustomer = async (customer) => {
   try {
-    await $q.dialog({
-      title: 'Confirm',
-      message: 'Are you sure you want to delete this user?',
-      cancel: true,
-      persistent: true,
-    })
+    const confirmed = window.confirm('Are you sure you want to delete this user?')
+    if (!confirmed) return
 
-    const { error } = await supabase.from('users').delete().eq('id', id)
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq(customer?._keyColumn || 'user_id', customer?._id)
 
     if (error) throw error
     $q.notify({
@@ -230,14 +252,12 @@ const deleteCustomer = async (id) => {
     })
     loadCustomers()
   } catch (error) {
-    if (error.message !== 'Cancelled') {
-      console.error('Error deleting user:', error)
-      $q.notify({
-        type: 'negative',
-        message: 'Error deleting user',
-        position: 'top',
-      })
-    }
+    console.error('Error deleting user:', error)
+    $q.notify({
+      type: 'negative',
+      message: error?.message || 'Error deleting user',
+      position: 'top',
+    })
   }
 }
 
@@ -249,6 +269,7 @@ const resetForm = () => {
     address: '',
   }
   editingId.value = null
+  editingKeyColumn.value = 'user_id'
 }
 
 loadCustomers()

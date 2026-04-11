@@ -38,6 +38,8 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
   Router.beforeEach(async (to) => {
     const authStore = useAuthStore()
+    const isVerificationRoute = to.path.startsWith('/verify-identity/')
+    const isPendingApprovalRoute = to.path === '/pending-approval'
 
     // Keep public pages in light mode regardless of previous authenticated theme toggle.
     if (!to.meta.requiresAuth) {
@@ -70,6 +72,22 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         return '/signin'
       }
 
+      if (session.user?.user_metadata?.role === 'admin') {
+        if (to.meta.requiresAdmin) {
+          authStore.user = session.user
+          await authStore.verifyAdminStatus(session.user.email)
+
+          if (!authStore.isAdminVerified) {
+            console.warn(
+              'Admin table verification failed, but allowing access due to admin role in metadata',
+            )
+            authStore.isAdminVerified = true
+          }
+        }
+
+        return true
+      }
+
       if (to.meta.requiresAdmin) {
         const role = session.user?.user_metadata?.role
 
@@ -88,6 +106,55 @@ export default defineRouter(function (/* { store, ssrContext } */) {
           )
           authStore.isAdminVerified = true
         }
+
+        return true
+      }
+
+      const { data: verification, error: verificationError } = await supabase
+        .from('profile_verification_submissions')
+        .select(
+          'review_status,verification_completed_at,national_id_front_image,national_id_back_image,selfie_image',
+        )
+        .eq('auth_id', session.user.id)
+        .maybeSingle()
+
+      if (verificationError) {
+        console.warn('Verification state check failed:', verificationError)
+      }
+
+      const hasAllRequiredDocs = Boolean(
+        verification?.national_id_front_image &&
+        verification?.national_id_back_image &&
+        verification?.selfie_image,
+      )
+      const isVerificationComplete =
+        Boolean(verification?.verification_completed_at) && hasAllRequiredDocs
+      const reviewStatus = verification?.review_status || null
+
+      // Approved accounts should never be forced back into verification steps.
+      if (reviewStatus === 'approved') {
+        if (isPendingApprovalRoute || isVerificationRoute) {
+          return session.user?.user_metadata?.role === 'fixer' ? '/service-provider' : '/home'
+        }
+        return true
+      }
+
+      if (!isVerificationComplete) {
+        if (!isVerificationRoute) {
+          return '/verify-identity/id-front'
+        }
+        return true
+      }
+
+      if (reviewStatus !== 'approved') {
+        if (reviewStatus === 'rejected' && isVerificationRoute) {
+          return true
+        }
+
+        if (!isPendingApprovalRoute) {
+          return '/pending-approval'
+        }
+        return true
       }
     }
   })

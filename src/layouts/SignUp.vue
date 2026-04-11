@@ -163,7 +163,7 @@
                     class="submit-btn"
                     :disable="!isSignUpEnabled"
                     :loading="loading"
-                    @click="onSubmit"
+                    type="submit"
                   />
                 </q-form>
               </q-tab-panel>
@@ -347,7 +347,7 @@
                     class="submit-btn"
                     :disable="!isSignUpEnabled"
                     :loading="loading"
-                    @click="onSubmit"
+                    type="submit"
                   />
                 </q-form>
               </q-tab-panel>
@@ -488,7 +488,7 @@ const onSubmit = async () => {
       return
     }
 
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.value.email,
       password: form.value.password,
       options: {
@@ -528,23 +528,21 @@ const onSubmit = async () => {
     })
 
     const selectedRole = form.value.role
-    form.value = {
-      fullName: '',
-      email: '',
-      phoneNumber: '',
-      password: '',
-      confirmPassword: '',
-      role: 'customer',
-      specialty: null,
-      yearsOfExperience: null,
-      agreeTerms: false,
+    const verificationQuery = {
+      accountType: selectedRole === 'fixer' ? 'technician' : 'user',
+      email: form.value.email,
+      fullName: form.value.fullName,
+      phoneNumber: form.value.phoneNumber,
+      role: selectedRole,
+      authId: authData?.user?.id || '',
+      specialty: form.value.specialty || '',
+      yearsOfExperience:
+        form.value.yearsOfExperience !== null && form.value.yearsOfExperience !== ''
+          ? String(form.value.yearsOfExperience)
+          : '',
     }
 
-    if (selectedRole === 'fixer') {
-      router.push('/service-provider')
-    } else {
-      router.push('/home')
-    }
+    await router.push({ path: '/verify-identity/id-front', query: verificationQuery })
   } catch (err) {
     $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
     console.error(err)
