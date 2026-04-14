@@ -29,7 +29,17 @@
         <q-card-section class="row items-center q-pb-sm">
           <div class="notif-title">Notifications</div>
           <q-space />
-          <q-btn v-if="notifications.length > 0" flat dense no-caps label="Clear All" color="negative" size="sm" class="q-mr-sm" @click="clearAllNotifications" />
+          <q-btn
+            v-if="notifications.length > 0"
+            flat
+            dense
+            no-caps
+            label="Clear All"
+            color="negative"
+            size="sm"
+            class="q-mr-sm"
+            @click="clearAllNotifications"
+          />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
         <q-separator />
