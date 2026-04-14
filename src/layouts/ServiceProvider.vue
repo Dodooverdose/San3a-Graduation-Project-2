@@ -29,6 +29,7 @@
         <q-card-section class="row items-center q-pb-sm">
           <div class="notif-title">Notifications</div>
           <q-space />
+          <q-btn v-if="notifications.length > 0" flat dense no-caps label="Clear All" color="negative" size="sm" class="q-mr-sm" @click="clearAllNotifications" />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
         <q-separator />
@@ -49,7 +50,7 @@
               <q-item-label class="text-weight-bold">{{
                 notif.fixerName || notif.title
               }}</q-item-label>
-              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption>{{ getNotifMessage(notif) }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
               <!-- Inline ETA picker for arrival-check notifications -->
               <div v-if="notif.type === 'arrival-check' && !notif.etaSent" class="q-mt-sm">
@@ -91,7 +92,7 @@
                   color="positive"
                   icon="check"
                   size="sm"
-                  @click.stop="acceptOffer(i)"
+                  @click.stop="markAsRead(i)"
                 />
                 <q-btn
                   dense
@@ -100,7 +101,7 @@
                   color="negative"
                   icon="close"
                   size="sm"
-                  @click.stop="declineOffer(i)"
+                  @click.stop="dismissNotification(i)"
                 />
               </div>
             </q-item-section>
@@ -481,7 +482,10 @@ const {
   setRecipientEmail,
   loadNotifications,
   markAsRead,
+  dismissNotification,
+  clearAllNotifications,
   recordNotificationForRecipient,
+  getNotifMessage,
 } = useNotificationCenter()
 
 const showNotifications = ref(false)
@@ -545,17 +549,6 @@ const setActiveTab = async (tab) => {
     return
   }
   await fetchRequests()
-}
-
-const acceptOffer = (index) => {
-  const notif = notifications.value[index]
-  markAsRead(index)
-  $q.notify({ type: 'positive', message: `Accepted offer from ${notif.fixerName}` })
-}
-const declineOffer = (index) => {
-  const notif = notifications.value[index]
-  markAsRead(index)
-  $q.notify({ type: 'warning', message: `Declined offer from ${notif.fixerName}` })
 }
 
 const loading = ref(true)
@@ -822,6 +815,7 @@ const submitOffer = async () => {
     .update({
       fixer_price: normalizedPrice,
       technician_id: technicianId.value,
+      fixer_message: trimmedMessage || null,
     })
     .eq('request_id', offerTarget.value.request_id)
     .select('request_id, fixer_price, technician_id, request_status')

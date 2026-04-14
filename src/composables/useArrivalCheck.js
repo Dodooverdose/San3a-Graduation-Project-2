@@ -30,7 +30,9 @@ export const useArrivalCheck = () => {
   let checkInterval = null
   let etaChannel = null
   let arrivalCheckChannel = null
-  const prompted = new Set(JSON.parse(localStorage.getItem('san3a_arrival_prompted') || '[]'))
+  const prompted = new Set(
+    JSON.parse(localStorage.getItem('san3a_arrival_prompted') || '[]').map(Number),
+  )
 
   const savePrompted = () => {
     localStorage.setItem('san3a_arrival_prompted', JSON.stringify([...prompted]))
@@ -72,10 +74,51 @@ export const useArrivalCheck = () => {
   //  CUSTOMER — check for due appointments
   // ═══════════════════════════════════════════
 
+  const ensureArrivalNotification = async (req) => {
+    // Look up customer email to persist a notification
+    const { data: customerRow } = await supabase
+      .from('users')
+      .select('email')
+      .eq('user_id', req.user_id)
+      .maybeSingle()
+    const email = customerRow?.email?.trim().toLowerCase()
+    if (!email) return
+
+    // Check if an arrival-check notification already exists for this request
+    const { data: existing } = await supabase
+      .from('notification_center')
+      .select('id')
+      .eq('recipient_email', email)
+      .eq('notification_type', 'arrival-check-customer')
+      .eq('request_id', String(req.request_id))
+      .limit(1)
+
+    if (existing?.length) return // already persisted
+
+    await insertNotification(email, {
+      title: 'Appointment Check',
+      message: `Did the technician arrive for request #${req.request_id}?`,
+      requestId: req.request_id,
+      routePath: `/incoming-offers?requestId=${req.request_id}`,
+      type: 'arrival-check-customer',
+      icon: 'person_pin_circle',
+      payload: {
+        requestId: req.request_id,
+        type: 'arrival-check-customer',
+      },
+    })
+  }
+
+  const toLocalISOString = (date) => {
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  }
+
   const checkForArrivals = async (customerUserId) => {
     if (!customerUserId || showArrivalDialog.value) return
 
-    const now = new Date().toISOString()
+    // Use local time (no timezone) to match how schedule_time is stored
+    const now = toLocalISOString(new Date())
 
     const { data } = await supabase
       .from('request')
@@ -88,13 +131,19 @@ export const useArrivalCheck = () => {
       .not('technician_id', 'is', null)
       .lte('schedule_time', now)
       .order('schedule_time', { ascending: true })
-      .limit(1)
 
     if (!data?.length) return
-    const req = data[0]
-    if (prompted.has(req.request_id)) return
 
-    arrivalCheckRequest.value = req
+    // Persist a notification for every due appointment (idempotent)
+    for (const req of data) {
+      ensureArrivalNotification(req).catch(() => {})
+    }
+
+    // Show dialog for the first un-prompted request
+    const unprompted = data.find((r) => !prompted.has(r.request_id))
+    if (!unprompted) return
+
+    arrivalCheckRequest.value = unprompted
     showArrivalDialog.value = true
   }
 
@@ -194,7 +243,7 @@ export const useArrivalCheck = () => {
     }
     etaSecondsLeft.value = minutes * 60
 
-    etaCountdownTimer = setInterval(() => {
+    etaCountdownTimer = setInterval(async () => {
       etaSecondsLeft.value--
       if (etaSecondsLeft.value <= 0) {
         clearInterval(etaCountdownTimer)
@@ -205,8 +254,33 @@ export const useArrivalCheck = () => {
         prompted.delete(Number(requestId))
         savePrompted()
 
-        // Re-trigger arrival check
-        checkForArrivals(customerUserId)
+        // Persist a follow-up notification for the customer
+        try {
+          if (customerUserId) {
+            const { data: customerRow } = await supabase
+              .from('users')
+              .select('email')
+              .eq('user_id', customerUserId)
+              .maybeSingle()
+            const email = customerRow?.email?.trim()?.toLowerCase()
+            if (email) {
+              await insertNotification(email, {
+                title: 'Appointment Check',
+                message: `ETA has elapsed for request #${requestId}. Did the technician arrive?`,
+                requestId,
+                routePath: `/incoming-offers?requestId=${requestId}`,
+                type: 'arrival-check-customer',
+                icon: 'person_pin_circle',
+                payload: { requestId, type: 'arrival-check-followup' },
+              })
+            }
+          }
+        } catch (e) {
+          console.warn('Follow-up notification failed:', e)
+        }
+
+        // Re-trigger arrival check dialog
+        await checkForArrivals(customerUserId)
       }
     }, 1000)
   }
@@ -255,14 +329,16 @@ export const useArrivalCheck = () => {
     }
 
     // Persist notification for customer
+    const etaEndTime = new Date(Date.now() + minutes * 60 * 1000).toISOString()
     if (customerEmail) {
       await insertNotification(customerEmail, {
         title: 'Technician ETA',
         message: `The time left is ${minutes} minutes for request #${requestData.requestId}.`,
         requestId: requestData.requestId,
+        routePath: `/incoming-offers?requestId=${requestData.requestId}`,
         type: 'eta-response',
         icon: 'schedule',
-        payload: { requestId: requestData.requestId, minutes },
+        payload: { requestId: requestData.requestId, minutes, etaEndTime },
       })
     }
 

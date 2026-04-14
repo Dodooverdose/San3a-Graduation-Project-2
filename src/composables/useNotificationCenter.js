@@ -1,5 +1,42 @@
-import { computed, onScopeDispose, ref } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import { supabase } from 'src/boot/supabase'
+
+// Shared reactive clock tick (updates every second) for live countdowns
+const nowTick = ref(Date.now())
+let tickInterval = null
+let tickSubscribers = 0
+
+const startTick = () => {
+  tickSubscribers++
+  if (!tickInterval) {
+    tickInterval = setInterval(() => {
+      nowTick.value = Date.now()
+    }, 1000)
+  }
+}
+const stopTick = () => {
+  tickSubscribers--
+  if (tickSubscribers <= 0) {
+    clearInterval(tickInterval)
+    tickInterval = null
+    tickSubscribers = 0
+  }
+}
+
+const getNotifMessage = (notif) => {
+  if (notif.type === 'eta-response' && notif.payload?.etaEndTime) {
+    const remaining = Math.max(
+      0,
+      Math.floor((new Date(notif.payload.etaEndTime).getTime() - nowTick.value) / 1000),
+    )
+    if (remaining <= 0)
+      return `ETA expired for request #${notif.requestId || notif.payload?.requestId || ''}`
+    const m = Math.floor(remaining / 60)
+    const s = remaining % 60
+    return `Arriving in ${m}:${String(s).padStart(2, '0')} — Request #${notif.requestId || notif.payload?.requestId || ''}`
+  }
+  return notif.message
+}
 
 const formatTime = (dateValue) => {
   if (!dateValue) return ''
@@ -237,7 +274,72 @@ export const useNotificationCenter = () => {
     }
   }
 
+  const dismissNotification = (index) => {
+    notifications.value.splice(index, 1)
+  }
+
+  const clearAllNotifications = () => {
+    notifications.value = []
+  }
+
+  // ── ETA expiry: auto-send "Did technician arrive?" notification ──
+  const firedEtaExpiry = new Set()
+  let checkingExpiry = false
+
+  const checkEtaExpiry = async () => {
+    if (checkingExpiry || !recipientEmail.value) return
+    const now = nowTick.value
+    const expired = notifications.value.filter(
+      (n) =>
+        n.type === 'eta-response' &&
+        n.payload?.etaEndTime &&
+        !firedEtaExpiry.has(n.id) &&
+        new Date(n.payload.etaEndTime).getTime() <= now,
+    )
+    if (!expired.length) return
+
+    checkingExpiry = true
+    try {
+      for (const notif of expired) {
+        firedEtaExpiry.add(notif.id)
+        const requestId = notif.requestId || notif.payload?.requestId
+        if (!requestId) continue
+
+        // Avoid duplicate follow-up notifications
+        const { data: existing } = await supabase
+          .from('notification_center')
+          .select('id')
+          .eq('recipient_email', recipientEmail.value)
+          .eq('notification_type', 'arrival-check-customer')
+          .eq('request_id', String(requestId))
+          .limit(1)
+        if (existing?.length) continue
+
+        await supabase.from('notification_center').insert({
+          recipient_email: recipientEmail.value,
+          title: 'Appointment Check',
+          message: `ETA has elapsed for request #${requestId}. Did the technician arrive?`,
+          request_id: String(requestId),
+          route_path: `/incoming-offers?requestId=${requestId}`,
+          notification_type: 'arrival-check-customer',
+          icon: 'person_pin_circle',
+          payload: { requestId: String(requestId), type: 'arrival-check-followup' },
+          is_read: false,
+        })
+      }
+    } catch (e) {
+      console.warn('ETA expiry check failed:', e)
+    } finally {
+      checkingExpiry = false
+    }
+  }
+
+  const stopEtaExpiryWatch = watch(nowTick, checkEtaExpiry)
+
+  startTick()
   onScopeDispose(() => {
+    stopEtaExpiryWatch()
+    stopTick()
     void stopRealtime()
   })
 
@@ -251,5 +353,8 @@ export const useNotificationCenter = () => {
     recordNotificationForRecipient,
     markAsRead,
     markAllAsRead,
+    dismissNotification,
+    clearAllNotifications,
+    getNotifMessage,
   }
 }

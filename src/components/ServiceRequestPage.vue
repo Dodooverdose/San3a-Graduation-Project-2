@@ -639,6 +639,7 @@ onBeforeUnmount(() => {
   font-size: 20px;
 }
 .header-service-badge {
+  display: inline-flex;
 }
 .header-service-img {
   height: 36px;
@@ -668,6 +669,7 @@ onBeforeUnmount(() => {
 }
 
 .tab-content {
+  display: block;
 }
 
 .tab-heading {
@@ -841,6 +843,7 @@ onBeforeUnmount(() => {
   margin: 0 0 12px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -29,6 +29,7 @@
         <q-card-section class="row items-center q-pb-sm">
           <div class="notif-title">Notifications</div>
           <q-space />
+          <q-btn v-if="notifications.length > 0" flat dense no-caps label="Clear All" color="negative" size="sm" class="q-mr-sm" @click="clearAllNotifications" />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
         <q-separator />
@@ -46,8 +47,30 @@
             ></q-item-section>
             <q-item-section>
               <q-item-label class="text-weight-bold">{{ notif.fixerName }}</q-item-label>
-              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption>{{ getNotifMessage(notif) }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row q-gutter-xs">
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="positive"
+                  icon="check"
+                  size="sm"
+                  @click.stop="markAsRead(i)"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="negative"
+                  icon="close"
+                  size="sm"
+                  @click.stop="dismissNotification(i)"
+                />
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
@@ -251,18 +274,19 @@
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
           <div class="text-h6 q-mt-sm">Technician ETA</div>
-          <div class="text-body1 q-mt-xs">
-            The time left is <strong>{{ etaMinutes }} minutes</strong>
-          </div>
           <div
             v-if="etaSecondsLeft > 0"
-            class="text-h5 q-mt-sm"
-            style="font-variant-numeric: tabular-nums; color: var(--san3a-primary)"
+            class="text-h3 q-mt-md"
+            style="
+              font-variant-numeric: tabular-nums;
+              color: var(--san3a-primary);
+              font-weight: 700;
+            "
           >
             {{ etaCountdownDisplay }}
           </div>
-          <div v-else class="text-body2 text-negative q-mt-sm">Time is up!</div>
-          <div class="text-body2 text-grey-7 q-mt-xs">For request #{{ etaRequestId }}</div>
+          <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
+          <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
@@ -287,8 +311,16 @@ const loading = ref(true)
 const error = ref(null)
 const allOrders = ref([])
 const showNotifications = ref(false)
-const { notifications, unreadCount, setRecipientEmail, loadNotifications, markAsRead } =
-  useNotificationCenter()
+const {
+  notifications,
+  unreadCount,
+  setRecipientEmail,
+  loadNotifications,
+  markAsRead,
+  dismissNotification,
+  clearAllNotifications,
+  getNotifMessage,
+} = useNotificationCenter()
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const knownOfferPrices = ref(new Map())
@@ -297,7 +329,6 @@ const {
   arrivalCheckRequest,
   showArrivalDialog,
   showEtaMessage,
-  etaMinutes,
   etaRequestId,
   etaSecondsLeft,
   confirmArrival,
@@ -682,6 +713,7 @@ onBeforeUnmount(() => {
   margin: 0 0 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

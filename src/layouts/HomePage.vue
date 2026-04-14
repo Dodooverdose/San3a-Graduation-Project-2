@@ -29,6 +29,7 @@
         <q-card-section class="row items-center q-pb-sm">
           <div class="notif-card-title">Notifications</div>
           <q-space />
+          <q-btn v-if="notifications.length > 0" flat dense no-caps label="Clear All" color="negative" size="sm" class="q-mr-sm" @click="clearAllNotifications" />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
         <q-separator />
@@ -47,7 +48,7 @@
             </q-item-section>
             <q-item-section>
               <q-item-label class="notif-name">{{ notif.fixerName }}</q-item-label>
-              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption>{{ getNotifMessage(notif) }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
             </q-item-section>
             <q-item-section side>
@@ -59,7 +60,7 @@
                   color="positive"
                   icon="check"
                   size="sm"
-                  @click.stop="acceptOffer(i)"
+                  @click.stop="markAsRead(i)"
                 />
                 <q-btn
                   dense
@@ -68,7 +69,7 @@
                   color="negative"
                   icon="close"
                   size="sm"
-                  @click.stop="declineOffer(i)"
+                  @click.stop="dismissNotification(i)"
                 />
               </div>
             </q-item-section>
@@ -233,18 +234,19 @@
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
           <div class="text-h6 q-mt-sm">Technician ETA</div>
-          <div class="text-body1 q-mt-xs">
-            The time left is <strong>{{ etaMinutes }} minutes</strong>
-          </div>
           <div
             v-if="etaSecondsLeft > 0"
-            class="text-h5 q-mt-sm"
-            style="font-variant-numeric: tabular-nums; color: var(--san3a-primary)"
+            class="text-h3 q-mt-md"
+            style="
+              font-variant-numeric: tabular-nums;
+              color: var(--san3a-primary);
+              font-weight: 700;
+            "
           >
             {{ etaCountdownDisplay }}
           </div>
-          <div v-else class="text-body2 text-negative q-mt-sm">Time is up!</div>
-          <div class="text-body2 text-grey-7 q-mt-xs">For request #{{ etaRequestId }}</div>
+          <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
+          <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
@@ -264,14 +266,21 @@ import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 
 const router = useRouter()
 const $q = useQuasar()
-const { notifications, unreadCount, setRecipientEmail, loadNotifications, markAsRead } =
-  useNotificationCenter()
+const {
+  notifications,
+  unreadCount,
+  setRecipientEmail,
+  loadNotifications,
+  markAsRead,
+  dismissNotification,
+  clearAllNotifications,
+  getNotifMessage,
+} = useNotificationCenter()
 
 const {
   arrivalCheckRequest,
   showArrivalDialog,
   showEtaMessage,
-  etaMinutes,
   etaRequestId,
   etaSecondsLeft,
   confirmArrival,
@@ -318,18 +327,6 @@ const openNotification = (notif, index) => {
     return
   }
   router.push('/incoming-offers')
-}
-
-const acceptOffer = (index) => {
-  const notif = notifications.value[index]
-  markAsRead(index)
-  $q.notify({ type: 'positive', message: `Accepted offer from ${notif.fixerName}` })
-}
-
-const declineOffer = (index) => {
-  const notif = notifications.value[index]
-  markAsRead(index)
-  $q.notify({ type: 'warning', message: `Declined offer from ${notif.fixerName}` })
 }
 
 const initializeIncomingOfferTracking = async () => {
@@ -751,6 +748,7 @@ const items = ref([
   color: var(--san3a-gray-600);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

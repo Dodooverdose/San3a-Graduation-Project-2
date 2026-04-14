@@ -29,6 +29,7 @@
         <q-card-section class="row items-center q-pb-sm">
           <div class="notif-title">Notifications</div>
           <q-space />
+          <q-btn v-if="notifications.length > 0" flat dense no-caps label="Clear All" color="negative" size="sm" class="q-mr-sm" @click="clearAllNotifications" />
           <q-btn flat dense round icon="close" @click="showNotifications = false" />
         </q-card-section>
         <q-separator />
@@ -46,8 +47,30 @@
             ></q-item-section>
             <q-item-section>
               <q-item-label class="text-weight-bold">{{ notif.fixerName }}</q-item-label>
-              <q-item-label caption>{{ notif.message }}</q-item-label>
+              <q-item-label caption>{{ getNotifMessage(notif) }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <div class="row q-gutter-xs">
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="positive"
+                  icon="check"
+                  size="sm"
+                  @click.stop="markAsRead(i)"
+                />
+                <q-btn
+                  dense
+                  flat
+                  round
+                  color="negative"
+                  icon="close"
+                  size="sm"
+                  @click.stop="dismissNotification(i)"
+                />
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
@@ -125,6 +148,11 @@
 
             <p class="offer-desc">{{ req.description_of_issue || 'No description' }}</p>
 
+            <div v-if="getFixerMessage(req)" class="fixer-message">
+              <div class="fixer-message-title">Fixer message</div>
+              <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
+            </div>
+
             <div class="price-row">
               <q-chip
                 v-if="req.fixer_price"
@@ -150,11 +178,6 @@
                 icon="check_circle"
                 >Final price: {{ req.final_price }} EGP</q-chip
               >
-            </div>
-
-            <div v-if="getFixerMessage(req)" class="fixer-message">
-              <div class="fixer-message-title">Fixer message</div>
-              <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
             </div>
 
             <div v-if="req.fixerInfo" class="fixer-info">
@@ -338,18 +361,19 @@
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
           <div class="text-h6 q-mt-sm">Technician ETA</div>
-          <div class="text-body1 q-mt-xs">
-            The time left is <strong>{{ etaMinutes }} minutes</strong>
-          </div>
           <div
             v-if="etaSecondsLeft > 0"
-            class="text-h5 q-mt-sm"
-            style="font-variant-numeric: tabular-nums; color: var(--san3a-primary)"
+            class="text-h3 q-mt-md"
+            style="
+              font-variant-numeric: tabular-nums;
+              color: var(--san3a-primary);
+              font-weight: 700;
+            "
           >
             {{ etaCountdownDisplay }}
           </div>
-          <div v-else class="text-body2 text-negative q-mt-sm">Time is up!</div>
-          <div class="text-body2 text-grey-7 q-mt-xs">For request #{{ etaRequestId }}</div>
+          <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
+          <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
@@ -381,7 +405,10 @@ const {
   setRecipientEmail,
   loadNotifications,
   markAsRead,
+  dismissNotification,
+  clearAllNotifications,
   recordNotificationForRecipient,
+  getNotifMessage,
 } = useNotificationCenter()
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
@@ -393,7 +420,6 @@ const {
   arrivalCheckRequest,
   showArrivalDialog,
   showEtaMessage,
-  etaMinutes,
   etaRequestId,
   etaSecondsLeft,
   confirmArrival,
@@ -486,7 +512,8 @@ const setTransientFixerMessage = (requestId, message) => {
   transientFixerMessages.value = next
 }
 
-const getFixerMessage = (req) => transientFixerMessages.value.get(req.request_id) || ''
+const getFixerMessage = (req) =>
+  transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
 
 const openNotification = (notif, index) => {
   markAsRead(index)
@@ -530,11 +557,11 @@ const fetchIncomingOffers = async () => {
     const { data: requestsData, error: requestsErr } = await supabase
       .from('request')
       .select(
-        'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id',
+        'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id, fixer_message',
       )
       .eq('user_id', customer.user_id)
       .not('technician_id', 'is', null)
-      .order('request_date', { ascending: false })
+      .order('request_id', { ascending: false })
 
     if (requestsErr) {
       error.value = requestsErr.message
