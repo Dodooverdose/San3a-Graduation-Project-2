@@ -55,7 +55,7 @@ export const useArrivalCheck = () => {
     })
 
   const insertNotification = async (email, notification) => {
-    if (!email) return
+    if (!email) return false
     const { error } = await supabase.from('notification_center').insert({
       recipient_email: String(email).trim().toLowerCase(),
       title: notification.title || 'Notification',
@@ -67,7 +67,11 @@ export const useArrivalCheck = () => {
       payload: notification.payload || {},
       is_read: false,
     })
-    if (error) console.warn('Arrival notification insert failed:', error)
+    if (error) {
+      console.warn('Arrival notification insert failed:', error)
+      return false
+    }
+    return true
   }
 
   // ═══════════════════════════════════════════
@@ -235,6 +239,62 @@ export const useArrivalCheck = () => {
       .subscribe()
   }
 
+  // Fires when the ETA countdown reaches zero
+  const handleEtaExpired = async (requestId, customerUserId) => {
+    showEtaMessage.value = false
+
+    // Allow re-prompting for this request
+    prompted.delete(Number(requestId))
+    savePrompted()
+
+    // Persist a follow-up notification for the customer
+    try {
+      if (customerUserId) {
+        const { data: customerRow } = await supabase
+          .from('users')
+          .select('email')
+          .eq('user_id', customerUserId)
+          .maybeSingle()
+        const email = customerRow?.email?.trim()?.toLowerCase()
+        if (email) {
+          await insertNotification(email, {
+            title: 'Technician ETA',
+            message: `ETA expired for request #${requestId}. Did the technician arrive?`,
+            requestId,
+            routePath: `/incoming-offers?requestId=${requestId}`,
+            type: 'eta-expired',
+            icon: 'person_pin_circle',
+            payload: { requestId, type: 'arrival-check-followup' },
+          })
+        }
+      }
+    } catch (e) {
+      console.warn('Follow-up notification failed:', e)
+    }
+
+    // Show arrival dialog for this request
+    try {
+      const { data: req } = await supabase
+        .from('request')
+        .select(
+          'request_id, schedule_time, technician_id, user_id, service_type, description_of_issue, request_status',
+        )
+        .eq('request_id', requestId)
+        .maybeSingle()
+
+      const st = req?.request_status?.toLowerCase()
+      if (req && st !== 'on-going' && st !== 'completed' && st !== 'cancelled') {
+        arrivalCheckRequest.value = req
+        showArrivalDialog.value = true
+      } else {
+        await checkForArrivals(customerUserId)
+      }
+    } catch (e) {
+      console.warn('Post-ETA arrival check failed:', e)
+      await checkForArrivals(customerUserId)
+    }
+  }
+
   // Start countdown timer for ETA, re-prompt when it reaches 0
   const startEtaCountdown = (minutes, requestId, customerUserId) => {
     if (etaCountdownTimer) {
@@ -243,46 +303,93 @@ export const useArrivalCheck = () => {
     }
     etaSecondsLeft.value = minutes * 60
 
-    etaCountdownTimer = setInterval(async () => {
+    etaCountdownTimer = setInterval(() => {
       etaSecondsLeft.value--
       if (etaSecondsLeft.value <= 0) {
         clearInterval(etaCountdownTimer)
         etaCountdownTimer = null
-        showEtaMessage.value = false
-
-        // Allow re-prompting for this request
-        prompted.delete(Number(requestId))
-        savePrompted()
-
-        // Persist a follow-up notification for the customer
-        try {
-          if (customerUserId) {
-            const { data: customerRow } = await supabase
-              .from('users')
-              .select('email')
-              .eq('user_id', customerUserId)
-              .maybeSingle()
-            const email = customerRow?.email?.trim()?.toLowerCase()
-            if (email) {
-              await insertNotification(email, {
-                title: 'Appointment Check',
-                message: `ETA has elapsed for request #${requestId}. Did the technician arrive?`,
-                requestId,
-                routePath: `/incoming-offers?requestId=${requestId}`,
-                type: 'arrival-check-customer',
-                icon: 'person_pin_circle',
-                payload: { requestId, type: 'arrival-check-followup' },
-              })
-            }
-          }
-        } catch (e) {
-          console.warn('Follow-up notification failed:', e)
-        }
-
-        // Re-trigger arrival check dialog
-        await checkForArrivals(customerUserId)
+        // Fire the async handler outside the interval
+        handleEtaExpired(requestId, customerUserId)
       }
     }, 1000)
+  }
+
+  // Restore ETA countdowns from persisted notifications (survives page refresh)
+  const restoreEtaCountdowns = async (customerUserId) => {
+    if (!customerUserId) return
+    try {
+      const { data: customerRow } = await supabase
+        .from('users')
+        .select('email')
+        .eq('user_id', customerUserId)
+        .maybeSingle()
+      const email = customerRow?.email?.trim()?.toLowerCase()
+      if (!email) return
+
+      // Find all eta-response notifications for this customer, grouped by request
+      // We only care about the latest eta-response per request
+      const { data: etaNotifs } = await supabase
+        .from('notification_center')
+        .select('*')
+        .eq('recipient_email', email)
+        .eq('notification_type', 'eta-response')
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (!etaNotifs?.length) return
+
+      // Deduplicate: keep only the most recent eta-response per request_id
+      const seen = new Set()
+      const latestPerRequest = []
+      for (const notif of etaNotifs) {
+        const rid = notif.request_id || notif.payload?.requestId
+        if (!rid || seen.has(String(rid))) continue
+        seen.add(String(rid))
+        latestPerRequest.push(notif)
+      }
+
+      for (const notif of latestPerRequest) {
+        const etaEndTime = notif.payload?.etaEndTime
+        const requestId = notif.request_id || notif.payload?.requestId
+        if (!etaEndTime || !requestId) continue
+
+        const endMs = new Date(etaEndTime).getTime()
+        const remainingMs = endMs - Date.now()
+
+        // Only skip if a follow-up notification was created AFTER this eta-response
+        const { data: existingFollowup } = await supabase
+          .from('notification_center')
+          .select('id')
+          .eq('recipient_email', email)
+          .eq('notification_type', 'eta-expired')
+          .eq('request_id', String(requestId))
+          .gt('created_at', notif.created_at)
+          .limit(1)
+
+        if (existingFollowup?.length) continue // this specific ETA round was already handled
+
+        if (remainingMs <= 0) {
+          // ETA already expired — fire the handler immediately
+          handleEtaExpired(requestId, customerUserId)
+        } else if (!etaCountdownTimer) {
+          // ETA still running — restore the countdown with remaining time
+          const remainingSec = Math.ceil(remainingMs / 1000)
+          etaRequestId.value = requestId
+          etaSecondsLeft.value = remainingSec
+          showEtaMessage.value = true
+          etaCountdownTimer = setInterval(() => {
+            etaSecondsLeft.value--
+            if (etaSecondsLeft.value <= 0) {
+              clearInterval(etaCountdownTimer)
+              etaCountdownTimer = null
+              handleEtaExpired(requestId, customerUserId)
+            }
+          }, 1000)
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore ETA countdowns:', e)
+    }
   }
 
   // Customer: start periodic checks + ETA listener
@@ -291,6 +398,7 @@ export const useArrivalCheck = () => {
     checkForArrivals(customerUserId)
     checkInterval = setInterval(() => checkForArrivals(customerUserId), 60_000)
     listenForEta(customerUserId)
+    restoreEtaCountdowns(customerUserId)
   }
 
   // ═══════════════════════════════════════════
