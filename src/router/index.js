@@ -122,13 +122,6 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         console.warn('Verification state check failed:', verificationError)
       }
 
-      const hasAllRequiredDocs = Boolean(
-        verification?.national_id_front_image &&
-        verification?.national_id_back_image &&
-        verification?.selfie_image,
-      )
-      const isVerificationComplete =
-        Boolean(verification?.verification_completed_at) && hasAllRequiredDocs
       const reviewStatus = verification?.review_status || null
 
       // Approved accounts should never be forced back into verification steps.
@@ -138,6 +131,31 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         }
         return true
       }
+
+      // Fallback for technicians: if no verification submission exists but
+      // the technician record is already marked as verified, allow access.
+      if (!verification && session.user?.user_metadata?.role === 'fixer') {
+        const { data: tech } = await supabase
+          .from('technician')
+          .select('is_verified')
+          .ilike('email', session.user.email)
+          .maybeSingle()
+
+        if (tech?.is_verified) {
+          if (isPendingApprovalRoute || isVerificationRoute) {
+            return '/service-provider'
+          }
+          return true
+        }
+      }
+
+      const hasAllRequiredDocs = Boolean(
+        verification?.national_id_front_image &&
+        verification?.national_id_back_image &&
+        verification?.selfie_image,
+      )
+      const isVerificationComplete =
+        Boolean(verification?.verification_completed_at) && hasAllRequiredDocs
 
       if (!isVerificationComplete) {
         if (!isVerificationRoute) {

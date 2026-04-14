@@ -4,7 +4,9 @@
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
         <div class="header-brand">
-          <div class="header-brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <div class="header-brand-icon">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
           <span class="header-brand-name">San3a</span>
         </div>
         <q-space />
@@ -193,20 +195,108 @@
         <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
       </q-tabs>
     </q-footer>
+
+    <!-- Arrival Check Dialog -->
+    <q-dialog v-model="showArrivalDialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="person_pin_circle" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Did the technician arrive?</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Request #{{ arrivalCheckRequest?.request_id }}
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            unelevated
+            color="positive"
+            label="Yes"
+            icon="check"
+            no-caps
+            @click="handleArrivalYes"
+          />
+          <q-btn
+            unelevated
+            color="negative"
+            label="No"
+            icon="close"
+            no-caps
+            @click="handleArrivalNo"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- ETA Notification Dialog -->
+    <q-dialog v-model="showEtaMessage">
+      <q-card style="min-width: 320px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="schedule" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Technician ETA</div>
+          <div class="text-body1 q-mt-xs">
+            The time left is <strong>{{ etaMinutes }} minutes</strong>
+          </div>
+          <div
+            v-if="etaSecondsLeft > 0"
+            class="text-h5 q-mt-sm"
+            style="font-variant-numeric: tabular-nums; color: var(--san3a-primary)"
+          >
+            {{ etaCountdownDisplay }}
+          </div>
+          <div v-else class="text-body2 text-negative q-mt-sm">Time is up!</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">For request #{{ etaRequestId }}</div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
+import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 
 const router = useRouter()
 const $q = useQuasar()
 const { notifications, unreadCount, setRecipientEmail, loadNotifications, markAsRead } =
   useNotificationCenter()
+
+const {
+  arrivalCheckRequest,
+  showArrivalDialog,
+  showEtaMessage,
+  etaMinutes,
+  etaRequestId,
+  etaSecondsLeft,
+  confirmArrival,
+  reportNoArrival,
+  startCustomerChecks,
+} = useArrivalCheck()
+
+const etaCountdownDisplay = computed(() => {
+  const s = etaSecondsLeft.value
+  if (s <= 0) return '0:00'
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
+})
+
+const handleArrivalYes = async () => {
+  const { error } = await confirmArrival(arrivalCheckRequest.value)
+  if (error) $q.notify({ type: 'negative', message: 'Failed to update status: ' + error.message })
+  else $q.notify({ type: 'positive', message: 'Great! Request is now on-going.' })
+}
+
+const handleArrivalNo = async () => {
+  await reportNoArrival(arrivalCheckRequest.value)
+  $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
+}
 
 const showNotifications = ref(false)
 const activeTab = ref('home')
@@ -332,6 +422,7 @@ onMounted(async () => {
     await loadRecentRequests()
     await loadNotifications()
     subscribeToIncomingOffers()
+    startCustomerChecks(customerUserId.value)
   } catch (err) {
     console.error('Failed to initialize home notifications:', err)
   }
@@ -350,6 +441,7 @@ const getStatusColor = (status) => {
     pending: 'orange',
     assigned: 'blue',
     'in-progress': 'purple',
+    'on-going': 'purple',
     completed: 'green',
     cancelled: 'red',
     accepted: 'teal',

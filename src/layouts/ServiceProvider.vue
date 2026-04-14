@@ -38,18 +38,51 @@
             :key="i"
             :class="{ 'notif-unread': !notif.read }"
             clickable
-            @click="markAsRead(i)"
+            @click="handleNotifClick(notif, i)"
           >
-            <q-item-section avatar
-              ><q-avatar size="40px" class="notif-avatar"
-                ><q-icon name="build" size="20px" /></q-avatar
-            ></q-item-section>
+            <q-item-section avatar>
+              <q-avatar size="40px" class="notif-avatar">
+                <q-icon :name="notif.type === 'arrival-check' ? 'schedule' : 'build'" size="20px" />
+              </q-avatar>
+            </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-bold">{{ notif.fixerName }}</q-item-label>
+              <q-item-label class="text-weight-bold">{{
+                notif.fixerName || notif.title
+              }}</q-item-label>
               <q-item-label caption>{{ notif.message }}</q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
+              <!-- Inline ETA picker for arrival-check notifications -->
+              <div v-if="notif.type === 'arrival-check' && !notif.etaSent" class="q-mt-sm">
+                <div class="text-caption text-grey-8 q-mb-xs">
+                  How much time left till you arrive?
+                </div>
+                <q-option-group
+                  v-model="notifEtaSelections[notif.id]"
+                  :options="etaOptions"
+                  type="radio"
+                  color="primary"
+                  dense
+                  inline
+                  @click.stop
+                />
+                <q-btn
+                  dense
+                  unelevated
+                  color="primary"
+                  label="Send ETA"
+                  icon="send"
+                  size="sm"
+                  no-caps
+                  class="q-mt-xs"
+                  :disable="!notifEtaSelections[notif.id]"
+                  @click.stop="sendEtaFromNotif(notif, i)"
+                />
+              </div>
+              <div v-else-if="notif.type === 'arrival-check' && notif.etaSent" class="q-mt-xs">
+                <q-badge color="positive" label="ETA sent" />
+              </div>
             </q-item-section>
-            <q-item-section side>
+            <q-item-section v-if="notif.type !== 'arrival-check'" side>
               <div class="row q-gutter-xs">
                 <q-btn
                   dense
@@ -272,30 +305,23 @@
 
                   <!-- Action area -->
                   <div class="req-actions">
-                    <div v-if="req.myOffer" class="offer-status">
+                    <div v-if="hasMyOffer(req)" class="offer-status">
                       <q-icon name="check_circle" color="positive" size="sm" />
-                      <span>Offer submitted: {{ req.myOffer.offered_price }} EGP</span>
+                      <span>Offer submitted: {{ req.fixer_price }} EGP</span>
                       <q-badge
-                        :color="
-                          req.myOffer.status === 'accepted'
-                            ? 'green'
-                            : req.myOffer.status === 'rejected'
-                              ? 'red'
-                              : 'orange'
-                        "
-                        :label="req.myOffer.status"
+                        :color="statusColor(req.request_status)"
+                        :label="req.request_status || 'pending'"
                         class="q-ml-sm"
                       />
                     </div>
                     <q-btn
-                      v-if="activeTab !== 'orders' && (!req.myOffer || isOfferAccepted(req))"
-                      :color="isOfferAccepted(req) ? 'grey-5' : 'primary'"
-                      :label="isOfferAccepted(req) ? 'Place Bid (Accepted)' : 'Place Bid'"
+                      v-if="activeTab !== 'orders' && !isOfferAccepted(req)"
+                      color="primary"
+                      label="Place Bid"
                       icon="gavel"
                       no-caps
                       unelevated
                       class="full-width q-mt-sm"
-                      :disable="isOfferAccepted(req)"
                       @click="openOfferDialog(req)"
                     />
                     <div
@@ -399,9 +425,42 @@
           @click="setActiveTab('requests')"
         />
         <q-tab name="orders" icon="receipt_long" label="Orders" @click="setActiveTab('orders')" />
-        <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+        <q-tab name="profile" icon="person" label="Profile" @click="router.push('/profile')" />
       </q-tabs>
     </q-footer>
+
+    <!-- ETA Dialog (arrival check from customer) -->
+    <q-dialog v-model="showEtaDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="schedule" size="56px" color="warning" />
+          <div class="text-h6 q-mt-sm">Customer is waiting!</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            For request #{{ etaDialogRequest?.requestId }}
+          </div>
+          <div class="text-body2 text-grey-7 q-mt-sm">How much time left till you arrive?</div>
+        </q-card-section>
+        <q-card-section>
+          <q-option-group
+            v-model="selectedEta"
+            :options="etaOptions"
+            type="radio"
+            color="primary"
+          />
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn
+            unelevated
+            color="primary"
+            label="Send"
+            icon="send"
+            no-caps
+            :disable="!selectedEta"
+            @click="handleSubmitEta"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
@@ -411,6 +470,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
+import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 
 const router = useRouter()
 const route = useRoute()
@@ -428,8 +488,53 @@ const showNotifications = ref(false)
 const activeTab = ref('requests')
 const navTab = ref('requests')
 
-const goToPage = (r) => {
-  if (r) router.push(r)
+const { showEtaDialog, etaDialogRequest, selectedEta, listenForArrivalChecks, submitEta } =
+  useArrivalCheck()
+
+const etaOptions = [
+  { label: '5 minutes', value: 5 },
+  { label: '10 minutes', value: 10 },
+  { label: '15 minutes', value: 15 },
+  { label: '20 minutes', value: 20 },
+  { label: '25 minutes', value: 25 },
+  { label: '30 minutes', value: 30 },
+]
+
+const handleSubmitEta = async () => {
+  await submitEta(selectedEta.value, etaDialogRequest.value)
+  $q.notify({ type: 'positive', message: `ETA of ${selectedEta.value} minutes sent to customer.` })
+}
+
+const notifEtaSelections = ref({})
+
+const handleNotifClick = (notif, index) => {
+  if (notif.type === 'arrival-check') {
+    markAsRead(index)
+    // If the broadcast dialog isn't already open, open it from the notification payload
+    if (!showEtaDialog.value && notif.payload?.requestId) {
+      etaDialogRequest.value = {
+        requestId: notif.payload.requestId,
+        customerId: notif.payload.customerId,
+      }
+      selectedEta.value = null
+      showEtaDialog.value = true
+    }
+    return
+  }
+  markAsRead(index)
+}
+
+const sendEtaFromNotif = async (notif, index) => {
+  const minutes = notifEtaSelections.value[notif.id]
+  if (!minutes) return
+  const requestData = {
+    requestId: notif.payload?.requestId || notif.requestId,
+    customerId: notif.payload?.customerId,
+  }
+  await submitEta(minutes, requestData)
+  markAsRead(index)
+  notifications.value[index].etaSent = true
+  $q.notify({ type: 'positive', message: `ETA of ${minutes} minutes sent to customer.` })
 }
 
 const setActiveTab = async (tab) => {
@@ -565,26 +670,26 @@ const formatDate = (dateStr) => {
 }
 
 const statusColor = (status) =>
-  ({ pending: 'orange', accepted: 'blue', completed: 'green', cancelled: 'red' })[
-    status?.toLowerCase()
-  ] || 'grey'
-const isOfferAccepted = (req) => {
-  const rs = (req?.request_status || '').toLowerCase()
-  const ms = (req?.myOffer?.status || '').toLowerCase()
-  return rs === 'accepted' || ms === 'accepted'
-}
+  ({
+    pending: 'orange',
+    accepted: 'blue',
+    'on-going': 'purple',
+    completed: 'green',
+    cancelled: 'red',
+  })[status?.toLowerCase()] || 'grey'
+const hasMyOffer = (req) => req.fixer_price && req.technician_id === technicianId.value
+
+const isOfferAccepted = (req) => (req?.request_status || '').toLowerCase() === 'accepted'
+
 const canRespondToCustomerOffer = (req) => {
-  if (!req?.myOffer) return false
-  if ((req.myOffer.status || 'pending').toLowerCase() !== 'pending') return false
-  if (
-    req.myOffer.customer_counter_price === null ||
-    req.myOffer.customer_counter_price === undefined
-  )
-    return false
-  const co = Number(req.myOffer.customer_counter_price)
-  const mo = Number(req.myOffer.offered_price)
-  if (!Number.isFinite(co) || !Number.isFinite(mo)) return false
-  return co !== mo
+  if (req.technician_id !== technicianId.value) return false
+  if ((req.request_status || 'pending').toLowerCase() !== 'pending') return false
+  if (req.customer_price === null || req.customer_price === undefined) return false
+  if (!req.fixer_price) return false
+  const cp = Number(req.customer_price)
+  const fp = Number(req.fixer_price)
+  if (!Number.isFinite(cp) || !Number.isFinite(fp)) return false
+  return cp !== fp
 }
 
 const fetchRequests = async () => {
@@ -601,47 +706,10 @@ const fetchRequests = async () => {
     requestsLoading.value = false
     return
   }
-  const baseRequests = data || []
-  const requestIds = baseRequests.map((r) => r.request_id).filter(Boolean)
-  let myOffersByRequest = {}
-
-  if (requestIds.length) {
-    const { data: myOffers, error: myOffersError } = await supabase
-      .from('request_offers')
-      .select('offer_id, request_id, offered_price, customer_counter_price, status, fixer_message')
-      .eq('technician_id', technicianId.value)
-      .in('request_id', requestIds)
-      .order('updated_at', { ascending: false })
-
-    if (myOffersError) {
-      requestsError.value = myOffersError.message
-      requestsLoading.value = false
-      return
-    }
-
-    myOffersByRequest = (myOffers || []).reduce((acc, offer) => {
-      if (!acc[offer.request_id]) acc[offer.request_id] = offer
-      return acc
-    }, {})
-  }
-
-  requests.value = baseRequests.map((r) => ({
+  requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
-    myOffer:
-      myOffersByRequest[r.request_id] ||
-      (r.fixer_price && r.technician_id === technicianId.value
-        ? {
-            offer_id: `legacy-${r.request_id}-${technicianId.value}`,
-            request_id: r.request_id,
-            offered_price: r.fixer_price,
-            customer_counter_price: r.customer_price,
-            status: r.request_status || 'pending',
-            fixer_message: null,
-            _legacy: true,
-          }
-        : null),
   }))
   requestsLoading.value = false
 }
@@ -662,54 +730,23 @@ const fetchAcceptedOrders = async () => {
     requestsLoading.value = false
     return
   }
-  const baseRequests = data || []
-  const requestIds = baseRequests.map((r) => r.request_id).filter(Boolean)
-  let myOffersByRequest = {}
-
-  if (requestIds.length) {
-    const { data: myOffers } = await supabase
-      .from('request_offers')
-      .select('offer_id, request_id, offered_price, customer_counter_price, status, fixer_message')
-      .eq('technician_id', technicianId.value)
-      .in('request_id', requestIds)
-
-    myOffersByRequest = (myOffers || []).reduce((acc, offer) => {
-      if (!acc[offer.request_id] || offer.status === 'accepted') acc[offer.request_id] = offer
-      return acc
-    }, {})
-  }
-
-  requests.value = baseRequests.map((r) => ({
+  requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
-    myOffer:
-      myOffersByRequest[r.request_id] ||
-      (r.fixer_price && r.technician_id === technicianId.value
-        ? {
-            offer_id: `legacy-${r.request_id}-${technicianId.value}`,
-            request_id: r.request_id,
-            offered_price: r.fixer_price,
-            customer_counter_price: r.customer_price,
-            status: r.request_status || 'accepted',
-            fixer_message: null,
-            _legacy: true,
-          }
-        : null),
   }))
   requestsLoading.value = false
 }
 
 const openOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value = req.myOffer?.offered_price || req.customer_price || null
+  offerPrice.value = req.fixer_price || req.customer_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
 const openCounterOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value =
-    req.myOffer?.customer_counter_price || req.customer_price || req.myOffer?.offered_price || null
+  offerPrice.value = req.customer_price || req.fixer_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
@@ -730,28 +767,13 @@ const waitForSubscribed = (channel) =>
   })
 
 const acceptCustomerOffer = async (req) => {
-  if (!req?.request_id || !req?.myOffer?.offer_id) return
-  const acceptedPrice = Number(req.myOffer.customer_counter_price)
+  if (!req?.request_id) return
+  const acceptedPrice = Number(req.customer_price)
   if (!Number.isFinite(acceptedPrice) || acceptedPrice <= 0) {
     $q.notify({ type: 'warning', message: 'Customer offer is invalid.' })
     return
   }
   acceptingCounterOfferId.value = req.request_id
-  const { error: offerError } = await supabase
-    .from('request_offers')
-    .update({ status: 'accepted', offered_price: acceptedPrice })
-    .eq('offer_id', req.myOffer.offer_id)
-    .eq('technician_id', technicianId.value)
-
-  if (!offerError) {
-    await supabase
-      .from('request_offers')
-      .update({ status: 'rejected' })
-      .eq('request_id', req.request_id)
-      .neq('offer_id', req.myOffer.offer_id)
-      .eq('status', 'pending')
-  }
-
   const { data: updatedRequest, error: requestError } = await supabase
     .from('request')
     .update({
@@ -759,16 +781,15 @@ const acceptCustomerOffer = async (req) => {
       request_status: 'accepted',
       technician_id: technicianId.value,
       final_price: acceptedPrice,
-      customer_price: acceptedPrice,
     })
     .eq('request_id', req.request_id)
     .select('request_id, fixer_price, customer_price, request_status, technician_id')
     .maybeSingle()
   acceptingCounterOfferId.value = null
-  if (offerError || requestError) {
+  if (requestError) {
     $q.notify({
       type: 'negative',
-      message: 'Failed to accept customer offer: ' + (offerError?.message || requestError?.message),
+      message: 'Failed to accept customer offer: ' + requestError.message,
     })
     return
   }
@@ -796,38 +817,27 @@ const submitOffer = async () => {
   }
   offerSubmitting.value = true
   const trimmedMessage = (offerMessage.value || '').trim()
-  const { data: savedOffer, error } = await supabase
-    .from('request_offers')
-    .upsert(
-      {
-        request_id: offerTarget.value.request_id,
-        technician_id: technicianId.value,
-        offered_price: normalizedPrice,
-        fixer_message: trimmedMessage || null,
-        status: 'pending',
-      },
-      { onConflict: 'request_id,technician_id' },
-    )
-    .select('offer_id, request_id, technician_id, offered_price, status, fixer_message')
+  const { data: updatedRequest, error } = await supabase
+    .from('request')
+    .update({
+      fixer_price: normalizedPrice,
+      technician_id: technicianId.value,
+    })
+    .eq('request_id', offerTarget.value.request_id)
+    .select('request_id, fixer_price, technician_id, request_status')
     .maybeSingle()
   offerSubmitting.value = false
   if (error) {
     $q.notify({ type: 'negative', message: 'Failed to submit offer: ' + error.message })
     return
   }
-  if (!savedOffer) {
+  if (!updatedRequest) {
     $q.notify({
       type: 'negative',
       message: 'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
     })
     return
   }
-
-  await supabase
-    .from('request')
-    .update({ request_status: 'pending' })
-    .eq('request_id', offerTarget.value.request_id)
-    .eq('request_status', 'pending')
 
   let customerEmail = offerTarget.value.customer_email || null
   if (!customerEmail && offerTarget.value.user_id) {
@@ -839,9 +849,12 @@ const submitOffer = async () => {
     customerEmail = customerRow?.email || null
   }
   if (customerEmail) {
+    const notifMsg = trimmedMessage
+      ? `Sent an offer of ${normalizedPrice} EGP for request #${offerTarget.value.request_id}.\n💬 "${trimmedMessage}"`
+      : `Sent an offer of ${normalizedPrice} EGP for request #${offerTarget.value.request_id}.`
     const savedNotification = await recordNotificationForRecipient(customerEmail, {
       title: `Fixer ${fullName.value || 'Fixer'}`,
-      message: `Sent an offer of ${normalizedPrice} EGP for request #${offerTarget.value.request_id}.`,
+      message: notifMsg,
       requestId: offerTarget.value.request_id,
       routePath: `/incoming-offers?requestId=${offerTarget.value.request_id}`,
       type: 'offer',
@@ -850,6 +863,7 @@ const submitOffer = async () => {
         requestId: offerTarget.value.request_id,
         price: normalizedPrice,
         fixerName: fullName.value,
+        message: trimmedMessage || null,
       },
     })
     if (!savedNotification) {
@@ -868,7 +882,6 @@ const submitOffer = async () => {
       payload: {
         customerUserId: offerTarget.value.user_id,
         requestId: offerTarget.value.request_id,
-        offerId: savedOffer.offer_id,
         message: trimmedMessage,
       },
     })
@@ -885,9 +898,9 @@ const submitOffer = async () => {
         event: 'fixer-bid-notification',
         payload: {
           requestId: offerTarget.value.request_id,
-          offerId: savedOffer.offer_id,
           price: normalizedPrice,
           fixerName: fullName.value,
+          message: trimmedMessage || null,
         },
       })
       if (sendStatus !== 'ok') console.warn('Offer broadcast send status:', sendStatus)
@@ -969,6 +982,7 @@ onMounted(async () => {
       specialtyColor.value = info.color
     }
     if (technicianId.value) subscribeToCounterOffers()
+    if (technicianId.value) listenForArrivalChecks(technicianId.value)
     await loadNotifications()
     const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
     await setActiveTab(initialTab)

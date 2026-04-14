@@ -113,34 +113,26 @@
             <div class="state-sub">No offers for selected status.</div>
           </div>
 
-          <div v-for="req in filteredOffers" :key="req.offer_id" class="offer-card">
+          <div v-for="req in filteredOffers" :key="req.request_id" class="offer-card">
             <div class="offer-card-header">
               <span class="offer-id">Request #{{ req.request_id }}</span>
-              <div class="row items-center q-gutter-xs">
-                <q-badge
-                  :color="statusColor(req.request_status)"
-                  :label="req.request_status || 'pending'"
-                  class="text-capitalize"
-                />
-                <q-badge
-                  :color="
-                    req.status === 'accepted'
-                      ? 'green'
-                      : req.status === 'rejected'
-                        ? 'red'
-                        : 'orange'
-                  "
-                  :label="`Offer ${req.status || 'pending'}`"
-                  class="text-capitalize"
-                />
-              </div>
+              <q-badge
+                :color="statusColor(req.request_status)"
+                :label="req.request_status || 'pending'"
+                class="text-capitalize"
+              />
             </div>
 
             <p class="offer-desc">{{ req.description_of_issue || 'No description' }}</p>
 
             <div class="price-row">
-              <q-chip dense color="orange-2" text-color="orange-9" icon="build"
-                >Fixer offer: {{ req.offered_price }} EGP</q-chip
+              <q-chip
+                v-if="req.fixer_price"
+                dense
+                color="orange-2"
+                text-color="orange-9"
+                icon="build"
+                >Fixer offer: {{ req.fixer_price }} EGP</q-chip
               >
               <q-chip
                 v-if="req.customer_price"
@@ -148,15 +140,15 @@
                 color="green-2"
                 text-color="green-9"
                 icon="person"
-                >Your budget: {{ req.customer_price }} EGP</q-chip
+                >Your offer: {{ req.customer_price }} EGP</q-chip
               >
               <q-chip
-                v-if="req.customer_counter_price"
+                v-if="req.final_price"
                 dense
-                color="amber-2"
-                text-color="amber-10"
-                icon="price_change"
-                >Your counter-offer: {{ req.customer_counter_price }} EGP</q-chip
+                color="teal-2"
+                text-color="teal-9"
+                icon="check_circle"
+                >Final price: {{ req.final_price }} EGP</q-chip
               >
             </div>
 
@@ -254,7 +246,7 @@
         <q-card-section>
           <div class="bargain-title">Make an Offer</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Fixer's price: <strong>{{ bargainTarget?.offered_price }} EGP</strong>
+            Fixer's price: <strong>{{ bargainTarget?.fixer_price }} EGP</strong>
           </div>
         </q-card-section>
         <q-form ref="bargainForm">
@@ -308,6 +300,62 @@
         <q-tab name="profile" icon="person" label="Profile" @click="$router.push('/profile')" />
       </q-tabs>
     </q-footer>
+
+    <!-- Arrival Check Dialog -->
+    <q-dialog v-model="showArrivalDialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="person_pin_circle" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Did the technician arrive?</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Request #{{ arrivalCheckRequest?.request_id }}
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            unelevated
+            color="positive"
+            label="Yes"
+            icon="check"
+            no-caps
+            @click="handleArrivalYes"
+          />
+          <q-btn
+            unelevated
+            color="negative"
+            label="No"
+            icon="close"
+            no-caps
+            @click="handleArrivalNo"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- ETA Notification Dialog -->
+    <q-dialog v-model="showEtaMessage">
+      <q-card style="min-width: 320px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="schedule" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Technician ETA</div>
+          <div class="text-body1 q-mt-xs">
+            The time left is <strong>{{ etaMinutes }} minutes</strong>
+          </div>
+          <div
+            v-if="etaSecondsLeft > 0"
+            class="text-h5 q-mt-sm"
+            style="font-variant-numeric: tabular-nums; color: var(--san3a-primary)"
+          >
+            {{ etaCountdownDisplay }}
+          </div>
+          <div v-else class="text-body2 text-negative q-mt-sm">Time is up!</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">For request #{{ etaRequestId }}</div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
@@ -317,6 +365,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
+import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 
 const route = useRoute()
 const router = useRouter()
@@ -339,6 +388,40 @@ const offersSubscription = ref(null)
 const messageSubscription = ref(null)
 const transientFixerMessages = ref(new Map())
 const myBargainChannel = ref(null)
+
+const {
+  arrivalCheckRequest,
+  showArrivalDialog,
+  showEtaMessage,
+  etaMinutes,
+  etaRequestId,
+  etaSecondsLeft,
+  confirmArrival,
+  reportNoArrival,
+  startCustomerChecks,
+} = useArrivalCheck()
+
+const etaCountdownDisplay = computed(() => {
+  const s = etaSecondsLeft.value
+  if (s <= 0) return '0:00'
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
+})
+
+const handleArrivalYes = async () => {
+  const { error: err } = await confirmArrival(arrivalCheckRequest.value)
+  if (err) $q.notify({ type: 'negative', message: 'Failed to update status: ' + err.message })
+  else {
+    $q.notify({ type: 'positive', message: 'Great! Request is now on-going.' })
+    await fetchIncomingOffers()
+  }
+}
+
+const handleArrivalNo = async () => {
+  await reportNoArrival(arrivalCheckRequest.value)
+  $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
+}
 const statusFilter = ref('all')
 const statusFilterOptions = [
   { label: 'All', value: 'all' },
@@ -369,14 +452,18 @@ const filteredOffers = computed(() => {
 })
 
 const isOfferActionable = (req) => {
-  if (req._legacy) return false
-  const requestPending = !req.request_status || req.request_status.toLowerCase() === 'pending'
-  const offerPending = !req.status || req.status.toLowerCase() === 'pending'
-  return requestPending && offerPending
+  const status = (req.request_status || 'pending').toLowerCase()
+  return status === 'pending'
 }
 
 const statusColor = (status) => {
-  const map = { pending: 'orange', accepted: 'blue', completed: 'green', cancelled: 'red' }
+  const map = {
+    pending: 'orange',
+    accepted: 'blue',
+    'on-going': 'purple',
+    completed: 'green',
+    cancelled: 'red',
+  }
   return map[status?.toLowerCase()] || 'grey'
 }
 
@@ -392,16 +479,14 @@ const formatDate = (dateStr) => {
   })
 }
 
-const setTransientFixerMessage = (offerId, requestId, message) => {
+const setTransientFixerMessage = (requestId, message) => {
   const next = new Map(transientFixerMessages.value)
-  const key = offerId || requestId
-  if (message) next.set(key, message)
-  else next.delete(key)
+  if (message) next.set(requestId, message)
+  else next.delete(requestId)
   transientFixerMessages.value = next
 }
 
-const getFixerMessage = (req) =>
-  transientFixerMessages.value.get(req.offer_id) || req.fixer_message || ''
+const getFixerMessage = (req) => transientFixerMessages.value.get(req.request_id) || ''
 
 const openNotification = (notif, index) => {
   markAsRead(index)
@@ -445,9 +530,10 @@ const fetchIncomingOffers = async () => {
     const { data: requestsData, error: requestsErr } = await supabase
       .from('request')
       .select(
-        'request_id, user_id, request_status, description_of_issue, request_date, service_location, payment_method, customer_price, fixer_price, technician_id',
+        'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id',
       )
       .eq('user_id', customer.user_id)
+      .not('technician_id', 'is', null)
       .order('request_date', { ascending: false })
 
     if (requestsErr) {
@@ -455,63 +541,7 @@ const fetchIncomingOffers = async () => {
       incomingOffers.value = []
     } else {
       const requestRows = requestsData || []
-      const requestIds = requestRows.map((r) => r.request_id).filter(Boolean)
-      if (!requestIds.length) {
-        incomingOffers.value = []
-        await loadNotifications()
-        loading.value = false
-        return
-      }
-
-      const { data: offersRows, error: offersErr } = await supabase
-        .from('request_offers')
-        .select(
-          'offer_id, request_id, technician_id, offered_price, customer_counter_price, status, fixer_message, created_at, updated_at',
-        )
-        .in('request_id', requestIds)
-        .order('created_at', { ascending: false })
-
-      if (offersErr) {
-        error.value = offersErr.message
-        incomingOffers.value = []
-        await loadNotifications()
-        loading.value = false
-        return
-      }
-
-      const offers = offersRows || []
-      const normalizedOfferPairs = new Set(
-        offers.map((offer) => `${offer.request_id}:${offer.technician_id || 'na'}`),
-      )
-      const legacyOffers = requestRows
-        .filter((request) => request.fixer_price !== null && request.fixer_price !== undefined)
-        .filter(
-          (request) =>
-            !normalizedOfferPairs.has(`${request.request_id}:${request.technician_id || 'na'}`),
-        )
-        .map((request) => ({
-          offer_id: `legacy-${request.request_id}-${request.technician_id || 'na'}`,
-          request_id: request.request_id,
-          technician_id: request.technician_id || null,
-          offered_price: request.fixer_price,
-          customer_counter_price: request.customer_price,
-          status:
-            request.request_status === 'cancelled'
-              ? 'rejected'
-              : request.request_status || 'pending',
-          fixer_message: null,
-          created_at: request.request_date,
-          updated_at: request.request_date,
-          _legacy: true,
-        }))
-
-      const combinedOffers = [...offers, ...legacyOffers]
-      const requestMap = requestRows.reduce((acc, r) => {
-        acc[r.request_id] = r
-        return acc
-      }, {})
-
-      const technicianIds = [...new Set(combinedOffers.map((r) => r.technician_id).filter(Boolean))]
+      const technicianIds = [...new Set(requestRows.map((r) => r.technician_id).filter(Boolean))]
       let technicianMap = {}
       if (technicianIds.length) {
         const { data: techRows } = await supabase
@@ -523,17 +553,10 @@ const fetchIncomingOffers = async () => {
           return acc
         }, {})
       }
-      incomingOffers.value = combinedOffers
-        .map((offer) => {
-          const request = requestMap[offer.request_id]
-          if (!request) return null
-          return {
-            ...request,
-            ...offer,
-            fixerInfo: offer.technician_id ? technicianMap[offer.technician_id] || null : null,
-          }
-        })
-        .filter(Boolean)
+      incomingOffers.value = requestRows.map((r) => ({
+        ...r,
+        fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
+      }))
     }
     await loadNotifications()
   } catch (err) {
@@ -559,15 +582,6 @@ const subscribeToIncomingOffers = () => {
       },
       () => fetchIncomingOffers(),
     )
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'request_offers',
-      },
-      () => fetchIncomingOffers(),
-    )
     .subscribe()
 }
 
@@ -578,7 +592,7 @@ const subscribeToFixerMessages = () => {
     .on('broadcast', { event: 'fixer-bid-message' }, ({ payload }) => {
       if (!payload || !customerUserId.value) return
       if (String(payload.customerUserId) !== String(customerUserId.value)) return
-      setTransientFixerMessage(payload.offerId, payload.requestId, payload.message)
+      setTransientFixerMessage(payload.requestId, payload.message)
     })
     .subscribe()
 }
@@ -593,7 +607,9 @@ const subscribeToFixerBidNotifications = () => {
         id: `rt-customer-${payload.requestId}-${Date.now()}`,
         title: `Fixer ${payload.fixerName || 'Fixer'}`,
         fixerName: `Fixer ${payload.fixerName || 'Fixer'}`,
-        message: `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.`,
+        message: payload.message
+          ? `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.\n\ud83d\udcac "${payload.message}"`
+          : `Sent an offer of ${payload.price} EGP for request #${payload.requestId}.`,
         time: new Date().toLocaleString('en-US', {
           month: 'short',
           day: 'numeric',
@@ -624,35 +640,18 @@ const acceptOffer = async (req) => {
     .from('request')
     .update({
       request_status: 'accepted',
-      final_price: req.offered_price,
-      fixer_price: req.offered_price,
-      technician_id: req.technician_id,
+      final_price: req.fixer_price,
     })
     .eq('request_id', req.request_id)
 
-  const { error: offerErr } = await supabase
-    .from('request_offers')
-    .update({ status: 'accepted' })
-    .eq('offer_id', req.offer_id)
-
-  if (!offerErr) {
-    await supabase
-      .from('request_offers')
-      .update({ status: 'rejected' })
-      .eq('request_id', req.request_id)
-      .neq('offer_id', req.offer_id)
-      .eq('status', 'pending')
-  }
-
   req._accepting = false
-  if (reqErr || offerErr)
+  if (reqErr)
     $q.notify({
       type: 'negative',
-      message: 'Failed to accept: ' + (reqErr?.message || offerErr?.message),
+      message: 'Failed to accept: ' + reqErr.message,
     })
   else {
     req.request_status = 'accepted'
-    req.status = 'accepted'
     $q.notify({ type: 'positive', message: 'Offer accepted!' })
     await fetchIncomingOffers()
   }
@@ -661,13 +660,15 @@ const acceptOffer = async (req) => {
 const rejectOffer = async (req) => {
   req._rejecting = true
   const { error: err } = await supabase
-    .from('request_offers')
-    .update({ status: 'rejected' })
-    .eq('offer_id', req.offer_id)
+    .from('request')
+    .update({
+      fixer_price: null,
+      technician_id: null,
+    })
+    .eq('request_id', req.request_id)
   req._rejecting = false
   if (err) $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
   else {
-    req.status = 'rejected'
     $q.notify({ type: 'warning', message: 'Offer rejected.' })
     await fetchIncomingOffers()
   }
@@ -681,11 +682,7 @@ const bargainForm = ref(null)
 
 const openBargain = (req) => {
   bargainTarget.value = req
-  bargainPrice.value = req.customer_counter_price
-    ? Number(req.customer_counter_price)
-    : req.customer_price
-      ? Number(req.customer_price)
-      : null
+  bargainPrice.value = req.customer_price ? Number(req.customer_price) : null
   bargainDialog.value = true
 }
 
@@ -711,9 +708,9 @@ const submitBargain = async () => {
   if (!price || price <= 0) return
   bargainLoading.value = true
   const { data, error: err } = await supabase
-    .from('request_offers')
-    .update({ customer_counter_price: price, status: 'pending' })
-    .eq('offer_id', bargainTarget.value.offer_id)
+    .from('request')
+    .update({ customer_price: price })
+    .eq('request_id', bargainTarget.value.request_id)
     .select()
   bargainLoading.value = false
   if (err) {
@@ -723,7 +720,7 @@ const submitBargain = async () => {
     console.warn('[Bargain] 0 rows updated')
     $q.notify({ type: 'warning', message: 'Update blocked — check database permissions.' })
   } else {
-    bargainTarget.value.customer_counter_price = price
+    bargainTarget.value.customer_price = price
     bargainDialog.value = false
     let fixerEmail = bargainTarget.value.fixerInfo?.email || null
     if (!fixerEmail && bargainTarget.value.technician_id) {
@@ -767,7 +764,7 @@ const submitBargain = async () => {
         const sendStatus = await fixerChannel.send({
           type: 'broadcast',
           event: 'customer-bargain-notification',
-          payload: { requestId: target.request_id, offerId: target.offer_id, price },
+          payload: { requestId: target.request_id, price },
         })
         if (sendStatus !== 'ok') console.warn('Counter-offer broadcast send status:', sendStatus)
       } catch (broadcastError) {
@@ -785,6 +782,7 @@ onMounted(async () => {
   subscribeToIncomingOffers()
   subscribeToFixerMessages()
   subscribeToFixerBidNotifications()
+  startCustomerChecks(customerUserId.value)
 })
 onBeforeUnmount(() => {
   offersSubscription.value?.unsubscribe()

@@ -348,6 +348,7 @@ const getStatusColor = (status) => {
     pending: 'orange',
     assigned: 'blue',
     'in-progress': 'purple',
+    'on-going': 'purple',
     completed: 'green',
     cancelled: 'red',
   }

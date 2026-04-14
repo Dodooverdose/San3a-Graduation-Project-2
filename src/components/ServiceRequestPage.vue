@@ -5,7 +5,9 @@
       <q-toolbar class="app-toolbar">
         <q-btn flat round dense icon="arrow_back" class="back-btn" @click="goBack" />
         <div class="header-brand">
-          <div class="header-brand-icon"><img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" /></div>
+          <div class="header-brand-icon">
+            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+          </div>
           <span class="header-brand-name">San3a</span>
         </div>
         <q-space />
@@ -38,7 +40,9 @@
 
             <div class="form-grid">
               <div class="field-group full-width">
-                <label class="field-label">Describe your {{ serviceLabel.toLowerCase() }} issue</label>
+                <label class="field-label"
+                  >Describe your {{ serviceLabel.toLowerCase() }} issue</label
+                >
                 <q-input
                   v-model="requestText"
                   type="textarea"
@@ -52,7 +56,13 @@
 
               <div class="field-group">
                 <label class="field-label">Appointment Date</label>
-                <q-input v-model="appointmentDate" outlined dense class="san3a-input" placeholder="Select date">
+                <q-input
+                  v-model="appointmentDate"
+                  outlined
+                  dense
+                  class="san3a-input"
+                  placeholder="Select date"
+                >
                   <template #prepend>
                     <q-icon name="event" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -70,7 +80,13 @@
               <div class="field-group">
                 <label class="field-label">Appointment Time</label>
                 <div class="time-row">
-                  <q-input v-model="appointmentTime" outlined dense class="san3a-input time-field" placeholder="HH:MM">
+                  <q-input
+                    v-model="appointmentTime"
+                    outlined
+                    dense
+                    class="san3a-input time-field"
+                    placeholder="HH:MM"
+                  >
                     <template #prepend>
                       <q-icon name="access_time" class="cursor-pointer">
                         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -83,20 +99,42 @@
                       </q-icon>
                     </template>
                   </q-input>
-                  <q-select v-model="amPm" :options="['AM', 'PM']" outlined dense class="san3a-input ampm-field" />
+                  <q-select
+                    v-model="amPm"
+                    :options="['AM', 'PM']"
+                    outlined
+                    dense
+                    class="san3a-input ampm-field"
+                  />
                 </div>
               </div>
 
               <div class="field-group full-width">
                 <label class="field-label">District</label>
-                <q-select v-model="district" :options="cairoDistricts" outlined dense clearable class="san3a-input" placeholder="Select district">
+                <q-select
+                  v-model="district"
+                  :options="cairoDistricts"
+                  outlined
+                  dense
+                  clearable
+                  class="san3a-input"
+                  placeholder="Select district"
+                >
                   <template #prepend><q-icon name="location_city" /></template>
                 </q-select>
               </div>
 
               <div class="field-group">
                 <label class="field-label">Urgency</label>
-                <q-select v-model="urgency" :options="urgencyOptions" emit-value map-options outlined dense class="san3a-input" />
+                <q-select
+                  v-model="urgency"
+                  :options="urgencyOptions"
+                  emit-value
+                  map-options
+                  outlined
+                  dense
+                  class="san3a-input"
+                />
               </div>
 
               <div class="field-group">
@@ -126,29 +164,75 @@
 
             <!-- Attachments -->
             <div class="attachments-bar">
-              <q-btn flat round icon="add_a_photo" color="primary" size="md" @click="openImagePicker">
+              <q-btn
+                flat
+                round
+                icon="add_a_photo"
+                color="primary"
+                size="md"
+                @click="openImagePicker"
+              >
                 <q-tooltip>Attach Photos</q-tooltip>
               </q-btn>
-              <q-btn flat round icon="location_on" color="primary" size="md" @click="attachLocation">
+              <q-btn
+                flat
+                round
+                icon="location_on"
+                color="primary"
+                size="md"
+                @click="attachLocation"
+              >
                 <q-tooltip>Attach Location</q-tooltip>
               </q-btn>
               <q-space />
-              <q-btn unelevated color="primary" icon="send" label="Submit" no-caps class="submit-request-btn" @click="submitRequest" />
+              <q-btn
+                unelevated
+                color="primary"
+                icon="send"
+                label="Submit"
+                no-caps
+                class="submit-request-btn"
+                @click="submitRequest"
+              />
             </div>
 
-            <input ref="imageInputRef" type="file" accept="image/*" multiple class="hidden-input" @change="onImagesSelected" />
+            <input
+              ref="imageInputRef"
+              type="file"
+              accept="image/*"
+              multiple
+              class="hidden-input"
+              @change="onImagesSelected"
+            />
 
             <div v-if="selectedImages.length" class="image-preview">
               <div v-for="(img, i) in selectedImages" :key="i" class="preview-item">
                 <img :src="img.url" alt="Attached image" />
-                <q-btn flat round dense icon="close" size="xs" color="negative" class="remove-btn" @click="removeImage(i)" />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="close"
+                  size="xs"
+                  color="negative"
+                  class="remove-btn"
+                  @click="removeImage(i)"
+                />
               </div>
             </div>
 
             <div v-if="location" class="location-info">
               <q-icon name="location_on" color="positive" size="sm" />
               <span>{{ location }}</span>
-              <q-btn flat round dense icon="close" size="xs" color="negative" @click="location = null" />
+              <q-btn
+                flat
+                round
+                dense
+                icon="close"
+                size="xs"
+                color="negative"
+                @click="location = null"
+              />
             </div>
           </div>
 
@@ -156,7 +240,12 @@
           <div v-if="activeTab === 'history'" class="tab-content san3a-animate-in">
             <div class="tab-header">
               <h2 class="tab-heading">Request History</h2>
-              <q-badge v-if="!historyLoading && requestHistory.length" color="primary" :label="`${requestHistory.length} request${requestHistory.length > 1 ? 's' : ''}`" class="q-pa-sm" />
+              <q-badge
+                v-if="!historyLoading && requestHistory.length"
+                color="primary"
+                :label="`${requestHistory.length} request${requestHistory.length > 1 ? 's' : ''}`"
+                class="q-pa-sm"
+              />
             </div>
 
             <div v-if="historyLoading" class="state-center">
@@ -168,20 +257,37 @@
               <q-icon name="error" size="64px" color="negative" />
               <div class="state-title">Failed to load requests</div>
               <div class="state-sub">{{ historyError }}</div>
-              <q-btn flat color="primary" label="Retry" icon="refresh" class="q-mt-sm" @click="fetchHistory" />
+              <q-btn
+                flat
+                color="primary"
+                label="Retry"
+                icon="refresh"
+                class="q-mt-sm"
+                @click="fetchHistory"
+              />
             </div>
 
             <div v-else-if="requestHistory.length === 0" class="state-center">
               <q-icon name="inbox" size="64px" color="grey-4" />
               <div class="state-title">No requests yet</div>
-              <q-btn flat color="primary" label="Post your first request" icon="edit" class="q-mt-sm" @click="activeTab = 'post'" />
+              <q-btn
+                flat
+                color="primary"
+                label="Post your first request"
+                icon="edit"
+                class="q-mt-sm"
+                @click="activeTab = 'post'"
+              />
             </div>
 
             <div v-else class="history-grid">
               <div v-for="req in requestHistory" :key="req.request_id" class="history-card">
                 <div class="history-card-header">
                   <span class="history-id">Request #{{ req.request_id }}</span>
-                  <q-badge :color="statusColor(req.request_status)" :label="req.request_status || 'pending'" />
+                  <q-badge
+                    :color="statusColor(req.request_status)"
+                    :label="req.request_status || 'pending'"
+                  />
                 </div>
                 <p class="history-desc">{{ req.description_of_issue || 'No description' }}</p>
                 <div class="history-meta">
@@ -202,10 +308,33 @@
                     <span class="text-capitalize">{{ req.payment_method }}</span>
                   </div>
                 </div>
-                <div v-if="req.urgency || req.customer_price || req.fixer_price" class="history-chips">
-                  <q-badge v-if="req.urgency" :color="req.urgency === 'urgent' ? 'red' : 'blue'" :label="req.urgency" />
-                  <q-chip v-if="req.customer_price" dense size="sm" color="green-2" text-color="green-9" icon="person">{{ req.customer_price }} EGP</q-chip>
-                  <q-chip v-if="req.fixer_price" dense size="sm" color="orange-2" text-color="orange-9" icon="build">{{ req.fixer_price }} EGP</q-chip>
+                <div
+                  v-if="req.urgency || req.customer_price || req.fixer_price"
+                  class="history-chips"
+                >
+                  <q-badge
+                    v-if="req.urgency"
+                    :color="req.urgency === 'urgent' ? 'red' : 'blue'"
+                    :label="req.urgency"
+                  />
+                  <q-chip
+                    v-if="req.customer_price"
+                    dense
+                    size="sm"
+                    color="green-2"
+                    text-color="green-9"
+                    icon="person"
+                    >{{ req.customer_price }} EGP</q-chip
+                  >
+                  <q-chip
+                    v-if="req.fixer_price"
+                    dense
+                    size="sm"
+                    color="orange-2"
+                    text-color="orange-9"
+                    icon="build"
+                    >{{ req.fixer_price }} EGP</q-chip
+                  >
                 </div>
               </div>
             </div>
@@ -252,16 +381,54 @@ const urgencyOptions = [
 ]
 
 const cairoDistricts = [
-  'Downtown / Wust El-Balad', 'Abdeen', 'Azbakeya', "Bab El-Sha'reya", 'El-Gamaliya',
-  'El-Mosky', 'El-Darb El-Ahmar', 'El-Khalifa', 'El-Sayeda Zeinab', 'Zamalek',
-  'Garden City', 'Bulaq', 'Shubra', 'Rod El-Farag', 'El-Sharabiya',
-  'El-Zawya El-Hamra', 'El-Wayli', 'Abbassia', 'Heliopolis / Masr El-Gedida', 'Nasr City',
-  'Ain Shams', 'El-Matareya', 'El-Marg', 'El-Salam', 'Maadi',
-  'Misr El-Kadima / Old Cairo', 'Basatin', 'Helwan', '15th of May City', 'Tura',
-  'New Cairo / El-Tagammu', 'Rehab City', 'Madinaty', 'Shorouk City', 'Obour City',
-  'Badr City', 'Dokki', 'Mohandessin', 'Agouza', 'Imbaba',
-  'Bulaq El-Dakrour', 'El-Haram', 'Faisal', 'El-Omraniya', 'Giza',
-  '6th of October City', 'Sheikh Zayed', 'Hadayek El-Ahram',
+  'Downtown / Wust El-Balad',
+  'Abdeen',
+  'Azbakeya',
+  "Bab El-Sha'reya",
+  'El-Gamaliya',
+  'El-Mosky',
+  'El-Darb El-Ahmar',
+  'El-Khalifa',
+  'El-Sayeda Zeinab',
+  'Zamalek',
+  'Garden City',
+  'Bulaq',
+  'Shubra',
+  'Rod El-Farag',
+  'El-Sharabiya',
+  'El-Zawya El-Hamra',
+  'El-Wayli',
+  'Abbassia',
+  'Heliopolis / Masr El-Gedida',
+  'Nasr City',
+  'Ain Shams',
+  'El-Matareya',
+  'El-Marg',
+  'El-Salam',
+  'Maadi',
+  'Misr El-Kadima / Old Cairo',
+  'Basatin',
+  'Helwan',
+  '15th of May City',
+  'Tura',
+  'New Cairo / El-Tagammu',
+  'Rehab City',
+  'Madinaty',
+  'Shorouk City',
+  'Obour City',
+  'Badr City',
+  'Dokki',
+  'Mohandessin',
+  'Agouza',
+  'Imbaba',
+  'Bulaq El-Dakrour',
+  'El-Haram',
+  'Faisal',
+  'El-Omraniya',
+  'Giza',
+  '6th of October City',
+  'Sheikh Zayed',
+  'Hadayek El-Ahram',
 ]
 
 const goBack = () => router.push('/home')
@@ -270,21 +437,43 @@ const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const utcStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z'
   const d = new Date(utcStr)
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 const statusColor = (status) => {
-  const map = { pending: 'orange', accepted: 'blue', completed: 'green', cancelled: 'red' }
+  const map = {
+    pending: 'orange',
+    accepted: 'blue',
+    'on-going': 'purple',
+    completed: 'green',
+    cancelled: 'red',
+  }
   return map[status?.toLowerCase()] || 'grey'
 }
 
 onMounted(async () => {
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (user) {
-    const { data: customer } = await supabase.from('users').select('user_id').ilike('email', user.email).maybeSingle()
+    const { data: customer } = await supabase
+      .from('users')
+      .select('user_id')
+      .ilike('email', user.email)
+      .maybeSingle()
     if (customer) currentUserId.value = customer.user_id
     if (!currentUserId.value) {
-      const { data: tech } = await supabase.from('technician').select('technician_id').ilike('email', user.email).maybeSingle()
+      const { data: tech } = await supabase
+        .from('technician')
+        .select('technician_id')
+        .ilike('email', user.email)
+        .maybeSingle()
       if (tech) currentUserId.value = tech.technician_id
     }
   }
@@ -306,7 +495,9 @@ const fetchHistory = async () => {
   historyLoading.value = false
 }
 
-watch(activeTab, (tab) => { if (tab === 'history') fetchHistory() })
+watch(activeTab, (tab) => {
+  if (tab === 'history') fetchHistory()
+})
 
 const openImagePicker = () => imageInputRef.value?.click()
 
@@ -333,7 +524,10 @@ const attachLocation = () => {
     async (pos) => {
       const { latitude, longitude } = pos.coords
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, { headers: { 'Accept-Language': 'en' } })
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+          { headers: { 'Accept-Language': 'en' } },
+        )
         const data = await res.json()
         location.value = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
       } catch {
@@ -350,7 +544,14 @@ const attachLocation = () => {
 }
 
 const submitRequest = async () => {
-  if (!requestText.value.trim() || !appointmentDate.value || !appointmentTime.value || !district.value || !urgency.value || !paymentMethod.value) {
+  if (
+    !requestText.value.trim() ||
+    !appointmentDate.value ||
+    !appointmentTime.value ||
+    !district.value ||
+    !urgency.value ||
+    !paymentMethod.value
+  ) {
     $q.notify({ type: 'warning', message: 'Fill the rest of the form' })
     return
   }
@@ -406,18 +607,43 @@ onBeforeUnmount(() => {
 .app-header {
   background: linear-gradient(135deg, var(--san3a-primary), var(--san3a-primary-hover)) !important;
 }
-.app-toolbar { max-width: 900px; margin: 0 auto; width: 100%; }
-.back-btn { color: rgba(255,255,255,0.9) !important; }
-
-.header-brand { display: flex; align-items: center; gap: 8px; }
-.header-brand-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 700; font-size: 16px;
+.app-toolbar {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
-.header-brand-name { color: #fff; font-weight: 800; font-size: 20px; }
-.header-service-badge { }
-.header-service-img { height: 36px; object-fit: contain; }
+.back-btn {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+.header-brand-name {
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+}
+.header-service-badge {
+}
+.header-service-img {
+  height: 36px;
+  object-fit: contain;
+}
 
 .page-content {
   display: flex;
@@ -436,9 +662,13 @@ onBeforeUnmount(() => {
   border-radius: var(--san3a-radius-lg);
   background: var(--san3a-gray-100);
 }
-.section-tabs :deep(.q-tab) { border-radius: var(--san3a-radius-md); font-weight: 600; }
+.section-tabs :deep(.q-tab) {
+  border-radius: var(--san3a-radius-md);
+  font-weight: 600;
+}
 
-.tab-content { }
+.tab-content {
+}
 
 .tab-heading {
   font-size: 22px;
@@ -453,14 +683,18 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   margin-bottom: 20px;
 }
-.tab-header .tab-heading { margin-bottom: 0; }
+.tab-header .tab-heading {
+  margin-bottom: 0;
+}
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-.full-width { grid-column: 1 / -1; }
+.full-width {
+  grid-column: 1 / -1;
+}
 
 .field-group {
   display: flex;
@@ -474,14 +708,29 @@ onBeforeUnmount(() => {
   color: var(--san3a-gray-700);
 }
 
-.san3a-input :deep(.q-field__control) { border-radius: var(--san3a-radius-md) !important; }
+.san3a-input :deep(.q-field__control) {
+  border-radius: var(--san3a-radius-md) !important;
+}
 
-.time-row { display: flex; gap: 10px; }
-.time-field { flex: 1; }
-.ampm-field { flex: 0 0 80px; }
+.time-row {
+  display: flex;
+  gap: 10px;
+}
+.time-field {
+  flex: 1;
+}
+.ampm-field {
+  flex: 0 0 80px;
+}
 
-.payment-options { display: flex; gap: 10px; }
-.payment-btn { flex: 1; font-weight: 600; }
+.payment-options {
+  display: flex;
+  gap: 10px;
+}
+.payment-btn {
+  flex: 1;
+  font-weight: 600;
+}
 
 .attachments-bar {
   display: flex;
@@ -496,27 +745,65 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.hidden-input { display: none; }
-
-.image-preview { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-.preview-item {
-  position: relative; width: 80px; height: 80px;
-  border-radius: var(--san3a-radius-md); overflow: hidden; border: 1px solid var(--san3a-gray-200);
+.hidden-input {
+  display: none;
 }
-.preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.remove-btn { position: absolute; top: 2px; right: 2px; background: rgba(255,255,255,0.8); }
+
+.image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+.preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--san3a-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--san3a-gray-200);
+}
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 255, 255, 0.8);
+}
 
 .location-info {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--san3a-gray-600); margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--san3a-gray-600);
+  margin-top: 12px;
 }
 
 .state-center {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; text-align: center; padding: 48px 24px; min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  min-height: 200px;
 }
-.state-title { margin-top: 16px; font-size: 18px; font-weight: 700; color: var(--san3a-gray-700); }
-.state-sub { margin-top: 6px; font-size: 14px; color: var(--san3a-gray-400); }
+.state-title {
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--san3a-gray-700);
+}
+.state-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--san3a-gray-400);
+}
 
 .history-grid {
   display: grid;
@@ -531,26 +818,59 @@ onBeforeUnmount(() => {
   padding: 20px;
   transition: box-shadow 0.2s;
 }
-.history-card:hover { box-shadow: var(--san3a-shadow-md); }
+.history-card:hover {
+  box-shadow: var(--san3a-shadow-md);
+}
 
 .history-card-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
-.history-id { font-size: 15px; font-weight: 700; color: var(--san3a-gray-900); }
+.history-id {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--san3a-gray-900);
+}
 
 .history-desc {
-  font-size: 14px; color: var(--san3a-gray-700);
-  line-height: 1.5; margin: 0 0 12px;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 14px;
+  color: var(--san3a-gray-700);
+  line-height: 1.5;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.history-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
-.meta-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--san3a-gray-500); }
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--san3a-gray-500);
+}
 
-.history-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
 @media (max-width: 600px) {
-  .form-grid { grid-template-columns: 1fr; }
-  .history-grid { grid-template-columns: 1fr; }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
