@@ -53,7 +53,16 @@
           >
             <q-item-section avatar>
               <q-avatar size="40px" class="notif-avatar">
-                <q-icon :name="notif.type === 'arrival-check' ? 'schedule' : 'build'" size="20px" />
+                <q-icon
+                  :name="
+                    notif.type === 'arrival-check'
+                      ? 'schedule'
+                      : notif.type === 'job-finished'
+                        ? 'task_alt'
+                        : 'build'
+                  "
+                  size="20px"
+                />
               </q-avatar>
             </q-item-section>
             <q-item-section>
@@ -92,8 +101,26 @@
               <div v-else-if="notif.type === 'arrival-check' && notif.etaSent" class="q-mt-xs">
                 <q-badge color="positive" label="ETA sent" />
               </div>
+              <!-- Job finished notification with Done button -->
+              <div v-if="notif.type === 'job-finished' && !notif.done" class="q-mt-sm">
+                <q-btn
+                  unelevated
+                  color="positive"
+                  label="Done"
+                  icon="check_circle"
+                  no-caps
+                  size="sm"
+                  @click.stop="handleJobDone(notif, i)"
+                />
+              </div>
+              <div v-else-if="notif.type === 'job-finished' && notif.done" class="q-mt-xs">
+                <q-badge color="positive" label="Completed" />
+              </div>
             </q-item-section>
-            <q-item-section v-if="notif.type !== 'arrival-check'" side>
+            <q-item-section
+              v-if="notif.type !== 'arrival-check' && notif.type !== 'job-finished'"
+              side
+            >
               <div class="row q-gutter-xs">
                 <q-btn
                   dense
@@ -157,36 +184,9 @@
             </div>
           </div>
 
-          <!-- Tab switcher -->
-          <q-tabs
-            v-model="activeTab"
-            dense
-            no-caps
-            class="section-tabs"
-            active-color="primary"
-            indicator-color="primary"
-            align="justify"
-          >
-            <q-tab
-              name="requests"
-              icon="request_page"
-              label="Incoming Requests"
-              @click="setActiveTab('requests')"
-            />
-            <q-tab
-              name="orders"
-              icon="receipt_long"
-              label="Accepted Orders"
-              @click="setActiveTab('orders')"
-            />
-          </q-tabs>
-
           <transition name="tab-switch" mode="out-in">
             <div :key="activeTab" class="full-width">
               <div class="tab-header">
-                <div class="tab-title">
-                  {{ activeTab === 'orders' ? 'Accepted Orders' : 'Incoming Requests' }}
-                </div>
                 <q-badge
                   v-if="requests.length"
                   color="primary"
@@ -327,11 +327,12 @@
                     </div>
                     <q-btn
                       v-if="activeTab !== 'orders' && !isOfferAccepted(req)"
-                      color="primary"
+                      :color="isRequestTaken(req) ? 'grey-5' : 'primary'"
                       label="Place Bid"
                       icon="gavel"
                       no-caps
                       unelevated
+                      :disable="isRequestTaken(req)"
                       class="full-width q-mt-sm"
                       @click="openOfferDialog(req)"
                     />
@@ -440,6 +441,52 @@
       </q-tabs>
     </q-footer>
 
+    <!-- Review / Rating Dialog -->
+    <q-dialog v-model="showReviewDialog" persistent>
+      <q-card style="min-width: 360px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="star" size="56px" color="amber" />
+          <div class="text-h6 q-mt-sm">Rate the Customer</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">Request #{{ reviewTarget?.request_id }}</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="text-center q-mb-md">
+            <q-rating
+              v-model="reviewStars"
+              size="2.5em"
+              color="amber"
+              icon="star_border"
+              icon-selected="star"
+              :max="5"
+            />
+          </div>
+          <q-input
+            v-model="reviewText"
+            type="textarea"
+            outlined
+            label="Write a description (optional)"
+            autogrow
+            :input-style="{ minHeight: '80px' }"
+          >
+            <template #prepend><q-icon name="rate_review" /></template>
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn flat label="Skip" color="grey-7" no-caps @click="submitReview(true)" />
+          <q-btn
+            unelevated
+            color="primary"
+            label="Submit Review"
+            icon="send"
+            no-caps
+            :loading="reviewSubmitting"
+            :disable="!reviewStars"
+            @click="submitReview(false)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- ETA Dialog (arrival check from customer) -->
     <q-dialog v-model="showEtaDialog" persistent>
       <q-card style="min-width: 340px; border-radius: 20px">
@@ -521,6 +568,70 @@ const handleSubmitEta = async () => {
 
 const notifEtaSelections = ref({})
 
+// ── Review / Rating state ──
+const showReviewDialog = ref(false)
+const reviewTarget = ref(null)
+const reviewStars = ref(0)
+const reviewText = ref('')
+const reviewSubmitting = ref(false)
+const reviewNotifIndex = ref(null)
+const ongoingChannel = ref(null)
+const ongoingDbChannel = ref(null)
+
+const handleJobDone = (notif, index) => {
+  markAsRead(index)
+  reviewTarget.value = {
+    request_id: notif.payload?.requestId || notif.requestId,
+    user_id: notif.payload?.userId,
+  }
+  reviewNotifIndex.value = index
+  reviewStars.value = 0
+  reviewText.value = ''
+  showReviewDialog.value = true
+}
+
+const submitReview = async (skip = false) => {
+  if (!reviewTarget.value) return
+  reviewSubmitting.value = true
+
+  // Mark request as completed
+  await supabase
+    .from('request')
+    .update({ request_status: 'completed' })
+    .eq('request_id', reviewTarget.value.request_id)
+
+  if (!skip && reviewStars.value > 0) {
+    const ratingPayload = {
+      request_id: reviewTarget.value.request_id,
+      technician_id: technicianId.value,
+      user_id: reviewTarget.value.user_id,
+      technician_rating: reviewStars.value,
+      technician_text: reviewText.value.trim() || null,
+      technician_timestamp: new Date().toISOString(),
+    }
+    // Upsert so it works whether or not the customer already left a review
+    await supabase.from('rating').upsert(ratingPayload, { onConflict: 'request_id' })
+  }
+
+  // Mark notification as done
+  if (reviewNotifIndex.value !== null && notifications.value[reviewNotifIndex.value]) {
+    notifications.value[reviewNotifIndex.value].done = true
+  }
+
+  reviewSubmitting.value = false
+  showReviewDialog.value = false
+  reviewTarget.value = null
+  reviewNotifIndex.value = null
+
+  $q.notify({ type: 'positive', message: 'Request marked as completed!' })
+
+  if (activeTab.value === 'orders') {
+    await fetchAcceptedOrders()
+  } else {
+    await fetchRequests()
+  }
+}
+
 const handleNotifClick = (notif, index) => {
   if (notif.type === 'arrival-check') {
     markAsRead(index)
@@ -533,6 +644,11 @@ const handleNotifClick = (notif, index) => {
       selectedEta.value = null
       showEtaDialog.value = true
     }
+    return
+  }
+  if (notif.type === 'job-finished') {
+    markAsRead(index)
+    if (!notif.done) handleJobDone(notif, index)
     return
   }
   markAsRead(index)
@@ -684,6 +800,11 @@ const hasMyOffer = (req) => req.fixer_price && req.technician_id === technicianI
 
 const isOfferAccepted = (req) => (req?.request_status || '').toLowerCase() === 'accepted'
 
+const isRequestTaken = (req) => {
+  const st = (req?.request_status || '').toLowerCase()
+  return st === 'accepted' || st === 'on-going'
+}
+
 const canRespondToCustomerOffer = (req) => {
   if (req.technician_id !== technicianId.value) return false
   if ((req.request_status || 'pending').toLowerCase() !== 'pending') return false
@@ -703,6 +824,9 @@ const fetchRequests = async () => {
     .from('request')
     .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
+    .or(`request_status.eq.pending,technician_id.eq.${technicianId.value},technician_id.is.null`)
+    .neq('request_status', 'completed')
+    .neq('request_status', 'Completed')
     .order('request_date', { ascending: false })
   if (error) {
     requestsError.value = error.message
@@ -725,8 +849,10 @@ const fetchAcceptedOrders = async () => {
     .from('request')
     .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
-    .eq('request_status', 'accepted')
     .eq('technician_id', technicianId.value)
+    .or(
+      'request_status.eq.accepted,request_status.eq.Accepted,request_status.eq.on-going,request_status.eq.On-going,request_status.eq.completed,request_status.eq.Completed',
+    )
     .order('request_date', { ascending: false })
   if (error) {
     requestsError.value = error.message
@@ -986,7 +1112,9 @@ onMounted(async () => {
       specialtyColor.value = info.color
     }
     if (technicianId.value) subscribeToCounterOffers()
+    if (technicianId.value) subscribeToOngoingStatus()
     if (technicianId.value) listenForArrivalChecks(technicianId.value)
+    if (technicianId.value) await ensureOngoingNotifications(user.email)
     await loadNotifications()
     const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
     await setActiveTab(initialTab)
@@ -997,9 +1125,133 @@ onMounted(async () => {
   }
 })
 
+// On page load, check for on-going requests that don't have a job-finished notification yet
+const ensureOngoingNotifications = async (techEmail) => {
+  if (!technicianId.value || !techEmail) return
+  const email = techEmail.trim().toLowerCase()
+
+  // Find all on-going requests assigned to this technician
+  const { data: ongoingRequests } = await supabase
+    .from('request')
+    .select('request_id, user_id')
+    .eq('technician_id', technicianId.value)
+    .eq('request_status', 'on-going')
+
+  if (!ongoingRequests?.length) return
+
+  for (const req of ongoingRequests) {
+    // Check if a job-finished notification already exists for this request
+    const { data: existing } = await supabase
+      .from('notification_center')
+      .select('id')
+      .eq('recipient_email', email)
+      .eq('notification_type', 'job-finished')
+      .eq('request_id', String(req.request_id))
+      .limit(1)
+
+    if (existing?.length) continue
+
+    await recordNotificationForRecipient(email, {
+      title: 'Job Status',
+      message: `Has the request #${req.request_id} been finished?`,
+      requestId: req.request_id,
+      routePath: '/service-provider?tab=orders',
+      type: 'job-finished',
+      icon: 'task_alt',
+      payload: {
+        requestId: req.request_id,
+        userId: req.user_id,
+        type: 'job-finished',
+      },
+    })
+  }
+}
+
+const subscribeToOngoingStatus = () => {
+  if (!technicianId.value) return
+
+  // Broadcast listener (for when customer triggers confirmArrival while tech is online)
+  ongoingChannel.value = supabase
+    .channel(`job-ongoing-${technicianId.value}`)
+    .on('broadcast', { event: 'job-ongoing' }, async ({ payload }) => {
+      if (!payload) return
+
+      $q.notify({
+        type: 'info',
+        icon: 'task_alt',
+        message: `Request #${payload.requestId} is now on-going. Mark it done when finished!`,
+      })
+
+      await loadNotifications()
+
+      if (activeTab.value === 'orders') await fetchAcceptedOrders()
+      else await fetchRequests()
+    })
+    .subscribe()
+
+  // Postgres changes listener (catches status changes from any source)
+  ongoingDbChannel.value = supabase
+    .channel(`ongoing-db-${technicianId.value}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'request',
+      },
+      async ({ new: updated }) => {
+        if (!updated) return
+        if (updated.technician_id !== technicianId.value) return
+        if ((updated.request_status || '').toLowerCase() !== 'on-going') return
+
+        // Check if we already have a job-finished notification for this request
+        const alreadyExists = notifications.value.some(
+          (n) => n.type === 'job-finished' && String(n.requestId) === String(updated.request_id),
+        )
+        if (alreadyExists) return
+
+        // Look up technician email to persist the notification
+        const { data: tech } = await supabase
+          .from('technician')
+          .select('email')
+          .eq('technician_id', technicianId.value)
+          .maybeSingle()
+        const techEmail = tech?.email
+
+        if (techEmail) {
+          await recordNotificationForRecipient(techEmail, {
+            title: 'Job Status',
+            message: `Has the request #${updated.request_id} been finished?`,
+            requestId: updated.request_id,
+            routePath: '/service-provider?tab=orders',
+            type: 'job-finished',
+            icon: 'task_alt',
+            payload: {
+              requestId: updated.request_id,
+              userId: updated.user_id,
+              type: 'job-finished',
+            },
+          })
+        }
+
+        $q.notify({
+          type: 'info',
+          icon: 'task_alt',
+          message: `Request #${updated.request_id} is now on-going. Mark it done when finished!`,
+        })
+
+        if (activeTab.value === 'orders') await fetchAcceptedOrders()
+        else await fetchRequests()
+      },
+    )
+    .subscribe()
+}
+
 onBeforeUnmount(() => {
   customerOfferEventsChannel.unsubscribe()
   myBargainChannel.value?.unsubscribe()
+  ongoingChannel.value?.unsubscribe()
+  ongoingDbChannel.value?.unsubscribe()
 })
 </script>
 

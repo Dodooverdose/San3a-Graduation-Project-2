@@ -159,6 +159,50 @@ export const useArrivalCheck = () => {
       .update({ request_status: 'on-going' })
       .eq('request_id', request.request_id)
 
+    // Notify the technician: "Has the request been finished?"
+    if (request.technician_id) {
+      const { data: tech } = await supabase
+        .from('technician')
+        .select('email')
+        .eq('technician_id', request.technician_id)
+        .maybeSingle()
+      const techEmail = tech?.email
+
+      if (techEmail) {
+        await insertNotification(techEmail, {
+          title: 'Job Status',
+          message: `Has the request #${request.request_id} been finished?`,
+          requestId: request.request_id,
+          routePath: '/service-provider?tab=orders',
+          type: 'job-finished',
+          icon: 'task_alt',
+          payload: {
+            requestId: request.request_id,
+            userId: request.user_id,
+            type: 'job-finished',
+          },
+        })
+      }
+
+      // Real-time broadcast to technician
+      const channel = supabase.channel(`job-ongoing-${request.technician_id}`)
+      try {
+        await waitForSubscribed(channel)
+        await channel.send({
+          type: 'broadcast',
+          event: 'job-ongoing',
+          payload: {
+            requestId: request.request_id,
+            userId: request.user_id,
+          },
+        })
+      } catch (e) {
+        console.warn('Job ongoing broadcast failed:', e)
+      } finally {
+        supabase.removeChannel(channel)
+      }
+    }
+
     prompted.add(request.request_id)
     savePrompted()
     showArrivalDialog.value = false
