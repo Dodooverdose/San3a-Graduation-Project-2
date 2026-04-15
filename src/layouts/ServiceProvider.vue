@@ -601,16 +601,53 @@ const submitReview = async (skip = false) => {
     .eq('request_id', reviewTarget.value.request_id)
 
   if (!skip && reviewStars.value > 0) {
-    const ratingPayload = {
-      request_id: reviewTarget.value.request_id,
-      technician_id: technicianId.value,
-      user_id: reviewTarget.value.user_id,
+    // If user_id is missing from the notification, look it up from the request
+    let userId = reviewTarget.value.user_id
+    if (!userId) {
+      const { data: reqRow } = await supabase
+        .from('request')
+        .select('user_id')
+        .eq('request_id', reviewTarget.value.request_id)
+        .maybeSingle()
+      userId = reqRow?.user_id
+    }
+
+    const techRatingData = {
       technician_rating: reviewStars.value,
       technician_text: reviewText.value.trim() || null,
       technician_timestamp: new Date().toISOString(),
     }
-    // Upsert so it works whether or not the customer already left a review
-    await supabase.from('rating').upsert(ratingPayload, { onConflict: 'request_id' })
+
+    // Check if a rating row already exists for this request
+    const { data: existingRating } = await supabase
+      .from('rating')
+      .select('review_id')
+      .eq('request_id', reviewTarget.value.request_id)
+      .maybeSingle()
+
+    let ratingError
+    if (existingRating) {
+      // Update the existing row with technician rating fields
+      const { error } = await supabase
+        .from('rating')
+        .update(techRatingData)
+        .eq('request_id', reviewTarget.value.request_id)
+      ratingError = error
+    } else {
+      // Insert a new row
+      const { error } = await supabase.from('rating').insert({
+        request_id: reviewTarget.value.request_id,
+        technician_id: technicianId.value,
+        user_id: userId,
+        ...techRatingData,
+      })
+      ratingError = error
+    }
+
+    if (ratingError) {
+      console.error('Rating save failed:', ratingError)
+      $q.notify({ type: 'negative', message: 'Review save failed: ' + ratingError.message })
+    }
   }
 
   // Mark notification as done
