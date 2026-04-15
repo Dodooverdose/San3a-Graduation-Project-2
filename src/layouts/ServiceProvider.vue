@@ -195,6 +195,27 @@
                 />
               </div>
 
+              <!-- Filters (orders tab) -->
+              <div
+                v-if="activeTab === 'orders'"
+                class="filters-row"
+                style="grid-template-columns: 1fr"
+              >
+                <q-select
+                  v-model="selectedOrderStatus"
+                  :options="orderStatusOptions"
+                  label="Filter by Status"
+                  outlined
+                  dense
+                  clearable
+                  emit-value
+                  map-options
+                  class="filter-select"
+                >
+                  <template #prepend><q-icon name="filter_list" /></template>
+                </q-select>
+              </div>
+
               <!-- Filters (requests tab only) -->
               <div v-if="activeTab === 'requests'" class="filters-row">
                 <q-select
@@ -594,24 +615,19 @@ const submitReview = async (skip = false) => {
   if (!reviewTarget.value) return
   reviewSubmitting.value = true
 
-  // Mark request as completed
-  await supabase
-    .from('request')
-    .update({ request_status: 'completed' })
-    .eq('request_id', reviewTarget.value.request_id)
+  // Look up user_id if missing
+  let userId = reviewTarget.value.user_id
+  if (!userId) {
+    const { data: reqRow } = await supabase
+      .from('request')
+      .select('user_id')
+      .eq('request_id', reviewTarget.value.request_id)
+      .maybeSingle()
+    userId = reqRow?.user_id
+  }
 
+  // Save technician rating
   if (!skip && reviewStars.value > 0) {
-    // If user_id is missing from the notification, look it up from the request
-    let userId = reviewTarget.value.user_id
-    if (!userId) {
-      const { data: reqRow } = await supabase
-        .from('request')
-        .select('user_id')
-        .eq('request_id', reviewTarget.value.request_id)
-        .maybeSingle()
-      userId = reqRow?.user_id
-    }
-
     const techRatingData = {
       technician_rating: reviewStars.value,
       technician_text: reviewText.value.trim() || null,
@@ -627,14 +643,12 @@ const submitReview = async (skip = false) => {
 
     let ratingError
     if (existingRating) {
-      // Update the existing row with technician rating fields
       const { error } = await supabase
         .from('rating')
         .update(techRatingData)
         .eq('request_id', reviewTarget.value.request_id)
       ratingError = error
     } else {
-      // Insert a new row
       const { error } = await supabase.from('rating').insert({
         request_id: reviewTarget.value.request_id,
         technician_id: technicianId.value,
@@ -650,6 +664,47 @@ const submitReview = async (skip = false) => {
     }
   }
 
+  // Send completion-check notification to customer instead of marking completed immediately
+  if (userId) {
+    const { data: customerRow, error: userLookupErr } = await supabase
+      .from('users')
+      .select('email')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (userLookupErr) {
+      console.error('Customer email lookup failed:', userLookupErr)
+    }
+
+    const customerEmail = customerRow?.email
+    if (customerEmail) {
+      const result = await recordNotificationForRecipient(customerEmail, {
+        title: 'Completion Check',
+        message: `Has request #${reviewTarget.value.request_id} been completed?`,
+        requestId: reviewTarget.value.request_id,
+        routePath: '/orders',
+        type: 'completion-check',
+        icon: 'help_outline',
+        payload: {
+          requestId: reviewTarget.value.request_id,
+          technicianId: technicianId.value,
+          userId: userId,
+          type: 'completion-check',
+        },
+      })
+      if (!result) {
+        console.error('Failed to send completion-check notification to customer:', customerEmail)
+        $q.notify({ type: 'warning', message: 'Could not notify the customer. Please try again.' })
+      }
+    } else {
+      console.error('Could not find customer email for user_id:', userId)
+      $q.notify({ type: 'warning', message: 'Customer email not found — notification not sent.' })
+    }
+  } else {
+    console.error('No user_id available to send completion-check notification')
+    $q.notify({ type: 'warning', message: 'Customer info missing — notification not sent.' })
+  }
+
   // Mark notification as done
   if (reviewNotifIndex.value !== null && notifications.value[reviewNotifIndex.value]) {
     notifications.value[reviewNotifIndex.value].done = true
@@ -660,7 +715,7 @@ const submitReview = async (skip = false) => {
   reviewTarget.value = null
   reviewNotifIndex.value = null
 
-  $q.notify({ type: 'positive', message: 'Request marked as completed!' })
+  $q.notify({ type: 'positive', message: 'Review submitted! Waiting for customer confirmation.' })
 
   if (activeTab.value === 'orders') {
     await fetchAcceptedOrders()
@@ -724,6 +779,13 @@ const requestsLoading = ref(false)
 const requestsError = ref(null)
 const selectedDistricts = ref([])
 const selectedPaymentMethod = ref(null)
+const selectedOrderStatus = ref(null)
+const orderStatusOptions = [
+  { label: 'All', value: null },
+  { label: 'Accepted', value: 'accepted' },
+  { label: 'On-going', value: 'on-going' },
+  { label: 'Completed', value: 'completed' },
+]
 const offerDialogOpen = ref(false)
 const offerTarget = ref(null)
 const offerPrice = ref(null)
@@ -803,7 +865,12 @@ const specialtyIcon = ref(null)
 const specialtyColor = ref('primary')
 
 const filteredRequests = computed(() => {
-  if (activeTab.value === 'orders') return requests.value
+  if (activeTab.value === 'orders') {
+    if (!selectedOrderStatus.value) return requests.value
+    return requests.value.filter(
+      (r) => (r.request_status || '').toLowerCase() === selectedOrderStatus.value,
+    )
+  }
   return requests.value.filter((request) => {
     const matchesDistrict =
       !selectedDistricts.value.length || selectedDistricts.value.includes(request.service_location)
@@ -861,9 +928,7 @@ const fetchRequests = async () => {
     .from('request')
     .select('*, users:user_id(full_name, email)')
     .eq('service_type', specialty.value)
-    .or(`request_status.eq.pending,technician_id.eq.${technicianId.value},technician_id.is.null`)
-    .neq('request_status', 'completed')
-    .neq('request_status', 'Completed')
+    .eq('request_status', 'pending')
     .order('request_date', { ascending: false })
   if (error) {
     requestsError.value = error.message

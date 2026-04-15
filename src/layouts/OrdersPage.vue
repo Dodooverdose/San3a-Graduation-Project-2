@@ -51,17 +51,83 @@
             clickable
             @click="openNotification(notif, i)"
           >
-            <q-item-section avatar
-              ><q-avatar size="40px" class="notif-avatar"
-                ><q-icon name="build" size="20px" /></q-avatar
-            ></q-item-section>
+            <q-item-section avatar>
+              <q-avatar size="40px" class="notif-avatar">
+                <q-icon
+                  :name="
+                    notif.type === 'completion-check'
+                      ? 'task_alt'
+                      : notif.type === 'still-going-check'
+                        ? 'update'
+                        : 'build'
+                  "
+                  size="20px"
+                />
+              </q-avatar>
+            </q-item-section>
             <q-item-section>
-              <q-item-label class="text-weight-bold">{{ notif.fixerName }}</q-item-label>
-              <q-item-label caption>{{ getNotifMessage(notif) }}</q-item-label>
+              <q-item-label class="text-weight-bold">
+                {{
+                  notif.type === 'completion-check' || notif.type === 'still-going-check'
+                    ? notif.title || 'Request Status'
+                    : notif.fixerName
+                }}
+              </q-item-label>
+              <q-item-label caption>
+                {{
+                  notif.type === 'completion-check' || notif.type === 'still-going-check'
+                    ? notif.message
+                    : getNotifMessage(notif)
+                }}
+              </q-item-label>
               <q-item-label caption class="text-grey-6">{{ notif.time }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <div class="row q-gutter-xs">
+              <div v-if="notif.type === 'completion-check' && !notif.done" class="row q-gutter-xs">
+                <q-btn
+                  dense
+                  unelevated
+                  color="positive"
+                  label="Yes"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleCompletionYes(notif, i)"
+                />
+                <q-btn
+                  dense
+                  unelevated
+                  color="negative"
+                  label="No"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleCompletionNo(notif, i)"
+                />
+              </div>
+              <div
+                v-else-if="notif.type === 'still-going-check' && !notif.done"
+                class="row q-gutter-xs"
+              >
+                <q-btn
+                  dense
+                  unelevated
+                  color="positive"
+                  label="Yes"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleStillGoingYes(notif, i)"
+                />
+                <q-btn
+                  dense
+                  unelevated
+                  color="negative"
+                  label="No"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleStillGoingNo(notif, i)"
+                />
+              </div>
+              <q-badge v-else-if="notif.done" color="green" label="Done" />
+              <div v-else class="row q-gutter-xs">
                 <q-btn
                   dense
                   flat
@@ -303,16 +369,51 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Customer Review Dialog -->
+    <q-dialog v-model="showCustomerReviewDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="rate_review" size="56px" color="amber" />
+          <div class="text-h6 q-mt-sm">Rate the Technician</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">How was the service?</div>
+        </q-card-section>
+        <q-card-section class="text-center">
+          <q-rating v-model="customerReviewStars" size="2.5em" color="amber" icon="star" />
+          <q-input
+            v-model="customerReviewText"
+            type="textarea"
+            label="Leave a comment (optional)"
+            filled
+            autogrow
+            class="q-mt-md"
+          />
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            unelevated
+            color="primary"
+            label="Submit Review"
+            no-caps
+            :loading="customerReviewSubmitting"
+            :disable="customerReviewStars === 0"
+            @click="onSubmitCustomerReview()"
+          />
+          <q-btn flat color="grey" label="Skip" no-caps @click="onSubmitCustomerReview(true)" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
+import { useCustomerCompletionCheck } from 'src/composables/useCustomerCompletionCheck'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -321,6 +422,7 @@ const loading = ref(true)
 const error = ref(null)
 const allOrders = ref([])
 const showNotifications = ref(false)
+const notificationCenter = useNotificationCenter()
 const {
   notifications,
   unreadCount,
@@ -330,7 +432,23 @@ const {
   dismissNotification,
   clearAllNotifications,
   getNotifMessage,
-} = useNotificationCenter()
+} = notificationCenter
+watch(showNotifications, (open) => {
+  if (open) loadNotifications()
+})
+
+const {
+  showCustomerReviewDialog,
+  customerReviewStars,
+  customerReviewText,
+  customerReviewSubmitting,
+  handleCompletionYes,
+  handleCompletionNo,
+  handleStillGoingYes,
+  handleStillGoingNo,
+  submitCustomerReview,
+  handleCompletionNotifClick,
+} = useCustomerCompletionCheck(notificationCenter)
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const knownOfferPrices = ref(new Map())
@@ -365,7 +483,18 @@ const handleArrivalNo = async () => {
   $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
 }
 
+const onSubmitCustomerReview = async (skip = false) => {
+  const success = await submitCustomerReview(skip)
+  if (success) {
+    $q.notify({
+      type: 'positive',
+      message: skip ? 'Request marked as completed.' : 'Review submitted! Request completed.',
+    })
+  }
+}
+
 const openNotification = (notif, index) => {
+  if (handleCompletionNotifClick(notif, index)) return
   markAsRead(index)
   showNotifications.value = false
   if (notif?.routePath) {

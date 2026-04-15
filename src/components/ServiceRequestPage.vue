@@ -577,6 +577,7 @@ const submitRequest = async () => {
     urgency: urgency.value,
     user_id: currentUserId.value,
     service_type: props.serviceType,
+    request_status: 'pending',
   })
 
   if (error) {
