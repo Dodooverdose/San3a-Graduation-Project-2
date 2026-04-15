@@ -196,14 +196,14 @@
               {{ filteredOffers.length === 1 ? 'offer' : 'offers' }}</q-badge
             >
             <q-select
-              v-model="statusFilter"
-              :options="statusFilterOptions"
+              v-model="professionFilter"
+              :options="professionFilterOptions"
               emit-value
               map-options
               dense
               outlined
               class="status-filter"
-              label="Status"
+              label="Profession"
             />
           </div>
 
@@ -586,14 +586,15 @@ const onSubmitCustomerReview = async (skip = false) => {
     })
   }
 }
-const statusFilter = ref('all')
-const statusFilterOptions = [
+const professionFilter = ref('all')
+const professionFilterOptions = [
   { label: 'All', value: 'all' },
-  { label: 'Ongoing', value: 'ongoing' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Accepted', value: 'accepted' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Plumbing', value: 'plumber' },
+  { label: 'Carpentry', value: 'carpenter' },
+  { label: 'Electrical', value: 'electrician' },
+  { label: 'Kitchen Utilities', value: 'kitchen_fitter' },
+  { label: 'Painters', value: 'painter' },
+  { label: 'Drapery', value: 'drapery_seamstress' },
 ]
 
 const requestIdFilter = computed(() => {
@@ -605,14 +606,8 @@ const filteredOffers = computed(() => {
   let offers = incomingOffers.value
   if (requestIdFilter.value)
     return offers.filter((r) => String(r.request_id) === requestIdFilter.value)
-  if (statusFilter.value === 'ongoing') {
-    return offers.filter((r) => {
-      const status = (r.request_status || 'pending').toLowerCase()
-      return status !== 'completed' && status !== 'cancelled'
-    })
-  }
-  if (statusFilter.value === 'all') return offers
-  return offers.filter((r) => (r.request_status || 'pending').toLowerCase() === statusFilter.value)
+  if (professionFilter.value === 'all') return offers
+  return offers.filter((r) => r.service_type === professionFilter.value)
 })
 
 const isOfferActionable = (req) => {
@@ -696,7 +691,7 @@ const fetchIncomingOffers = async () => {
     const { data: requestsData, error: requestsErr } = await supabase
       .from('request')
       .select(
-        'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id, fixer_message',
+        'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id, fixer_message, service_type',
       )
       .eq('user_id', customer.user_id)
       .not('technician_id', 'is', null)
