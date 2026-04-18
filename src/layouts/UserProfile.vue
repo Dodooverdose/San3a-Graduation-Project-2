@@ -339,18 +339,18 @@
                 <q-form @submit.prevent="submitComplaint" class="q-gutter-md">
                   <q-select
                     v-if="isTechnician"
-                    v-model="complaintForm.customer_id"
-                    :options="customerOptions"
+                    v-model="complaintForm.request_id"
+                    :options="technicianRequestOptions"
                     outlined
                     dense
-                    label="Select Customer"
+                    label="Select Request"
                     emit-value
                     map-options
-                    :rules="[(val) => !!val || 'Please select a customer']"
+                    :rules="[(val) => !!val || 'Please select a request']"
                   >
                     <template v-slot:no-option>
                       <q-item>
-                        <q-item-section class="text-grey"> No customers found </q-item-section>
+                        <q-item-section class="text-grey"> No requests found </q-item-section>
                       </q-item>
                     </template>
                   </q-select>
@@ -541,6 +541,9 @@ const activeIssueTypeOptions = computed(() =>
 )
 
 const customerOptions = ref([])
+const technicianRequestOptions = ref([])
+const requestCustomerMap = ref({})
+const requestTechnicianMap = ref({})
 
 const form = ref({
   full_name: '',
@@ -889,16 +892,21 @@ const openComplaintDialog = async () => {
   complaintForm.value = { request_id: null, customer_id: null, issue_type: null, description: '' }
   userRequestOptions.value = []
   customerOptions.value = []
+  technicianRequestOptions.value = []
+  requestCustomerMap.value = {}
+  requestTechnicianMap.value = {}
   showComplaintDialog.value = true
 
   try {
     if (isTechnician.value) {
       if (!technicianId.value) return
 
-      // Same pattern as fetchAcceptedOrders in ServiceProvider
+      // Fetch requests assigned to this technician with customer info
       const { data, error } = await supabase
         .from('request')
-        .select('request_id, user_id, users:user_id(full_name, email)')
+        .select(
+          'request_id, user_id, description_of_issue, request_status, users:user_id(full_name, email)',
+        )
         .eq('technician_id', technicianId.value)
         .or(
           'request_status.eq.accepted,request_status.eq.Accepted,request_status.eq.on-going,request_status.eq.On-going,request_status.eq.completed,request_status.eq.Completed',
@@ -906,22 +914,21 @@ const openComplaintDialog = async () => {
         .order('request_id', { ascending: false })
 
       if (error) {
-        console.error('Supabase complaint customers error:', error)
-        $q.notify({ type: 'warning', message: 'Could not load customers.' })
+        console.error('Supabase complaint requests error:', error)
+        $q.notify({ type: 'warning', message: 'Could not load requests.' })
         return
       }
 
-      const seen = new Set()
-      customerOptions.value = (data || [])
-        .filter((r) => {
-          if (!r.user_id || seen.has(r.user_id)) return false
-          seen.add(r.user_id)
-          return true
-        })
-        .map((r) => ({
-          label: r.users?.full_name || r.users?.email || `Customer #${r.user_id}`,
-          value: r.user_id,
-        }))
+      const map = {}
+      technicianRequestOptions.value = (data || []).map((r) => {
+        map[r.request_id] = r.user_id
+        const customerName = r.users?.full_name || r.users?.email || `Customer #${r.user_id}`
+        return {
+          label: `#${r.request_id} — ${customerName} — ${r.description_of_issue || r.request_status || 'Request'}`,
+          value: r.request_id,
+        }
+      })
+      requestCustomerMap.value = map
     } else {
       let idVal = customerId.value
 
@@ -941,7 +948,7 @@ const openComplaintDialog = async () => {
 
       const { data, error } = await supabase
         .from('request')
-        .select('request_id, description_of_issue, request_status')
+        .select('request_id, description_of_issue, request_status, technician_id')
         .eq('user_id', idVal)
         .order('request_id', { ascending: false })
 
@@ -951,10 +958,15 @@ const openComplaintDialog = async () => {
         return
       }
 
-      userRequestOptions.value = (data || []).map((r) => ({
-        label: `#${r.request_id} — ${r.description_of_issue || r.request_status || 'Request'}`,
-        value: r.request_id,
-      }))
+      const tMap = {}
+      userRequestOptions.value = (data || []).map((r) => {
+        tMap[r.request_id] = r.technician_id
+        return {
+          label: `#${r.request_id} — ${r.description_of_issue || r.request_status || 'Request'}`,
+          value: r.request_id,
+        }
+      })
+      requestTechnicianMap.value = tMap
     }
   } catch (err) {
     console.error('Failed to load complaint options:', err)
@@ -978,12 +990,19 @@ const submitComplaint = async () => {
       complaint_id: nextId,
       issue_type: complaintForm.value.issue_type,
       description: complaintForm.value.description,
-      request_id: isTechnician.value ? null : complaintForm.value.request_id,
+      request_id: complaintForm.value.request_id,
       status: 'Unsolved',
       complainant_role: isTechnician.value ? 'technician' : 'customer',
       user_auth_id: currentAuthUser.value?.id || null,
-      user_id: isTechnician.value ? null : customerId.value,
-      complained_against_id: isTechnician.value ? complaintForm.value.customer_id : null,
+      user_id: isTechnician.value
+        ? requestCustomerMap.value[complaintForm.value.request_id] || null
+        : customerId.value,
+      technician_id: isTechnician.value
+        ? technicianId.value
+        : requestTechnicianMap.value[complaintForm.value.request_id] || null,
+      complained_against_id: isTechnician.value
+        ? requestCustomerMap.value[complaintForm.value.request_id] || null
+        : null,
     }
 
     const { error } = await supabase.from('complaint').insert(payload)
