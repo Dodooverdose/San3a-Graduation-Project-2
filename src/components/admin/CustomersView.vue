@@ -36,9 +36,9 @@
             flat
             dense
             round
-            icon="edit"
+            icon="info"
             size="sm"
-            @click="editCustomer(props.row)"
+            @click="viewCustomer(props.row)"
             color="primary"
           />
           <q-btn
@@ -53,6 +53,31 @@
         </q-td>
       </template>
     </q-table>
+
+    <!-- View Details Dialog -->
+    <q-dialog v-model="showDetailsDialog">
+      <q-card class="admin-dialog-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">User Details</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
+        </q-card-section>
+
+        <q-card-section v-if="selectedCustomer">
+          <div class="q-gutter-md">
+            <div><strong>ID:</strong> {{ selectedCustomer._id }}</div>
+            <div><strong>Name:</strong> {{ selectedCustomer._name }}</div>
+            <div><strong>Email:</strong> {{ selectedCustomer._email }}</div>
+            <div><strong>Phone:</strong> {{ selectedCustomer._phone }}</div>
+            <div><strong>Address:</strong> {{ selectedCustomer.address || '-' }}</div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Add/Edit Dialog -->
     <q-dialog v-model="showAddDialog">
@@ -123,6 +148,8 @@ const loading = ref(false)
 const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const showAddDialog = ref(false)
+const showDetailsDialog = ref(false)
+const selectedCustomer = ref(null)
 const editingId = ref(null)
 const editingKeyColumn = ref('user_id')
 
@@ -222,16 +249,9 @@ const saveCustomer = async () => {
   }
 }
 
-const editCustomer = (customer) => {
-  editingId.value = customer._id
-  editingKeyColumn.value = customer._keyColumn || 'user_id'
-  formData.value = {
-    name: customer._name ?? '',
-    email: customer._email ?? '',
-    phone: customer._phone ?? '',
-    address: customer.address ?? '',
-  }
-  showAddDialog.value = true
+const viewCustomer = (customer) => {
+  selectedCustomer.value = customer
+  showDetailsDialog.value = true
 }
 
 const deleteCustomer = async (customer) => {

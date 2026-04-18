@@ -311,10 +311,101 @@
                       <div class="activity-time">{{ item.time }}</div>
                     </div>
                   </div>
+
+                  <q-btn
+                    unelevated
+                    no-caps
+                    color="negative"
+                    icon="report_problem"
+                    label="File a Complaint"
+                    class="full-width q-mt-md"
+                    @click="openComplaintDialog"
+                  />
                 </q-card-section>
               </q-card>
             </div>
           </section>
+
+          <!-- Complaint Dialog -->
+          <q-dialog v-model="showComplaintDialog" persistent>
+            <q-card style="min-width: 420px; max-width: 520px">
+              <q-card-section class="row items-center q-pb-none">
+                <div class="text-h6">File a Complaint</div>
+                <q-space />
+                <q-btn icon="close" flat round dense @click="showComplaintDialog = false" />
+              </q-card-section>
+
+              <q-card-section>
+                <q-form @submit.prevent="submitComplaint" class="q-gutter-md">
+                  <q-select
+                    v-if="isTechnician"
+                    v-model="complaintForm.customer_id"
+                    :options="customerOptions"
+                    outlined
+                    dense
+                    label="Select Customer"
+                    emit-value
+                    map-options
+                    :rules="[(val) => !!val || 'Please select a customer']"
+                  >
+                    <template v-slot:no-option>
+                      <q-item>
+                        <q-item-section class="text-grey"> No customers found </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+
+                  <q-select
+                    v-else
+                    v-model="complaintForm.request_id"
+                    :options="userRequestOptions"
+                    outlined
+                    dense
+                    label="Select Request"
+                    emit-value
+                    map-options
+                    :rules="[(val) => !!val || 'Please select a request']"
+                  >
+                    <template v-slot:no-option>
+                      <q-item>
+                        <q-item-section class="text-grey"> No requests found </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+
+                  <q-select
+                    v-model="complaintForm.issue_type"
+                    :options="activeIssueTypeOptions"
+                    outlined
+                    dense
+                    label="Issue Type"
+                    :rules="[(val) => !!val || 'Please select an issue type']"
+                  />
+
+                  <q-input
+                    v-model="complaintForm.description"
+                    label="Description"
+                    outlined
+                    type="textarea"
+                    rows="4"
+                    :rules="[
+                      (val) => (!!val && val.trim().length > 0) || 'Please describe the issue',
+                    ]"
+                  />
+
+                  <q-btn
+                    type="submit"
+                    unelevated
+                    no-caps
+                    color="negative"
+                    label="Submit Complaint"
+                    class="full-width"
+                    :loading="submittingComplaint"
+                  />
+                </q-form>
+              </q-card-section>
+            </q-card>
+          </q-dialog>
 
           <transition name="slide-up">
             <div v-if="editing" class="sticky-save">
@@ -406,10 +497,50 @@ const technicianIsVerified = ref(false)
 const requestsPosted = ref(0)
 const activeRequests = ref(0)
 const completedRequests = ref(0)
+const offersSent = ref(0)
 const acceptedJobs = ref(0)
 const jobsCompleted = ref(0)
 const responseRate = ref('--')
 const recentActivity = ref([])
+
+const showComplaintDialog = ref(false)
+const submittingComplaint = ref(false)
+const userRequestOptions = ref([])
+const complaintForm = ref({
+  request_id: null,
+  issue_type: null,
+  description: '',
+})
+
+const customerIssueTypeOptions = [
+  'Service Quality',
+  'Late Arrival',
+  'Overcharging',
+  'Unprofessional Behavior',
+  'Incomplete Work',
+  'Damage to Property',
+  'No Show',
+  'Communication Issue',
+  'Other',
+]
+
+const technicianIssueTypeOptions = [
+  'Customer No Show',
+  'Incorrect Job Description',
+  'Unsafe Work Environment',
+  'Payment Dispute',
+  'Harassment or Abuse',
+  'Unreachable Customer',
+  'Cancelled After Arrival',
+  'Scope Change Without Notice',
+  'Other',
+]
+
+const activeIssueTypeOptions = computed(() =>
+  isTechnician.value ? technicianIssueTypeOptions : customerIssueTypeOptions,
+)
+
+const customerOptions = ref([])
 
 const form = ref({
   full_name: '',
@@ -461,6 +592,7 @@ const serviceChips = computed(() => {
 const statItems = computed(() => {
   if (isTechnician.value) {
     return [
+      { label: 'Offers Sent', value: offersSent.value },
       { label: 'Accepted Jobs', value: acceptedJobs.value },
       { label: 'Jobs Completed', value: jobsCompleted.value },
       { label: 'Response Rate', value: responseRate.value },
@@ -517,11 +649,7 @@ const setInitialForm = (row) => {
 }
 
 const loadCustomerProfile = async (email, metadata) => {
-  const { data } = await supabase
-    .from('users')
-    .select('user_id, full_name, email, phone_number, date_created, created_at')
-    .ilike('email', email)
-    .maybeSingle()
+  const { data } = await supabase.from('users').select('*').ilike('email', email).maybeSingle()
 
   customerId.value = data?.user_id ?? null
   profileName.value = data?.full_name || metadata?.full_name || ''
@@ -531,13 +659,15 @@ const loadCustomerProfile = async (email, metadata) => {
 }
 
 const loadTechnicianProfile = async (email, metadata) => {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('technician')
-    .select(
-      'technician_id, full_name, email, phone_number, specialty, years_of_experience, date_created, created_at',
-    )
+    .select('*')
     .ilike('email', email)
     .maybeSingle()
+
+  if (error) {
+    console.error('[Profile] Failed to load technician profile:', error)
+  }
 
   technicianId.value = data?.technician_id ?? null
   profileName.value = data?.full_name || metadata?.full_name || ''
@@ -574,7 +704,7 @@ const loadCustomerStats = async () => {
 
   const { data: requests } = await supabase
     .from('request')
-    .select('request_id, request_status, request_date, created_at, description_of_issue')
+    .select('*')
     .eq('user_id', customerId.value)
     .order('request_id', { ascending: false })
     .limit(8)
@@ -592,36 +722,74 @@ const loadCustomerStats = async () => {
   recentActivity.value = rows.slice(0, 5).map((r) => ({
     id: `req-${r.request_id}`,
     title: `Request #${r.request_id} is ${r.request_status || 'pending'}`,
-    time: formatActivityTime(r.request_date || r.created_at),
+    time: formatActivityTime(r.created_at),
   }))
 }
 
 const loadTechnicianStats = async () => {
-  if (!technicianId.value) return
+  if (!technicianId.value) {
+    console.warn('[Stats] technicianId is null, skipping stats')
+    return
+  }
+  console.log('[Stats] Loading stats for technicianId:', technicianId.value)
 
-  const { data: jobs } = await supabase
+  // Fetch offers sent by this technician
+  const { data: offersData, error: offersErr } = await supabase
+    .from('request_offers')
+    .select('*')
+    .eq('technician_id', technicianId.value)
+    .order('offer_id', { ascending: false })
+
+  console.log('[Stats] Offers query result:', { offersData, offersErr })
+
+  const allOffers = offersData || []
+  offersSent.value = allOffers.length
+
+  // Fetch ALL requests assigned to this technician (no status filter)
+  const { data: jobs, error: jobsErr } = await supabase
     .from('request')
-    .select('request_id, request_status, request_date, created_at')
+    .select('*')
     .eq('technician_id', technicianId.value)
     .order('request_id', { ascending: false })
-    .limit(40)
+
+  console.log('[Stats] Jobs query result:', { jobs, jobsErr })
 
   const rows = jobs || []
-  acceptedJobs.value = rows.filter(
-    (r) => String(r.request_status || '').toLowerCase() === 'accepted',
-  ).length
-  jobsCompleted.value = rows.filter(
-    (r) => String(r.request_status || '').toLowerCase() === 'completed',
-  ).length
-  responseRate.value = rows.length
-    ? `${Math.round((acceptedJobs.value / rows.length) * 100)}%`
+  const statusCounts = { accepted: 0, 'on-going': 0, completed: 0 }
+  for (const r of rows) {
+    const s = String(r.request_status || '').toLowerCase()
+    if (s in statusCounts) statusCounts[s]++
+  }
+  acceptedJobs.value = statusCounts.accepted + statusCounts['on-going']
+  jobsCompleted.value = statusCounts.completed
+  responseRate.value = allOffers.length
+    ? `${Math.round(((acceptedJobs.value + jobsCompleted.value) / allOffers.length) * 100)}%`
     : '--'
 
-  recentActivity.value = rows.slice(0, 5).map((r) => ({
-    id: `job-${r.request_id}`,
-    title: `Job #${r.request_id} status: ${r.request_status || 'pending'}`,
-    time: formatActivityTime(r.request_date || r.created_at),
-  }))
+  // Merge recent activity from both offers and jobs
+  const getTs = (row) => {
+    const d = row.created_at || row.date_created || row.updated_at || row.request_date
+    return d ? new Date(d).getTime() : 0
+  }
+  const activityItems = []
+  for (const o of allOffers.slice(0, 5)) {
+    activityItems.push({
+      id: `offer-${o.offer_id}`,
+      title: `Offer on Request #${o.request_id} — ${o.status || 'pending'}`,
+      time: formatActivityTime(o.created_at || o.updated_at),
+      ts: getTs(o),
+    })
+  }
+  for (const r of rows.slice(0, 5)) {
+    activityItems.push({
+      id: `job-${r.request_id}`,
+      title: `Job #${r.request_id} status: ${r.request_status || 'pending'}`,
+      time: formatActivityTime(r.created_at || r.date_created || r.request_date),
+      ts: getTs(r),
+    })
+  }
+  activityItems.sort((a, b) => b.ts - a.ts)
+  recentActivity.value = activityItems.slice(0, 5)
 }
 
 const loadProfile = async () => {
@@ -715,6 +883,127 @@ const onFileChange = (event) => {
   if (objectUrl) URL.revokeObjectURL(objectUrl)
   objectUrl = URL.createObjectURL(file)
   avatarUrl.value = objectUrl
+}
+
+const openComplaintDialog = async () => {
+  complaintForm.value = { request_id: null, customer_id: null, issue_type: null, description: '' }
+  userRequestOptions.value = []
+  customerOptions.value = []
+  showComplaintDialog.value = true
+
+  try {
+    if (isTechnician.value) {
+      if (!technicianId.value) return
+
+      // Same pattern as fetchAcceptedOrders in ServiceProvider
+      const { data, error } = await supabase
+        .from('request')
+        .select('request_id, user_id, users:user_id(full_name, email)')
+        .eq('technician_id', technicianId.value)
+        .or(
+          'request_status.eq.accepted,request_status.eq.Accepted,request_status.eq.on-going,request_status.eq.On-going,request_status.eq.completed,request_status.eq.Completed',
+        )
+        .order('request_id', { ascending: false })
+
+      if (error) {
+        console.error('Supabase complaint customers error:', error)
+        $q.notify({ type: 'warning', message: 'Could not load customers.' })
+        return
+      }
+
+      const seen = new Set()
+      customerOptions.value = (data || [])
+        .filter((r) => {
+          if (!r.user_id || seen.has(r.user_id)) return false
+          seen.add(r.user_id)
+          return true
+        })
+        .map((r) => ({
+          label: r.users?.full_name || r.users?.email || `Customer #${r.user_id}`,
+          value: r.user_id,
+        }))
+    } else {
+      let idVal = customerId.value
+
+      if (!idVal && profileEmail.value) {
+        const { data: u } = await supabase
+          .from('users')
+          .select('user_id')
+          .ilike('email', profileEmail.value)
+          .maybeSingle()
+        if (u?.user_id) {
+          customerId.value = u.user_id
+          idVal = u.user_id
+        }
+      }
+
+      if (!idVal) return
+
+      const { data, error } = await supabase
+        .from('request')
+        .select('request_id, description_of_issue, request_status')
+        .eq('user_id', idVal)
+        .order('request_id', { ascending: false })
+
+      if (error) {
+        console.error('Supabase complaint requests error:', error)
+        $q.notify({ type: 'warning', message: 'Could not load requests.' })
+        return
+      }
+
+      userRequestOptions.value = (data || []).map((r) => ({
+        label: `#${r.request_id} — ${r.description_of_issue || r.request_status || 'Request'}`,
+        value: r.request_id,
+      }))
+    }
+  } catch (err) {
+    console.error('Failed to load complaint options:', err)
+    $q.notify({ type: 'warning', message: 'Could not load options.' })
+  }
+}
+
+const submitComplaint = async () => {
+  submittingComplaint.value = true
+  try {
+    // Get next complaint_id since column has no auto-increment
+    const { data: maxRow } = await supabase
+      .from('complaint')
+      .select('complaint_id')
+      .order('complaint_id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const nextId = (maxRow?.complaint_id || 0) + 1
+
+    const payload = {
+      complaint_id: nextId,
+      issue_type: complaintForm.value.issue_type,
+      description: complaintForm.value.description,
+      request_id: isTechnician.value ? null : complaintForm.value.request_id,
+      status: 'Unsolved',
+      complainant_role: isTechnician.value ? 'technician' : 'customer',
+      user_auth_id: currentAuthUser.value?.id || null,
+      user_id: isTechnician.value ? technicianId.value : customerId.value,
+      complained_against_id: isTechnician.value ? complaintForm.value.customer_id : null,
+    }
+
+    const { error } = await supabase.from('complaint').insert(payload)
+    if (error) throw error
+
+    showComplaintDialog.value = false
+    $q.notify({
+      type: 'positive',
+      message: 'Complaint submitted successfully.',
+      position: 'top-right',
+    })
+  } catch (err) {
+    console.error('Failed to submit complaint:', err)
+    $q.notify({
+      type: 'negative',
+      message: err?.message || 'Failed to submit complaint.',
+    })
+  } finally {
+    submittingComplaint.value = false
+  }
 }
 
 const goToPage = (route) => {

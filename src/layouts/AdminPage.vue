@@ -60,23 +60,6 @@
       <q-page class="admin-page">
         <div class="admin-container">
           <main class="admin-main san3a-animate-in san3a-stagger-1">
-            <section class="kpi-grid">
-              <q-card v-for="card in kpiCards" :key="card.label" flat bordered class="kpi-card">
-                <q-card-section>
-                  <div class="kpi-top">
-                    <div class="kpi-icon" :class="`kpi-icon--${card.tone}`">
-                      <q-icon :name="card.icon" size="20px" />
-                    </div>
-                    <q-badge :color="card.delta >= 0 ? 'positive' : 'negative'" class="kpi-delta">
-                      {{ card.delta >= 0 ? '+' : '' }}{{ card.delta }}%
-                    </q-badge>
-                  </div>
-                  <div class="kpi-value">{{ formatCompact(card.value) }}</div>
-                  <div class="kpi-label">{{ card.label }}</div>
-                </q-card-section>
-              </q-card>
-            </section>
-
             <section class="admin-workspace">
               <q-tab-panels v-model="activeTab" animated class="admin-panels">
                 <q-tab-panel name="analytics"
@@ -120,7 +103,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
@@ -135,18 +118,6 @@ const router = useRouter()
 const $q = useQuasar()
 const activeTab = ref('analytics')
 const drawerOpen = ref(false)
-const metrics = ref({
-  pendingVerifications: 0,
-  activeRequests: 0,
-  openComplaints: 0,
-  totalUsers: 0,
-})
-const previousMetrics = ref({
-  pendingVerifications: 0,
-  activeRequests: 0,
-  openComplaints: 0,
-  totalUsers: 0,
-})
 const activityItems = ref([])
 const activityLoading = ref(false)
 
@@ -162,77 +133,6 @@ const navItems = [
 const selectTab = (key) => {
   activeTab.value = key
   drawerOpen.value = false
-}
-
-const percentageDelta = (current, previous) => {
-  if (!previous) return current > 0 ? 100 : 0
-  return Math.round(((current - previous) / previous) * 100)
-}
-
-const kpiCards = computed(() => {
-  const current = metrics.value
-  const previous = previousMetrics.value
-  return [
-    {
-      label: 'Pending Verifications',
-      value: current.pendingVerifications,
-      delta: percentageDelta(current.pendingVerifications, previous.pendingVerifications),
-      icon: 'pending_actions',
-      tone: 'warning',
-    },
-    {
-      label: 'Active Requests',
-      value: current.activeRequests,
-      delta: percentageDelta(current.activeRequests, previous.activeRequests),
-      icon: 'assignment',
-      tone: 'info',
-    },
-    {
-      label: 'Open Complaints',
-      value: current.openComplaints,
-      delta: percentageDelta(current.openComplaints, previous.openComplaints),
-      icon: 'report',
-      tone: 'danger',
-    },
-    {
-      label: 'Total Users',
-      value: current.totalUsers,
-      delta: percentageDelta(current.totalUsers, previous.totalUsers),
-      icon: 'groups',
-      tone: 'success',
-    },
-  ]
-})
-
-const formatCompact = (value) =>
-  new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(
-    Number(value || 0),
-  )
-
-const safeCount = async (table, idColumn, filterFn) => {
-  let query = supabase.from(table).select(idColumn, { count: 'exact', head: true })
-  if (filterFn) query = filterFn(query)
-  const { count, error } = await query
-  if (error) return 0
-  return count || 0
-}
-
-const loadMetrics = async () => {
-  const next = {
-    pendingVerifications: await safeCount('profile_verification_submissions', 'auth_id', (q) =>
-      q.eq('review_status', 'pending'),
-    ),
-    activeRequests: await safeCount('request', 'request_id', (q) =>
-      q.not('request_status', 'in', '(completed,cancelled)'),
-    ),
-    openComplaints: await safeCount('complaint', 'id', (q) =>
-      q.in('status', ['open', 'in-progress', 'pending']),
-    ),
-    totalUsers:
-      (await safeCount('users', 'user_id')) + (await safeCount('technician', 'technician_id')),
-  }
-  previousMetrics.value = { ...metrics.value }
-  metrics.value = next
 }
 
 const relativeTime = (dateStr) => {
@@ -272,10 +172,10 @@ const loadActivity = async () => {
     for (const row of complaintsRes.data || []) {
       const timeValue = rowTime(row)
       rows.push({
-        id: `comp-${row.id}`,
+        id: `comp-${row.complaint_id}`,
         timeKey: timeValue,
         tone: 'danger',
-        message: `Complaint #${row.id} marked ${row.status || 'open'}.`,
+        message: `Complaint #${row.complaint_id} marked ${row.status || 'open'}.`,
         time: relativeTime(timeValue),
       })
     }
@@ -303,7 +203,7 @@ const loadActivity = async () => {
 }
 
 const loadDashboard = async () => {
-  await Promise.all([loadMetrics(), loadActivity()])
+  await loadActivity()
 }
 
 const logout = async () => {
@@ -409,60 +309,6 @@ onMounted(() => {
 
 .admin-main {
   min-width: 0;
-}
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.kpi-card {
-  border-radius: var(--san3a-radius-xl);
-  border-color: var(--san3a-gray-200) !important;
-}
-.kpi-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.kpi-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.kpi-icon--warning {
-  background: var(--san3a-warning-light);
-  color: var(--san3a-warning);
-}
-.kpi-icon--info {
-  background: var(--san3a-info-light);
-  color: var(--san3a-info);
-}
-.kpi-icon--danger {
-  background: var(--san3a-error-light);
-  color: var(--san3a-error);
-}
-.kpi-icon--success {
-  background: var(--san3a-success-light);
-  color: var(--san3a-success);
-}
-.kpi-delta {
-  font-weight: 700;
-}
-.kpi-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--san3a-gray-900);
-  line-height: 1.2;
-}
-.kpi-label {
-  font-size: 13px;
-  color: var(--san3a-gray-500);
-  margin-top: 2px;
 }
 
 .admin-workspace {
@@ -591,17 +437,11 @@ onMounted(() => {
   .admin-container {
     grid-template-columns: 1fr;
   }
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 600px) {
   .header-brand-sub {
     display: none;
-  }
-  .kpi-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -45,9 +45,9 @@
             flat
             dense
             round
-            icon="edit"
+            icon="info"
             size="sm"
-            @click="editTechnician(props.row)"
+            @click="viewTechnician(props.row)"
             color="primary"
           />
           <q-btn
@@ -74,6 +74,38 @@
         </q-td>
       </template>
     </q-table>
+
+    <!-- View Details Dialog -->
+    <q-dialog v-model="showDetailsDialog">
+      <q-card class="admin-dialog-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Technician Details</div>
+          <q-space />
+          <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
+        </q-card-section>
+
+        <q-card-section v-if="selectedTechnician">
+          <div class="q-gutter-md">
+            <div><strong>ID:</strong> {{ selectedTechnician._id }}</div>
+            <div><strong>Name:</strong> {{ selectedTechnician._name }}</div>
+            <div><strong>Email:</strong> {{ selectedTechnician._email }}</div>
+            <div><strong>Phone:</strong> {{ selectedTechnician._phone }}</div>
+            <div><strong>Specialty:</strong> {{ selectedTechnician.specialty || '-' }}</div>
+            <div>
+              <strong>Status:</strong>
+              <q-badge
+                :label="selectedTechnician._isApproved ? 'Approved' : 'Pending Verification'"
+                :color="selectedTechnician._isApproved ? 'positive' : 'warning'"
+              />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Add/Edit Dialog -->
     <q-dialog v-model="showAddDialog">
@@ -141,6 +173,8 @@ const loading = ref(false)
 const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const showAddDialog = ref(false)
+const showDetailsDialog = ref(false)
+const selectedTechnician = ref(null)
 const editingId = ref(null)
 const editingKeyColumn = ref('id')
 
@@ -302,17 +336,9 @@ const saveTechnician = async () => {
   }
 }
 
-const editTechnician = (technician) => {
-  editingId.value = technician._id
-  editingKeyColumn.value = technician._keyColumn || 'id'
-  formData.value = {
-    full_name: technician.full_name ?? technician._name ?? '',
-    email: technician.email ?? technician._email ?? '',
-    phone_number: technician.phone_number ?? technician._phone ?? '',
-    specialty: technician.specialty ?? '',
-    is_verified: technician._isApproved === true,
-  }
-  showAddDialog.value = true
+const viewTechnician = (technician) => {
+  selectedTechnician.value = technician
+  showDetailsDialog.value = true
 }
 
 const deleteTechnician = async (technician) => {

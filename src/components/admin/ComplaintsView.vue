@@ -25,7 +25,7 @@
     <q-table
       :rows="filteredComplaints"
       :columns="columns"
-      row-key="id"
+      row-key="complaint_id"
       :loading="loading"
       :pagination="tablePagination"
       :rows-per-page-options="[0]"
@@ -43,29 +43,48 @@
             flat
             dense
             round
-            icon="info"
+            icon="visibility"
             size="sm"
-            @click="viewComplaint(props.row)"
             color="primary"
-          />
+            @click="viewComplaint(props.row)"
+          >
+            <q-tooltip>View Details</q-tooltip>
+          </q-btn>
           <q-btn
+            v-if="props.row.status === 'Unsolved'"
             flat
             dense
             round
-            icon="edit"
+            icon="check_circle"
             size="sm"
-            @click="editComplaint(props.row)"
-            color="primary"
-          />
+            color="positive"
+            @click="resolveComplaint(props.row.complaint_id)"
+          >
+            <q-tooltip>Mark as Resolved</q-tooltip>
+          </q-btn>
+          <q-btn
+            v-else
+            flat
+            dense
+            round
+            icon="undo"
+            size="sm"
+            color="warning"
+            @click="unresolveComplaint(props.row.complaint_id)"
+          >
+            <q-tooltip>Reopen Complaint</q-tooltip>
+          </q-btn>
           <q-btn
             flat
             dense
             round
             icon="delete"
             size="sm"
-            @click="deleteComplaint(props.row.id)"
             color="negative"
-          />
+            @click="deleteComplaint(props.row.complaint_id)"
+          >
+            <q-tooltip>Delete</q-tooltip>
+          </q-btn>
         </q-td>
       </template>
     </q-table>
@@ -81,72 +100,35 @@
 
         <q-card-section v-if="selectedComplaint">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedComplaint.id }}</div>
-            <div><strong>Complainant:</strong> {{ selectedComplaint.complainant_name }}</div>
-            <div><strong>Subject:</strong> {{ selectedComplaint.subject }}</div>
-            <div><strong>Description:</strong> {{ selectedComplaint.description }}</div>
+            <div><strong>Complaint ID:</strong> #{{ selectedComplaint.complaint_id }}</div>
+            <div><strong>Role:</strong> {{ selectedComplaint.complainant_role || '—' }}</div>
+            <div><strong>Issue Type:</strong> {{ selectedComplaint.issue_type || '—' }}</div>
+            <div v-if="selectedComplaint.request_id">
+              <strong>Related Request:</strong> #{{ selectedComplaint.request_id }}
+            </div>
+            <div><strong>Description:</strong> {{ selectedComplaint.description || '—' }}</div>
             <div>
               <strong>Status:</strong>
               <q-badge
                 :label="selectedComplaint.status"
                 :color="getStatusColor(selectedComplaint.status)"
+                class="q-ml-xs"
               />
-            </div>
-            <div>
-              <strong>Priority:</strong>
-              <q-badge
-                :label="selectedComplaint.priority"
-                :color="getPriorityColor(selectedComplaint.priority)"
-              />
-            </div>
-            <div><strong>Submitted:</strong> {{ formatDate(selectedComplaint.created_at) }}</div>
-            <div v-if="selectedComplaint.resolution">
-              <strong>Resolution:</strong> {{ selectedComplaint.resolution }}
             </div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
+          <q-btn
+            v-if="selectedComplaint?.status === 'Unsolved'"
+            unelevated
+            no-caps
+            color="positive"
+            label="Mark Resolved"
+            @click="resolveComplaint(selectedComplaint.complaint_id); showDetailsDialog = false"
+          />
           <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Edit Dialog -->
-    <q-dialog v-model="showEditDialog">
-      <q-card class="admin-dialog-card" style="min-width: 400px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Edit Complaint</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="showEditDialog = false" />
-        </q-card-section>
-
-        <q-card-section>
-          <q-form @submit="saveComplaint">
-            <q-select
-              v-model="formData.status"
-              :options="statusOptions"
-              outlined
-              label="Status"
-              class="q-mb-md"
-            />
-            <q-select
-              v-model="formData.priority"
-              :options="priorityOptions"
-              outlined
-              label="Priority"
-              class="q-mb-md"
-            />
-            <q-input
-              v-model="formData.resolution"
-              label="Resolution"
-              outlined
-              class="q-mb-md"
-              type="textarea"
-            />
-            <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
-          </q-form>
-        </q-card-section>
       </q-card>
     </q-dialog>
   </div>
@@ -160,16 +142,15 @@ import { supabase } from 'src/boot/supabase'
 const $q = useQuasar()
 
 const columns = [
-  { name: 'id', label: 'ID', field: 'id', align: 'left' },
-  { name: 'complainant_name', label: 'Complainant', field: 'complainant_name', align: 'left' },
-  { name: 'subject', label: 'Subject', field: 'subject', align: 'left' },
-  { name: 'priority', label: 'Priority', field: 'priority', align: 'center' },
+  { name: 'complaint_id', label: 'ID', field: 'complaint_id', align: 'left' },
+  { name: 'complainant_role', label: 'Role', field: 'complainant_role', align: 'left' },
+  { name: 'issue_type', label: 'Issue Type', field: 'issue_type', align: 'left' },
+  { name: 'description', label: 'Description', field: 'description', align: 'left' },
   { name: 'status', label: 'Status', field: 'status', align: 'center' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
 
-const statusOptions = ['open', 'in-progress', 'resolved', 'closed']
-const priorityOptions = ['low', 'medium', 'high', 'critical']
+const statusOptions = ['Unsolved', 'Resolved']
 
 const complaints = ref([])
 const loading = ref(false)
@@ -177,15 +158,7 @@ const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const filterStatus = ref(null)
 const showDetailsDialog = ref(false)
-const showEditDialog = ref(false)
 const selectedComplaint = ref(null)
-const editingId = ref(null)
-
-const formData = ref({
-  status: '',
-  priority: '',
-  resolution: '',
-})
 
 const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
 
@@ -194,8 +167,9 @@ const filteredComplaints = computed(() => {
 
   return complaints.value.filter((comp) => {
     const matchesSearch =
-      normalizeText(comp.complainant_name).toLowerCase().includes(query) ||
-      normalizeText(comp.subject).toLowerCase().includes(query)
+      normalizeText(comp.issue_type).toLowerCase().includes(query) ||
+      normalizeText(comp.description).toLowerCase().includes(query) ||
+      normalizeText(comp.complainant_role).toLowerCase().includes(query)
 
     const matchesStatus = !filterStatus.value || comp.status === filterStatus.value
 
@@ -227,38 +201,35 @@ const viewComplaint = (complaint) => {
   showDetailsDialog.value = true
 }
 
-const editComplaint = (complaint) => {
-  editingId.value = complaint.id
-  formData.value = {
-    status: complaint.status,
-    priority: complaint.priority,
-    resolution: complaint.resolution || '',
-  }
-  showEditDialog.value = true
-}
-
-const saveComplaint = async () => {
+const resolveComplaint = async (id) => {
   try {
     const { error } = await supabase
       .from('complaint')
-      .update(formData.value)
-      .eq('id', editingId.value)
+      .update({ status: 'Resolved' })
+      .eq('complaint_id', id)
 
     if (error) throw error
-    $q.notify({
-      type: 'positive',
-      message: 'Complaint updated successfully',
-      position: 'top',
-    })
-    showEditDialog.value = false
+    $q.notify({ type: 'positive', message: 'Complaint marked as Resolved', position: 'top' })
     loadComplaints()
   } catch (error) {
-    console.error('Error saving complaint:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Error saving complaint',
-      position: 'top',
-    })
+    console.error('Error resolving complaint:', error)
+    $q.notify({ type: 'negative', message: 'Failed to resolve complaint', position: 'top' })
+  }
+}
+
+const unresolveComplaint = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('complaint')
+      .update({ status: 'Unsolved' })
+      .eq('complaint_id', id)
+
+    if (error) throw error
+    $q.notify({ type: 'warning', message: 'Complaint reopened', position: 'top' })
+    loadComplaints()
+  } catch (error) {
+    console.error('Error reopening complaint:', error)
+    $q.notify({ type: 'negative', message: 'Failed to reopen complaint', position: 'top' })
   }
 }
 
@@ -271,7 +242,7 @@ const deleteComplaint = async (id) => {
       persistent: true,
     })
 
-    const { error } = await supabase.from('complaint').delete().eq('id', id)
+    const { error } = await supabase.from('complaint').delete().eq('complaint_id', id)
 
     if (error) throw error
     $q.notify({
@@ -298,22 +269,10 @@ const getStatusColor = (status) => {
     'in-progress': 'blue',
     resolved: 'green',
     closed: 'grey',
+    Unsolved: 'orange',
+    Resolved: 'green',
   }
   return colors[status] || 'grey'
-}
-
-const getPriorityColor = (priority) => {
-  const colors = {
-    low: 'green',
-    medium: 'orange',
-    high: 'red',
-    critical: 'dark-red',
-  }
-  return colors[priority] || 'grey'
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleString()
 }
 
 loadComplaints()

@@ -313,7 +313,14 @@ const toDateKey = (value) => {
 }
 
 const getRowDate = (row) =>
-  row.created_at ?? row.updated_at ?? row.inserted_at ?? row.createdAt ?? row.updatedAt ?? null
+  row.date_created ??
+  row.request_date ??
+  row.created_at ??
+  row.updated_at ??
+  row.inserted_at ??
+  row.createdAt ??
+  row.updatedAt ??
+  null
 
 const buildDayBuckets = (days) => {
   const buckets = []
