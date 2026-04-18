@@ -69,7 +69,6 @@
             <div><strong>Name:</strong> {{ selectedCustomer._name }}</div>
             <div><strong>Email:</strong> {{ selectedCustomer._email }}</div>
             <div><strong>Phone:</strong> {{ selectedCustomer._phone }}</div>
-            <div><strong>Address:</strong> {{ selectedCustomer.address || '-' }}</div>
           </div>
         </q-card-section>
 
@@ -112,13 +111,6 @@
               class="q-mb-md"
               :rules="[(val) => (val && val.length > 0) || 'Phone is required']"
             />
-            <q-input
-              v-model="formData.address"
-              label="Address"
-              outlined
-              class="q-mb-md"
-              type="textarea"
-            />
             <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
           </q-form>
         </q-card-section>
@@ -139,7 +131,6 @@ const columns = [
   { name: 'name', label: 'Name', field: '_name', align: 'left' },
   { name: 'email', label: 'Email', field: '_email', align: 'left' },
   { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
-  { name: 'address', label: 'Address', field: 'address', align: 'left' },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
 ]
 
@@ -157,7 +148,6 @@ const formData = ref({
   name: '',
   email: '',
   phone: '',
-  address: '',
 })
 
 const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
@@ -211,7 +201,6 @@ const saveCustomer = async () => {
       full_name: formData.value.name,
       email: formData.value.email,
       phone_number: formData.value.phone,
-      address: formData.value.address || null,
     }
 
     if (editingId.value) {
@@ -286,7 +275,6 @@ const resetForm = () => {
     name: '',
     email: '',
     phone: '',
-    address: '',
   }
   editingId.value = null
   editingKeyColumn.value = 'user_id'

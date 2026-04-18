@@ -25,6 +25,16 @@
       </q-input>
 
       <q-select
+        v-model="accountTypeFilter"
+        dense
+        outlined
+        emit-value
+        map-options
+        :options="accountTypeOptions"
+        class="toolbar-filter"
+      />
+
+      <q-select
         v-model="statusFilter"
         dense
         outlined
@@ -230,12 +240,19 @@ const loading = ref(false)
 const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const statusFilter = ref('all')
+const accountTypeFilter = ref('all')
 const showDialog = ref(false)
 const selectedRow = ref(null)
 const showRejectDialog = ref(false)
 const rejectReason = ref('')
 const rejectTargetRow = ref(null)
 const rejectSaving = ref(false)
+
+const accountTypeOptions = [
+  { label: 'All accounts', value: 'all' },
+  { label: 'Technician', value: 'technician' },
+  { label: 'User', value: 'user' },
+]
 
 const statusOptions = [
   { label: 'All statuses', value: 'all' },
@@ -248,6 +265,10 @@ const filteredRows = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
   return rows.value.filter((row) => {
+    const matchesAccount =
+      accountTypeFilter.value === 'all' || row.account_type === accountTypeFilter.value
+    if (!matchesAccount) return false
+
     const matchesStatus = statusFilter.value === 'all' || row.review_status === statusFilter.value
     if (!matchesStatus) return false
 
