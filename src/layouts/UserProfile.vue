@@ -982,7 +982,7 @@ const submitComplaint = async () => {
       status: 'Unsolved',
       complainant_role: isTechnician.value ? 'technician' : 'customer',
       user_auth_id: currentAuthUser.value?.id || null,
-      user_id: isTechnician.value ? technicianId.value : customerId.value,
+      user_id: isTechnician.value ? null : customerId.value,
       complained_against_id: isTechnician.value ? complaintForm.value.customer_id : null,
     }
 
