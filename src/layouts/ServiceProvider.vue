@@ -306,6 +306,15 @@
 
                   <p class="req-desc">{{ req.description_of_issue || 'No description' }}</p>
 
+                  <div v-if="req.attached_image" class="req-image">
+                    <img
+                      :src="req.attached_image"
+                      alt="Attached image"
+                      class="req-attached-img"
+                      @click="previewImage = req.attached_image"
+                    />
+                  </div>
+
                   <div class="req-meta">
                     <div v-if="req.request_date" class="meta-item">
                       <q-icon name="event" size="14px" color="grey-6" /><span>{{
@@ -339,7 +348,7 @@
                   <div class="req-actions">
                     <div v-if="hasMyOffer(req)" class="offer-status">
                       <q-icon name="check_circle" color="positive" size="sm" />
-                      <span>Offer submitted: {{ req.fixer_price }} EGP</span>
+                      <span>Offer submitted: {{ getMyOffer(req).offered_price }} EGP</span>
                       <q-badge
                         :color="statusColor(req.request_status)"
                         :label="req.request_status || 'pending'"
@@ -348,8 +357,8 @@
                     </div>
                     <q-btn
                       v-if="activeTab !== 'orders' && !isOfferAccepted(req)"
-                      :color="isRequestTaken(req) ? 'grey-5' : 'primary'"
-                      label="Place Bid"
+                      :color="isRequestTaken(req) || hasMyOffer(req) ? 'grey-5' : 'primary'"
+                      :label="hasMyOffer(req) ? 'Update Bid' : 'Place Bid'"
                       icon="gavel"
                       no-caps
                       unelevated
@@ -359,27 +368,36 @@
                     />
                     <div
                       v-if="canRespondToCustomerOffer(req)"
-                      class="row items-center q-gutter-sm q-mt-sm"
+                      class="counter-offer-section q-mt-sm"
                     >
-                      <q-btn
-                        unelevated
-                        dense
-                        color="positive"
-                        icon="check_circle"
-                        label="Accept Customer Offer"
-                        no-caps
-                        :loading="acceptingCounterOfferId === req.request_id"
-                        @click="acceptCustomerOffer(req)"
-                      />
-                      <q-btn
-                        unelevated
-                        dense
-                        color="warning"
-                        icon="gavel"
-                        label="Bargain"
-                        no-caps
-                        @click="openCounterOfferDialog(req)"
-                      />
+                      <div class="counter-offer-banner">
+                        <q-icon name="person" size="18px" color="green-8" />
+                        <span
+                          >Customer counter-offer:
+                          <strong>{{ getMyOffer(req).customer_counter_price }} EGP</strong></span
+                        >
+                      </div>
+                      <div class="row items-center q-gutter-sm q-mt-sm">
+                        <q-btn
+                          unelevated
+                          dense
+                          color="positive"
+                          icon="check_circle"
+                          :label="`Accept ${getMyOffer(req).customer_counter_price} EGP`"
+                          no-caps
+                          :loading="acceptingCounterOfferId === req.request_id"
+                          @click="acceptCustomerOffer(req)"
+                        />
+                        <q-btn
+                          unelevated
+                          dense
+                          color="warning"
+                          icon="gavel"
+                          label="Bargain"
+                          no-caps
+                          @click="openCounterOfferDialog(req)"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -537,6 +555,16 @@
             :disable="!selectedEta"
             @click="handleSubmitEta"
           />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Image Preview Dialog -->
+    <q-dialog v-model="previewImage">
+      <q-card style="max-width: 90vw; max-height: 90vh">
+        <q-img :src="previewImage" fit="contain" style="max-height: 80vh" />
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -775,6 +803,7 @@ const specialty = ref('')
 const technicianId = ref(null)
 const yearsOfExperience = ref(null)
 const requests = ref([])
+const myOffers = ref({})
 const requestsLoading = ref(false)
 const requestsError = ref(null)
 const selectedDistricts = ref([])
@@ -787,6 +816,7 @@ const orderStatusOptions = [
   { label: 'Completed', value: 'completed' },
 ]
 const offerDialogOpen = ref(false)
+const previewImage = ref(null)
 const offerTarget = ref(null)
 const offerPrice = ref(null)
 const offerMessage = ref('')
@@ -900,7 +930,8 @@ const statusColor = (status) =>
     completed: 'green',
     cancelled: 'red',
   })[status?.toLowerCase()] || 'grey'
-const hasMyOffer = (req) => req.fixer_price && req.technician_id === technicianId.value
+const getMyOffer = (req) => myOffers.value[req.request_id] || null
+const hasMyOffer = (req) => !!getMyOffer(req)
 
 const isOfferAccepted = (req) => (req?.request_status || '').toLowerCase() === 'accepted'
 
@@ -910,14 +941,28 @@ const isRequestTaken = (req) => {
 }
 
 const canRespondToCustomerOffer = (req) => {
-  if (req.technician_id !== technicianId.value) return false
+  const offer = getMyOffer(req)
+  if (!offer) return false
   if ((req.request_status || 'pending').toLowerCase() !== 'pending') return false
-  if (req.customer_price === null || req.customer_price === undefined) return false
-  if (!req.fixer_price) return false
-  const cp = Number(req.customer_price)
-  const fp = Number(req.fixer_price)
+  if (offer.customer_counter_price === null || offer.customer_counter_price === undefined)
+    return false
+  const cp = Number(offer.customer_counter_price)
+  const fp = Number(offer.offered_price)
   if (!Number.isFinite(cp) || !Number.isFinite(fp)) return false
   return cp !== fp
+}
+
+const fetchMyOffers = async () => {
+  if (!technicianId.value) return
+  const { data } = await supabase
+    .from('request_offers')
+    .select('*')
+    .eq('technician_id', technicianId.value)
+  const map = {}
+  ;(data || []).forEach((o) => {
+    map[o.request_id] = o
+  })
+  myOffers.value = map
 }
 
 const fetchRequests = async () => {
@@ -935,6 +980,7 @@ const fetchRequests = async () => {
     requestsLoading.value = false
     return
   }
+  await fetchMyOffers()
   requests.value = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
@@ -971,13 +1017,15 @@ const fetchAcceptedOrders = async () => {
 
 const openOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value = req.fixer_price || req.customer_price || null
+  const existing = getMyOffer(req)
+  offerPrice.value = existing?.offered_price || req.customer_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
 const openCounterOfferDialog = (req) => {
   offerTarget.value = req
-  offerPrice.value = req.customer_price || req.fixer_price || null
+  const existing = getMyOffer(req)
+  offerPrice.value = existing?.customer_counter_price || existing?.offered_price || null
   offerMessage.value = ''
   offerDialogOpen.value = true
 }
@@ -999,13 +1047,24 @@ const waitForSubscribed = (channel) =>
 
 const acceptCustomerOffer = async (req) => {
   if (!req?.request_id) return
-  const acceptedPrice = Number(req.customer_price)
+  const offer = getMyOffer(req)
+  if (!offer) return
+  const acceptedPrice = Number(offer.customer_counter_price)
   if (!Number.isFinite(acceptedPrice) || acceptedPrice <= 0) {
     $q.notify({ type: 'warning', message: 'Customer offer is invalid.' })
     return
   }
   acceptingCounterOfferId.value = req.request_id
-  const { data: updatedRequest, error: requestError } = await supabase
+  const { error: offerErr } = await supabase
+    .from('request_offers')
+    .update({ offered_price: acceptedPrice, status: 'accepted' })
+    .eq('offer_id', offer.offer_id)
+  if (offerErr) {
+    acceptingCounterOfferId.value = null
+    $q.notify({ type: 'negative', message: 'Failed to accept: ' + offerErr.message })
+    return
+  }
+  const { error: requestError } = await supabase
     .from('request')
     .update({
       fixer_price: acceptedPrice,
@@ -1014,20 +1073,11 @@ const acceptCustomerOffer = async (req) => {
       final_price: acceptedPrice,
     })
     .eq('request_id', req.request_id)
-    .select('request_id, fixer_price, customer_price, request_status, technician_id')
-    .maybeSingle()
   acceptingCounterOfferId.value = null
   if (requestError) {
     $q.notify({
       type: 'negative',
       message: 'Failed to accept customer offer: ' + requestError.message,
-    })
-    return
-  }
-  if (!updatedRequest) {
-    $q.notify({
-      type: 'negative',
-      message: 'Offer was not accepted. Please refresh and try again.',
     })
     return
   }
@@ -1048,22 +1098,26 @@ const submitOffer = async () => {
   }
   offerSubmitting.value = true
   const trimmedMessage = (offerMessage.value || '').trim()
-  const { data: updatedRequest, error } = await supabase
-    .from('request')
-    .update({
-      fixer_price: normalizedPrice,
-      technician_id: technicianId.value,
-      fixer_message: trimmedMessage || null,
-    })
-    .eq('request_id', offerTarget.value.request_id)
-    .select('request_id, fixer_price, technician_id, request_status')
+  const { data: upsertedOffer, error } = await supabase
+    .from('request_offers')
+    .upsert(
+      {
+        request_id: offerTarget.value.request_id,
+        technician_id: technicianId.value,
+        offered_price: normalizedPrice,
+        fixer_message: trimmedMessage || null,
+        status: 'pending',
+      },
+      { onConflict: 'request_id,technician_id' },
+    )
+    .select()
     .maybeSingle()
   offerSubmitting.value = false
   if (error) {
     $q.notify({ type: 'negative', message: 'Failed to submit offer: ' + error.message })
     return
   }
-  if (!updatedRequest) {
+  if (!upsertedOffer) {
     $q.notify({
       type: 'negative',
       message: 'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
@@ -1588,6 +1642,21 @@ onBeforeUnmount(() => {
   margin: 0 0 12px;
   white-space: pre-line;
 }
+.req-image {
+  margin-bottom: 12px;
+}
+.req-attached-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--san3a-radius-md);
+  border: 1px solid var(--san3a-gray-200);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.req-attached-img:hover {
+  opacity: 0.85;
+}
 .req-meta {
   display: flex;
   flex-direction: column;
@@ -1616,6 +1685,18 @@ onBeforeUnmount(() => {
   font-size: 14px;
   color: var(--san3a-success);
   font-weight: 600;
+}
+
+.counter-offer-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+  border-radius: var(--san3a-radius-md);
+  font-size: 14px;
+  color: var(--san3a-gray-800);
 }
 
 .offer-dialog {

@@ -305,7 +305,7 @@
         <q-tab
           name="offers"
           icon="handshake"
-          label="Offers"
+          label="Requests"
           @click="$router.push('/incoming-offers')"
         />
         <q-tab name="orders" icon="receipt_long" label="Orders" @click="$router.push('/orders')" />

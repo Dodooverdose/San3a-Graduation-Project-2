@@ -79,34 +79,25 @@
 
               <div class="field-group">
                 <label class="field-label">Appointment Time</label>
-                <div class="time-row">
-                  <q-input
-                    v-model="appointmentTime"
-                    outlined
-                    dense
-                    class="san3a-input time-field"
-                    placeholder="HH:MM"
-                  >
-                    <template #prepend>
-                      <q-icon name="access_time" class="cursor-pointer">
-                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-time v-model="appointmentTime" mask="hh:mm">
-                            <div class="row items-center justify-end">
-                              <q-btn v-close-popup label="Close" color="primary" flat />
-                            </div>
-                          </q-time>
-                        </q-popup-proxy>
-                      </q-icon>
-                    </template>
-                  </q-input>
-                  <q-select
-                    v-model="amPm"
-                    :options="['AM', 'PM']"
-                    outlined
-                    dense
-                    class="san3a-input ampm-field"
-                  />
-                </div>
+                <q-input
+                  v-model="appointmentTime"
+                  outlined
+                  dense
+                  class="san3a-input"
+                  placeholder="HH:MM"
+                >
+                  <template #prepend>
+                    <q-icon name="access_time" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-time v-model="appointmentTime" mask="hh:mm A">
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-time>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
 
               <div class="field-group full-width">
@@ -174,16 +165,6 @@
               >
                 <q-tooltip>Attach Photos</q-tooltip>
               </q-btn>
-              <q-btn
-                flat
-                round
-                icon="location_on"
-                color="primary"
-                size="md"
-                @click="attachLocation"
-              >
-                <q-tooltip>Attach Location</q-tooltip>
-              </q-btn>
               <q-space />
               <q-btn
                 unelevated
@@ -219,20 +200,6 @@
                   @click="removeImage(i)"
                 />
               </div>
-            </div>
-
-            <div v-if="location" class="location-info">
-              <q-icon name="location_on" color="positive" size="sm" />
-              <span>{{ location }}</span>
-              <q-btn
-                flat
-                round
-                dense
-                icon="close"
-                size="xs"
-                color="negative"
-                @click="location = null"
-              />
             </div>
           </div>
 
@@ -367,10 +334,8 @@ const requestHistory = ref([])
 const historyLoading = ref(false)
 const historyError = ref(null)
 const selectedImages = ref([])
-const location = ref(null)
 const appointmentDate = ref(null)
 const appointmentTime = ref(null)
-const amPm = ref('AM')
 const paymentMethod = ref('cash')
 const district = ref(null)
 const urgency = ref('standard')
@@ -514,35 +479,6 @@ const removeImage = (index) => {
   selectedImages.value.splice(index, 1)
 }
 
-const attachLocation = () => {
-  if (!navigator.geolocation) {
-    $q.notify({ type: 'negative', message: 'Geolocation is not supported' })
-    return
-  }
-  $q.loading.show({ message: 'Getting location...' })
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const { latitude, longitude } = pos.coords
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          { headers: { 'Accept-Language': 'en' } },
-        )
-        const data = await res.json()
-        location.value = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-      } catch {
-        location.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-      }
-      $q.loading.hide()
-      $q.notify({ type: 'positive', message: 'Location attached!' })
-    },
-    () => {
-      $q.loading.hide()
-      $q.notify({ type: 'negative', message: 'Unable to get your location' })
-    },
-  )
-}
-
 const submitRequest = async () => {
   if (
     !requestText.value.trim() ||
@@ -562,11 +498,28 @@ const submitRequest = async () => {
 
   let scheduleTime = null
   if (appointmentDate.value && appointmentTime.value) {
-    const [hh, mm] = appointmentTime.value.split(':')
+    const [time, period] = appointmentTime.value.split(' ')
+    const [hh, mm] = time.split(':')
     let hours = parseInt(hh, 10)
-    if (amPm.value === 'PM' && hours < 12) hours += 12
-    if (amPm.value === 'AM' && hours === 12) hours = 0
+    if (period === 'PM' && hours < 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
     scheduleTime = `${appointmentDate.value}T${String(hours).padStart(2, '0')}:${mm}:00`
+  }
+
+  let attachedImageUrl = null
+  if (selectedImages.value.length > 0) {
+    const imgFile = selectedImages.value[0].file
+    const fileExt = imgFile.name.split('.').pop()
+    const filePath = `${currentUserId.value}/${Date.now()}.${fileExt}`
+    const { error: uploadErr } = await supabase.storage
+      .from('request-images')
+      .upload(filePath, imgFile)
+    if (uploadErr) {
+      $q.notify({ type: 'negative', message: 'Failed to upload image: ' + uploadErr.message })
+      return
+    }
+    const { data: urlData } = supabase.storage.from('request-images').getPublicUrl(filePath)
+    attachedImageUrl = urlData.publicUrl
   }
 
   const { error } = await supabase.from('request').insert({
@@ -578,6 +531,7 @@ const submitRequest = async () => {
     user_id: currentUserId.value,
     service_type: props.serviceType,
     request_status: 'pending',
+    attached_image: attachedImageUrl,
   })
 
   if (error) {
@@ -589,10 +543,8 @@ const submitRequest = async () => {
   requestText.value = ''
   selectedImages.value.forEach((img) => URL.revokeObjectURL(img.url))
   selectedImages.value = []
-  location.value = null
   appointmentDate.value = null
   appointmentTime.value = null
-  amPm.value = 'AM'
   paymentMethod.value = 'cash'
   urgency.value = 'standard'
   district.value = null

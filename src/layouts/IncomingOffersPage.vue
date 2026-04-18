@@ -224,63 +224,6 @@
 
             <p class="offer-desc">{{ req.description_of_issue || 'No description' }}</p>
 
-            <div v-if="getFixerMessage(req)" class="fixer-message">
-              <div class="fixer-message-title">Fixer message</div>
-              <div class="fixer-message-body">{{ getFixerMessage(req) }}</div>
-            </div>
-
-            <div class="price-row">
-              <q-chip
-                v-if="req.fixer_price"
-                dense
-                color="orange-2"
-                text-color="orange-9"
-                icon="build"
-                >Fixer offer: {{ req.fixer_price }} EGP</q-chip
-              >
-              <q-chip
-                v-if="req.customer_price"
-                dense
-                color="green-2"
-                text-color="green-9"
-                icon="person"
-                >Your offer: {{ req.customer_price }} EGP</q-chip
-              >
-              <q-chip
-                v-if="req.final_price"
-                dense
-                color="teal-2"
-                text-color="teal-9"
-                icon="check_circle"
-                >Final price: {{ req.final_price }} EGP</q-chip
-              >
-            </div>
-
-            <div v-if="req.fixerInfo" class="fixer-info">
-              <div class="fixer-info-title">Fixer Details</div>
-              <div class="fixer-detail-row">
-                <q-icon name="person" size="14px" color="grey-7" /><span>{{
-                  req.fixerInfo.full_name || 'Unknown fixer'
-                }}</span>
-              </div>
-              <div v-if="req.fixerInfo.phone_number" class="fixer-detail-row">
-                <q-icon name="phone" size="14px" color="grey-7" /><span>{{
-                  req.fixerInfo.phone_number
-                }}</span>
-              </div>
-              <div
-                v-if="
-                  req.fixerInfo.years_of_experience !== null &&
-                  req.fixerInfo.years_of_experience !== undefined
-                "
-                class="fixer-detail-row"
-              >
-                <q-icon name="workspace_premium" size="14px" color="grey-7" /><span
-                  >{{ req.fixerInfo.years_of_experience }} years of experience</span
-                >
-              </div>
-            </div>
-
             <div class="meta-row">
               <div v-if="req.request_date" class="meta-item">
                 <q-icon name="event" size="14px" color="grey-6" /><span>{{
@@ -300,39 +243,114 @@
               </div>
             </div>
 
-            <div v-if="isOfferActionable(req)" class="action-row">
-              <q-btn
-                unelevated
-                dense
-                color="positive"
-                icon="check_circle"
-                label="Accept"
-                no-caps
-                class="action-btn"
-                :loading="req._accepting"
-                @click="acceptOffer(req)"
-              />
-              <q-btn
-                unelevated
-                dense
-                color="negative"
-                icon="cancel"
-                label="Reject"
-                no-caps
-                class="action-btn"
-                :loading="req._rejecting"
-                @click="rejectOffer(req)"
-              />
-              <q-btn
-                unelevated
-                dense
-                color="warning"
-                icon="gavel"
-                label="Bargain"
-                no-caps
-                class="action-btn"
-                @click="openBargain(req)"
-              />
+            <div v-if="req.final_price" class="price-row q-mb-sm">
+              <q-chip dense color="teal-2" text-color="teal-9" icon="check_circle"
+                >Final price: {{ req.final_price }} EGP</q-chip
+              >
+            </div>
+
+            <!-- Multiple Offers -->
+            <div class="offers-list">
+              <div class="offers-list-title">
+                <q-icon name="people" size="16px" color="primary" />
+                <span
+                  >{{ req.offers.length }} {{ req.offers.length === 1 ? 'offer' : 'offers' }}</span
+                >
+              </div>
+              <div
+                v-for="offer in req.offers"
+                :key="offer.offer_id"
+                class="single-offer"
+                :class="{
+                  'offer-accepted': offer.status === 'accepted',
+                  'offer-rejected': offer.status === 'rejected',
+                }"
+              >
+                <div class="single-offer-header">
+                  <div class="fixer-name-row">
+                    <q-icon name="person" size="16px" color="grey-7" />
+                    <span class="fixer-name">{{
+                      offer.fixerInfo?.full_name || 'Unknown fixer'
+                    }}</span>
+                  </div>
+                  <q-badge
+                    :color="
+                      offer.status === 'accepted'
+                        ? 'green'
+                        : offer.status === 'rejected'
+                          ? 'red'
+                          : 'orange'
+                    "
+                    :label="offer.status"
+                    class="text-capitalize"
+                  />
+                </div>
+
+                <div v-if="offer.fixerInfo" class="fixer-info-compact">
+                  <span v-if="offer.fixerInfo.phone_number">
+                    <q-icon name="phone" size="12px" color="grey-6" />
+                    {{ offer.fixerInfo.phone_number }}
+                  </span>
+                  <span v-if="offer.fixerInfo.years_of_experience != null">
+                    <q-icon name="workspace_premium" size="12px" color="grey-6" />
+                    {{ offer.fixerInfo.years_of_experience }} yrs
+                  </span>
+                </div>
+
+                <div v-if="offer.fixer_message" class="fixer-message">
+                  <div class="fixer-message-title">Message</div>
+                  <div class="fixer-message-body">{{ offer.fixer_message }}</div>
+                </div>
+
+                <div class="price-row">
+                  <q-chip dense color="orange-2" text-color="orange-9" icon="build"
+                    >Offer: {{ offer.offered_price }} EGP</q-chip
+                  >
+                  <q-chip
+                    v-if="offer.customer_counter_price"
+                    dense
+                    color="green-2"
+                    text-color="green-9"
+                    icon="person"
+                    >Your counter: {{ offer.customer_counter_price }} EGP</q-chip
+                  >
+                </div>
+
+                <div v-if="isOfferActionable(req) && offer.status === 'pending'" class="action-row">
+                  <q-btn
+                    unelevated
+                    dense
+                    color="positive"
+                    icon="check_circle"
+                    label="Accept"
+                    no-caps
+                    class="action-btn"
+                    :loading="offer._accepting"
+                    @click="acceptOffer(req, offer)"
+                  />
+                  <q-btn
+                    unelevated
+                    dense
+                    color="negative"
+                    icon="cancel"
+                    label="Reject"
+                    no-caps
+                    class="action-btn"
+                    :loading="offer._rejecting"
+                    @click="rejectOffer(offer)"
+                  />
+                  <q-btn
+                    unelevated
+                    dense
+                    color="warning"
+                    icon="gavel"
+                    label="Bargain"
+                    no-caps
+                    class="action-btn"
+                    @click="openBargain(offer)"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -343,9 +361,9 @@
     <q-dialog v-model="bargainDialog" persistent>
       <q-card class="bargain-card">
         <q-card-section>
-          <div class="bargain-title">Make an Offer</div>
+          <div class="bargain-title">Make a Counter-Offer</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Fixer's price: <strong>{{ bargainTarget?.fixer_price }} EGP</strong>
+            Fixer's price: <strong>{{ bargainTarget?.offered_price }} EGP</strong>
           </div>
         </q-card-section>
         <q-form ref="bargainForm">
@@ -541,7 +559,6 @@ const {
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
 const messageSubscription = ref(null)
-const transientFixerMessages = ref(new Map())
 const myBargainChannel = ref(null)
 
 const {
@@ -638,16 +655,6 @@ const formatDate = (dateStr) => {
   })
 }
 
-const setTransientFixerMessage = (requestId, message) => {
-  const next = new Map(transientFixerMessages.value)
-  if (message) next.set(requestId, message)
-  else next.delete(requestId)
-  transientFixerMessages.value = next
-}
-
-const getFixerMessage = (req) =>
-  transientFixerMessages.value.get(req.request_id) || req.fixer_message || ''
-
 const openNotification = (notif, index) => {
   if (handleCompletionNotifClick(notif, index)) return
   markAsRead(index)
@@ -688,13 +695,15 @@ const fetchIncomingOffers = async () => {
       return
     }
     customerUserId.value = customer.user_id
+
+    // Fetch requests that are not completed
     const { data: requestsData, error: requestsErr } = await supabase
       .from('request')
       .select(
         'request_id, user_id, request_status, description_of_issue, request_date, schedule_time, service_location, payment_method, customer_price, fixer_price, final_price, technician_id, fixer_message, service_type',
       )
       .eq('user_id', customer.user_id)
-      .not('technician_id', 'is', null)
+      .neq('request_status', 'completed')
       .order('request_id', { ascending: false })
 
     if (requestsErr) {
@@ -702,22 +711,78 @@ const fetchIncomingOffers = async () => {
       incomingOffers.value = []
     } else {
       const requestRows = requestsData || []
-      const technicianIds = [...new Set(requestRows.map((r) => r.technician_id).filter(Boolean))]
-      let technicianMap = {}
-      if (technicianIds.length) {
+      const requestIds = requestRows.map((r) => r.request_id)
+
+      // Fetch all offers for these requests
+      let offersMap = {}
+      if (requestIds.length) {
+        const { data: offersData } = await supabase
+          .from('request_offers')
+          .select(
+            '*, technician:technician_id(technician_id, full_name, email, phone_number, years_of_experience)',
+          )
+          .in('request_id', requestIds)
+          .order('created_at', { ascending: false })
+        ;(offersData || []).forEach((o) => {
+          if (!offersMap[o.request_id]) offersMap[o.request_id] = []
+          offersMap[o.request_id].push({
+            ...o,
+            fixerInfo: o.technician || null,
+          })
+        })
+      }
+
+      // Build final list – include requests with request_offers entries
+      // AND legacy requests that have fixer_price set directly on the row
+      const result = requestRows
+        .map((r) => {
+          let offers = offersMap[r.request_id] || []
+          // Legacy: if no request_offers rows but fixer_price exists, synthesize an offer
+          if (offers.length === 0 && r.fixer_price && r.technician_id) {
+            offers = [
+              {
+                offer_id: `legacy-${r.request_id}`,
+                request_id: r.request_id,
+                technician_id: r.technician_id,
+                offered_price: r.fixer_price,
+                customer_counter_price: r.customer_price || null,
+                fixer_message: r.fixer_message || null,
+                status: r.request_status === 'accepted' ? 'accepted' : 'pending',
+                fixerInfo: null,
+                _legacy: true,
+              },
+            ]
+          }
+          return { ...r, offers }
+        })
+        .filter((r) => r.offers.length > 0)
+
+      // Fetch technician info for legacy offers missing fixerInfo
+      const legacyTechIds = [
+        ...new Set(
+          result.flatMap((r) =>
+            r.offers.filter((o) => o._legacy && !o.fixerInfo).map((o) => o.technician_id),
+          ),
+        ),
+      ]
+      if (legacyTechIds.length) {
         const { data: techRows } = await supabase
           .from('technician')
           .select('technician_id, full_name, email, phone_number, years_of_experience')
-          .in('technician_id', technicianIds)
-        technicianMap = (techRows || []).reduce((acc, t) => {
-          acc[t.technician_id] = t
-          return acc
-        }, {})
+          .in('technician_id', legacyTechIds)
+        const techMap = {}
+        ;(techRows || []).forEach((t) => {
+          techMap[t.technician_id] = t
+        })
+        result.forEach((r) => {
+          r.offers.forEach((o) => {
+            if (o._legacy && !o.fixerInfo && techMap[o.technician_id]) {
+              o.fixerInfo = techMap[o.technician_id]
+            }
+          })
+        })
       }
-      incomingOffers.value = requestRows.map((r) => ({
-        ...r,
-        fixerInfo: r.technician_id ? technicianMap[r.technician_id] || null : null,
-      }))
+      incomingOffers.value = result
     }
     await loadNotifications()
   } catch (err) {
@@ -736,10 +801,19 @@ const subscribeToIncomingOffers = () => {
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'request',
         filter: `user_id=eq.${customerUserId.value}`,
+      },
+      () => fetchIncomingOffers(),
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'request_offers',
       },
       () => fetchIncomingOffers(),
     )
@@ -750,10 +824,8 @@ const subscribeToFixerMessages = () => {
   messageSubscription.value?.unsubscribe()
   messageSubscription.value = supabase
     .channel('customer-offer-events')
-    .on('broadcast', { event: 'fixer-bid-message' }, ({ payload }) => {
-      if (!payload || !customerUserId.value) return
-      if (String(payload.customerUserId) !== String(customerUserId.value)) return
-      setTransientFixerMessage(payload.requestId, payload.message)
+    .on('broadcast', { event: 'fixer-bid-message' }, () => {
+      fetchIncomingOffers()
     })
     .subscribe()
 }
@@ -795,39 +867,52 @@ const subscribeToFixerBidNotifications = () => {
     .subscribe()
 }
 
-const acceptOffer = async (req) => {
-  req._accepting = true
+const acceptOffer = async (req, offer) => {
+  offer._accepting = true
+  // Mark this offer as accepted
+  const { error: offerErr } = await supabase
+    .from('request_offers')
+    .update({ status: 'accepted' })
+    .eq('offer_id', offer.offer_id)
+  if (offerErr) {
+    offer._accepting = false
+    $q.notify({ type: 'negative', message: 'Failed to accept: ' + offerErr.message })
+    return
+  }
+  // Reject all other pending offers for this request
+  await supabase
+    .from('request_offers')
+    .update({ status: 'rejected' })
+    .eq('request_id', req.request_id)
+    .neq('offer_id', offer.offer_id)
+    .eq('status', 'pending')
+  // Update request with chosen technician
   const { error: reqErr } = await supabase
     .from('request')
     .update({
       request_status: 'accepted',
-      final_price: req.fixer_price,
+      technician_id: offer.technician_id,
+      fixer_price: offer.offered_price,
+      final_price: offer.offered_price,
     })
     .eq('request_id', req.request_id)
 
-  req._accepting = false
+  offer._accepting = false
   if (reqErr)
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to accept: ' + reqErr.message,
-    })
+    $q.notify({ type: 'negative', message: 'Failed to update request: ' + reqErr.message })
   else {
-    req.request_status = 'accepted'
     $q.notify({ type: 'positive', message: 'Offer accepted!' })
     await fetchIncomingOffers()
   }
 }
 
-const rejectOffer = async (req) => {
-  req._rejecting = true
+const rejectOffer = async (offer) => {
+  offer._rejecting = true
   const { error: err } = await supabase
-    .from('request')
-    .update({
-      fixer_price: null,
-      technician_id: null,
-    })
-    .eq('request_id', req.request_id)
-  req._rejecting = false
+    .from('request_offers')
+    .update({ status: 'rejected' })
+    .eq('offer_id', offer.offer_id)
+  offer._rejecting = false
   if (err) $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
   else {
     $q.notify({ type: 'warning', message: 'Offer rejected.' })
@@ -841,9 +926,9 @@ const bargainPrice = ref(null)
 const bargainLoading = ref(false)
 const bargainForm = ref(null)
 
-const openBargain = (req) => {
-  bargainTarget.value = req
-  bargainPrice.value = req.customer_price ? Number(req.customer_price) : null
+const openBargain = (offer) => {
+  bargainTarget.value = offer
+  bargainPrice.value = offer.customer_counter_price ? Number(offer.customer_counter_price) : null
   bargainDialog.value = true
 }
 
@@ -869,9 +954,9 @@ const submitBargain = async () => {
   if (!price || price <= 0) return
   bargainLoading.value = true
   const { data, error: err } = await supabase
-    .from('request')
-    .update({ customer_price: price })
-    .eq('request_id', bargainTarget.value.request_id)
+    .from('request_offers')
+    .update({ customer_counter_price: price })
+    .eq('offer_id', bargainTarget.value.offer_id)
     .select()
   bargainLoading.value = false
   if (err) {
@@ -881,7 +966,7 @@ const submitBargain = async () => {
     console.warn('[Bargain] 0 rows updated')
     $q.notify({ type: 'warning', message: 'Update blocked — check database permissions.' })
   } else {
-    bargainTarget.value.customer_price = price
+    bargainTarget.value.customer_counter_price = price
     bargainDialog.value = false
     let fixerEmail = bargainTarget.value.fixerInfo?.email || null
     if (!fixerEmail && bargainTarget.value.technician_id) {
@@ -934,6 +1019,7 @@ const submitBargain = async () => {
         supabase.removeChannel(fixerChannel)
       }
     }
+    await fetchIncomingOffers()
   }
 }
 
@@ -1132,6 +1218,61 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: var(--san3a-gray-600);
   margin-bottom: 2px;
+}
+
+.offers-list {
+  margin-top: 8px;
+}
+.offers-list-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--san3a-primary);
+  margin-bottom: 10px;
+}
+.single-offer {
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-lg);
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--san3a-gray-50);
+  transition: border-color 0.2s;
+}
+.single-offer:hover {
+  border-color: rgba(13, 115, 119, 0.24);
+}
+.single-offer.offer-accepted {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+.single-offer.offer-rejected {
+  opacity: 0.6;
+}
+.single-offer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.fixer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fixer-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
+}
+.fixer-info-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--san3a-gray-500);
+  margin-bottom: 8px;
 }
 
 .fixer-message {
