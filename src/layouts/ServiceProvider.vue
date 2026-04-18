@@ -691,7 +691,11 @@ const autoShowPendingEtaChecks = async () => {
   if (!candidates.length) return
 
   // Batch-check request statuses to skip on-going/completed
-  const requestIds = [...new Set(candidates.map((c) => c.notif.payload?.requestId || c.notif.requestId).filter(Boolean))]
+  const requestIds = [
+    ...new Set(
+      candidates.map((c) => c.notif.payload?.requestId || c.notif.requestId).filter(Boolean),
+    ),
+  ]
   let skipIds = new Set()
   if (requestIds.length) {
     const { data } = await supabase

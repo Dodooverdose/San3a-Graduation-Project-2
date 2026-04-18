@@ -292,67 +292,72 @@ export const useArrivalCheck = () => {
     handlingEtaExpiry = true
 
     try {
-    showEtaMessage.value = false
+      showEtaMessage.value = false
 
-    // Allow re-prompting for this request
-    try { prompted.delete(Number(requestId)); savePrompted() } catch { /* ignore */ }
+      // Allow re-prompting for this request
+      try {
+        prompted.delete(Number(requestId))
+        savePrompted()
+      } catch {
+        /* ignore */
+      }
 
-    // Small delay to let Quasar close the ETA dialog before opening arrival dialog
-    await new Promise((r) => setTimeout(r, 400))
+      // Small delay to let Quasar close the ETA dialog before opening arrival dialog
+      await new Promise((r) => setTimeout(r, 400))
 
-    // Show arrival dialog for this request FIRST (before slow notification work)
-    const numericId = Number(requestId) || requestId
-    try {
-      const { data: req } = await supabase
-        .from('request')
-        .select(
-          'request_id, schedule_time, technician_id, user_id, service_type, description_of_issue, request_status',
-        )
-        .eq('request_id', numericId)
-        .maybeSingle()
+      // Show arrival dialog for this request FIRST (before slow notification work)
+      const numericId = Number(requestId) || requestId
+      try {
+        const { data: req } = await supabase
+          .from('request')
+          .select(
+            'request_id, schedule_time, technician_id, user_id, service_type, description_of_issue, request_status',
+          )
+          .eq('request_id', numericId)
+          .maybeSingle()
 
-      const st = req?.request_status?.toLowerCase()
-      if (req && st !== 'on-going' && st !== 'completed' && st !== 'cancelled') {
-        arrivalCheckRequest.value = req
-        showArrivalDialog.value = true
-      } else if (!req) {
-        // Query returned nothing — still show dialog with minimal info
+        const st = req?.request_status?.toLowerCase()
+        if (req && st !== 'on-going' && st !== 'completed' && st !== 'cancelled') {
+          arrivalCheckRequest.value = req
+          showArrivalDialog.value = true
+        } else if (!req) {
+          // Query returned nothing — still show dialog with minimal info
+          arrivalCheckRequest.value = { request_id: numericId, user_id: customerUserId }
+          showArrivalDialog.value = true
+        } else {
+          await checkForArrivals(customerUserId)
+        }
+      } catch (e) {
+        console.warn('Post-ETA arrival check failed:', e)
+        // Fallback: show dialog anyway with minimal info
         arrivalCheckRequest.value = { request_id: numericId, user_id: customerUserId }
         showArrivalDialog.value = true
-      } else {
-        await checkForArrivals(customerUserId)
       }
-    } catch (e) {
-      console.warn('Post-ETA arrival check failed:', e)
-      // Fallback: show dialog anyway with minimal info
-      arrivalCheckRequest.value = { request_id: numericId, user_id: customerUserId }
-      showArrivalDialog.value = true
-    }
 
-    // Persist a follow-up notification for the customer (non-blocking)
-    try {
-      if (customerUserId) {
-        const { data: customerRow } = await supabase
-          .from('users')
-          .select('email')
-          .eq('user_id', customerUserId)
-          .maybeSingle()
-        const email = customerRow?.email?.trim()?.toLowerCase()
-        if (email) {
-          await insertNotification(email, {
-            title: 'Technician ETA',
-            message: `ETA expired for request #${requestId}. Did the technician arrive?`,
-            requestId: numericId,
-            routePath: `/incoming-offers?requestId=${numericId}`,
-            type: 'eta-expired',
-            icon: 'person_pin_circle',
-            payload: { requestId: numericId, type: 'arrival-check-followup' },
-          })
+      // Persist a follow-up notification for the customer (non-blocking)
+      try {
+        if (customerUserId) {
+          const { data: customerRow } = await supabase
+            .from('users')
+            .select('email')
+            .eq('user_id', customerUserId)
+            .maybeSingle()
+          const email = customerRow?.email?.trim()?.toLowerCase()
+          if (email) {
+            await insertNotification(email, {
+              title: 'Technician ETA',
+              message: `ETA expired for request #${requestId}. Did the technician arrive?`,
+              requestId: numericId,
+              routePath: `/incoming-offers?requestId=${numericId}`,
+              type: 'eta-expired',
+              icon: 'person_pin_circle',
+              payload: { requestId: numericId, type: 'arrival-check-followup' },
+            })
+          }
         }
+      } catch (e) {
+        console.warn('Follow-up notification failed:', e)
       }
-    } catch (e) {
-      console.warn('Follow-up notification failed:', e)
-    }
     } finally {
       handlingEtaExpiry = false
     }
