@@ -1,4 +1,4 @@
-# San3a (quasar-project)
+# Sanعa (quasar-project)
 
 Grad
 

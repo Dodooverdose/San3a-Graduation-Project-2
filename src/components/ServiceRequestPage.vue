@@ -6,9 +6,9 @@
         <q-btn flat round dense icon="arrow_back" class="back-btn" @click="goBack" />
         <div class="header-brand">
           <div class="header-brand-icon">
-            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+            <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
           </div>
-          <span class="header-brand-name">San3a</span>
+          <span class="header-brand-name">Sanعa</span>
         </div>
         <q-space />
         <div class="header-service-badge">

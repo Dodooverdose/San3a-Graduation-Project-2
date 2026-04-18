@@ -1,7 +1,7 @@
 # Supabase Broadcast Notifications Implementation
 
 ## Overview
-This document describes the real-time notification system for the San3a marketplace using Supabase Broadcast channels. The system notifies customers when fixers place bids and notifies fixers when customers send counter-offers.
+This document describes the real-time notification system for the Sanعa marketplace using Supabase Broadcast channels. The system notifies customers when fixers place bids and notifies fixers when customers send counter-offers.
 
 ## Architecture
 

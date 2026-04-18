@@ -5,9 +5,9 @@
       <q-toolbar class="landing-toolbar">
         <div class="brand" @click="scrollToTop">
           <div class="brand-icon">
-            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+            <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
           </div>
-          <span class="brand-name">San3a</span>
+          <span class="brand-name">Sanعa</span>
         </div>
         <q-space />
         <div class="header-actions">
@@ -104,7 +104,7 @@
         <!-- HOW IT WORKS SECTION -->
         <section class="how-section">
           <div class="section-inner">
-            <h2 class="section-title">How San3a Works</h2>
+            <h2 class="section-title">How Sanعa Works</h2>
             <p class="section-subtitle">Get your home services done in three simple steps</p>
             <div class="steps-grid">
               <div
@@ -147,7 +147,7 @@
           <div class="section-inner" style="text-align: center">
             <h2 class="cta-heading">Ready to Get Started?</h2>
             <p class="cta-sub">
-              Join thousands of satisfied customers who trust San3a for their home services
+              Join thousands of satisfied customers who trust Sanعa for their home services
             </p>
             <div class="cta-buttons">
               <q-btn
@@ -177,9 +177,9 @@
               <div class="footer-brand">
                 <div class="brand" style="margin-bottom: 16px">
                   <div class="brand-icon">
-                    <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+                    <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
                   </div>
-                  <span class="brand-name" style="color: #fff">San3a</span>
+                  <span class="brand-name" style="color: #fff">Sanعa</span>
                 </div>
                 <p class="footer-desc">
                   Egypt's trusted home services marketplace connecting customers with skilled
@@ -214,7 +214,7 @@
               </div>
             </div>
             <div class="footer-bottom">
-              <p>&copy; 2026 San3a. All rights reserved.</p>
+              <p>&copy; 2026 Sanعa. All rights reserved.</p>
             </div>
           </div>
         </footer>
@@ -272,7 +272,7 @@ const serviceCatalog = [
   },
   {
     key: 'drapery_seamstress',
-    icon: 'checkroom',
+    icon: 'curtains',
     title: 'Drapery',
     description: 'Curtains, blinds, and window treatments',
   },

@@ -4,7 +4,7 @@
       <q-toolbar class="app-toolbar">
         <div class="header-brand">
           <div class="header-brand-icon-w">
-            <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+            <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
           </div>
           <span class="header-brand-name-w">Profile</span>
         </div>

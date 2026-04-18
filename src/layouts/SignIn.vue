@@ -15,9 +15,9 @@
             <div class="auth-logo">
               <div class="brand-row">
                 <div class="brand-icon">
-                  <img src="/icons/White.png" alt="San3a logo" class="brand-logo-mark" />
+                  <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
                 </div>
-                <span class="brand-text">San3a</span>
+                <span class="brand-text">Sanعa</span>
               </div>
               <h1 class="auth-title">Welcome Back!</h1>
               <p class="auth-subtitle">Sign in to continue to your account</p>
