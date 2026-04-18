@@ -28,8 +28,10 @@ export const useArrivalCheck = () => {
 
   // ── Internal ──
   let checkInterval = null
+  let etaRestoreInterval = null
   let etaChannel = null
   let arrivalCheckChannel = null
+  let handlingEtaExpiry = false // guard against re-entrant handleEtaExpired calls
   const prompted = new Set(
     JSON.parse(localStorage.getItem('san3a_arrival_prompted') || '[]').map(Number),
   )
@@ -285,13 +287,49 @@ export const useArrivalCheck = () => {
 
   // Fires when the ETA countdown reaches zero
   const handleEtaExpired = async (requestId, customerUserId) => {
+    // Prevent re-entrant calls (restoreEtaCountdowns can fire during the 400ms delay)
+    if (handlingEtaExpiry) return
+    handlingEtaExpiry = true
+
+    try {
     showEtaMessage.value = false
 
     // Allow re-prompting for this request
-    prompted.delete(Number(requestId))
-    savePrompted()
+    try { prompted.delete(Number(requestId)); savePrompted() } catch { /* ignore */ }
 
-    // Persist a follow-up notification for the customer
+    // Small delay to let Quasar close the ETA dialog before opening arrival dialog
+    await new Promise((r) => setTimeout(r, 400))
+
+    // Show arrival dialog for this request FIRST (before slow notification work)
+    const numericId = Number(requestId) || requestId
+    try {
+      const { data: req } = await supabase
+        .from('request')
+        .select(
+          'request_id, schedule_time, technician_id, user_id, service_type, description_of_issue, request_status',
+        )
+        .eq('request_id', numericId)
+        .maybeSingle()
+
+      const st = req?.request_status?.toLowerCase()
+      if (req && st !== 'on-going' && st !== 'completed' && st !== 'cancelled') {
+        arrivalCheckRequest.value = req
+        showArrivalDialog.value = true
+      } else if (!req) {
+        // Query returned nothing — still show dialog with minimal info
+        arrivalCheckRequest.value = { request_id: numericId, user_id: customerUserId }
+        showArrivalDialog.value = true
+      } else {
+        await checkForArrivals(customerUserId)
+      }
+    } catch (e) {
+      console.warn('Post-ETA arrival check failed:', e)
+      // Fallback: show dialog anyway with minimal info
+      arrivalCheckRequest.value = { request_id: numericId, user_id: customerUserId }
+      showArrivalDialog.value = true
+    }
+
+    // Persist a follow-up notification for the customer (non-blocking)
     try {
       if (customerUserId) {
         const { data: customerRow } = await supabase
@@ -304,38 +342,19 @@ export const useArrivalCheck = () => {
           await insertNotification(email, {
             title: 'Technician ETA',
             message: `ETA expired for request #${requestId}. Did the technician arrive?`,
-            requestId,
-            routePath: `/incoming-offers?requestId=${requestId}`,
+            requestId: numericId,
+            routePath: `/incoming-offers?requestId=${numericId}`,
             type: 'eta-expired',
             icon: 'person_pin_circle',
-            payload: { requestId, type: 'arrival-check-followup' },
+            payload: { requestId: numericId, type: 'arrival-check-followup' },
           })
         }
       }
     } catch (e) {
       console.warn('Follow-up notification failed:', e)
     }
-
-    // Show arrival dialog for this request
-    try {
-      const { data: req } = await supabase
-        .from('request')
-        .select(
-          'request_id, schedule_time, technician_id, user_id, service_type, description_of_issue, request_status',
-        )
-        .eq('request_id', requestId)
-        .maybeSingle()
-
-      const st = req?.request_status?.toLowerCase()
-      if (req && st !== 'on-going' && st !== 'completed' && st !== 'cancelled') {
-        arrivalCheckRequest.value = req
-        showArrivalDialog.value = true
-      } else {
-        await checkForArrivals(customerUserId)
-      }
-    } catch (e) {
-      console.warn('Post-ETA arrival check failed:', e)
-      await checkForArrivals(customerUserId)
+    } finally {
+      handlingEtaExpiry = false
     }
   }
 
@@ -345,15 +364,19 @@ export const useArrivalCheck = () => {
       clearInterval(etaCountdownTimer)
       etaCountdownTimer = null
     }
+    // Use absolute wall-clock end time so background-tab throttling doesn't stall the timer
+    const endTime = Date.now() + minutes * 60 * 1000
     etaSecondsLeft.value = minutes * 60
 
     etaCountdownTimer = setInterval(() => {
-      etaSecondsLeft.value--
-      if (etaSecondsLeft.value <= 0) {
+      const remaining = Math.ceil((endTime - Date.now()) / 1000)
+      etaSecondsLeft.value = Math.max(0, remaining)
+      if (remaining <= 0) {
         clearInterval(etaCountdownTimer)
         etaCountdownTimer = null
-        // Fire the async handler outside the interval
-        handleEtaExpired(requestId, customerUserId)
+        handleEtaExpired(requestId, customerUserId).catch((e) =>
+          console.warn('handleEtaExpired error:', e),
+        )
       }
     }, 1000)
   }
@@ -414,19 +437,23 @@ export const useArrivalCheck = () => {
 
         if (remainingMs <= 0) {
           // ETA already expired — fire the handler immediately
-          handleEtaExpired(requestId, customerUserId)
+          handleEtaExpired(requestId, customerUserId).catch((e) =>
+            console.warn('handleEtaExpired restore error:', e),
+          )
         } else if (!etaCountdownTimer) {
           // ETA still running — restore the countdown with remaining time
-          const remainingSec = Math.ceil(remainingMs / 1000)
           etaRequestId.value = requestId
-          etaSecondsLeft.value = remainingSec
+          etaSecondsLeft.value = Math.ceil(remainingMs / 1000)
           showEtaMessage.value = true
           etaCountdownTimer = setInterval(() => {
-            etaSecondsLeft.value--
-            if (etaSecondsLeft.value <= 0) {
+            const remaining = Math.ceil((endMs - Date.now()) / 1000)
+            etaSecondsLeft.value = Math.max(0, remaining)
+            if (remaining <= 0) {
               clearInterval(etaCountdownTimer)
               etaCountdownTimer = null
-              handleEtaExpired(requestId, customerUserId)
+              handleEtaExpired(requestId, customerUserId).catch((e) =>
+                console.warn('handleEtaExpired restore timer error:', e),
+              )
             }
           }, 1000)
         }
@@ -443,24 +470,35 @@ export const useArrivalCheck = () => {
     checkInterval = setInterval(() => checkForArrivals(customerUserId), 60_000)
     listenForEta(customerUserId)
     restoreEtaCountdowns(customerUserId)
+    // Periodically check for ETA notifications that broadcast may have missed
+    etaRestoreInterval = setInterval(() => {
+      if (!etaCountdownTimer) restoreEtaCountdowns(customerUserId)
+    }, 15_000)
   }
 
   // ═══════════════════════════════════════════
   //  TECHNICIAN — respond with ETA
   // ═══════════════════════════════════════════
 
-  const listenForArrivalChecks = (technicianId) => {
+  const listenForArrivalChecks = (technicianId, onArrivalCheck) => {
     if (!technicianId) return
     arrivalCheckChannel = supabase
       .channel(`arrival-check-${technicianId}`)
-      .on('broadcast', { event: 'arrival-check' }, ({ payload }) => {
+      .on('broadcast', { event: 'arrival-check' }, async ({ payload }) => {
         if (!payload) return
-        etaDialogRequest.value = {
-          requestId: payload.requestId,
-          customerId: payload.customerId,
+
+        if (onArrivalCheck) {
+          // Delegate to the caller's dedup/queue logic
+          onArrivalCheck(payload.requestId, payload.customerId)
+        } else {
+          // Fallback: show directly
+          etaDialogRequest.value = {
+            requestId: payload.requestId,
+            customerId: payload.customerId,
+          }
+          selectedEta.value = null
+          showEtaDialog.value = true
         }
-        selectedEta.value = null
-        showEtaDialog.value = true
       })
       .subscribe()
   }
@@ -478,6 +516,28 @@ export const useArrivalCheck = () => {
         .eq('user_id', requestData.customerId)
         .maybeSingle()
       customerEmail = user?.email
+    }
+
+    // Prevent duplicate ETA: check if there's already a non-expired ETA for this request
+    if (customerEmail) {
+      const { data: existingEta } = await supabase
+        .from('notification_center')
+        .select('payload')
+        .eq('recipient_email', customerEmail.trim().toLowerCase())
+        .eq('notification_type', 'eta-response')
+        .eq('request_id', String(requestData.requestId))
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (existingEta?.length) {
+        const endTime = existingEta[0].payload?.etaEndTime
+        if (endTime && new Date(endTime).getTime() > Date.now()) {
+          const remainingSec = Math.ceil((new Date(endTime).getTime() - Date.now()) / 1000)
+          const m = Math.floor(remainingSec / 60)
+          const s = remainingSec % 60
+          return { blocked: true, remaining: `${m}:${String(s).padStart(2, '0')}` }
+        }
+      }
     }
 
     // Persist notification for customer
@@ -527,6 +587,10 @@ export const useArrivalCheck = () => {
     if (etaCountdownTimer) {
       clearInterval(etaCountdownTimer)
       etaCountdownTimer = null
+    }
+    if (etaRestoreInterval) {
+      clearInterval(etaRestoreInterval)
+      etaRestoreInterval = null
     }
     etaChannel?.unsubscribe()
     arrivalCheckChannel?.unsubscribe()

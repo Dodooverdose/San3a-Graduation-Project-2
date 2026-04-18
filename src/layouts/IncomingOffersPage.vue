@@ -450,7 +450,7 @@
     </q-dialog>
 
     <!-- ETA Notification Dialog -->
-    <q-dialog v-model="showEtaMessage">
+    <q-dialog v-model="showEtaMessage" persistent>
       <q-card style="min-width: 320px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
@@ -469,8 +469,68 @@
           <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
           <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
-        <q-card-actions align="center" class="q-pb-md">
+        <q-card-actions v-if="etaSecondsLeft > 0" align="center" class="q-pb-md">
           <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Completion Check Popup -->
+    <q-dialog v-model="showCompletionCheckDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="task_alt" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Has request <strong>#{{ completionCheckTarget?.request_id }}</strong> been completed?
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            flat
+            label="No"
+            color="grey-7"
+            no-caps
+            @click="handleCompletionNo(completionCheckTarget)"
+          />
+          <q-btn
+            unelevated
+            color="positive"
+            label="Yes, it's done"
+            icon="check_circle"
+            no-caps
+            @click="handleCompletionYes(completionCheckTarget)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Still Going Check Popup -->
+    <q-dialog v-model="showStillGoingCheckDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="update" size="56px" color="warning" />
+          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Is request <strong>#{{ stillGoingCheckTarget?.request_id }}</strong> still going?
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            flat
+            label="Yes, still going"
+            color="grey-7"
+            no-caps
+            @click="handleStillGoingYes(stillGoingCheckTarget)"
+          />
+          <q-btn
+            unelevated
+            color="positive"
+            label="No, it's done"
+            icon="check_circle"
+            no-caps
+            @click="handleStillGoingNo(stillGoingCheckTarget)"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -504,7 +564,6 @@
             :disable="customerReviewStars === 0"
             @click="onSubmitCustomerReview()"
           />
-          <q-btn flat color="grey" label="Skip" no-caps @click="onSubmitCustomerReview(true)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -549,12 +608,17 @@ const {
   customerReviewStars,
   customerReviewText,
   customerReviewSubmitting,
+  showCompletionCheckDialog,
+  completionCheckTarget,
+  showStillGoingCheckDialog,
+  stillGoingCheckTarget,
   handleCompletionYes,
   handleCompletionNo,
   handleStillGoingYes,
   handleStillGoingNo,
   submitCustomerReview,
   handleCompletionNotifClick,
+  autoShowPendingChecks,
 } = useCustomerCompletionCheck(notificationCenter)
 const customerUserId = ref(null)
 const offersSubscription = ref(null)
@@ -656,7 +720,10 @@ const formatDate = (dateStr) => {
 }
 
 const openNotification = (notif, index) => {
-  if (handleCompletionNotifClick(notif, index)) return
+  if (handleCompletionNotifClick(notif, index)) {
+    showNotifications.value = false
+    return
+  }
   markAsRead(index)
   showNotifications.value = false
   if (notif?.routePath) {
@@ -1026,6 +1093,7 @@ const submitBargain = async () => {
 onMounted(async () => {
   await fetchIncomingOffers()
   await loadNotifications()
+  autoShowPendingChecks()
   subscribeToIncomingOffers()
   subscribeToFixerMessages()
   subscribeToFixerBidNotifications()

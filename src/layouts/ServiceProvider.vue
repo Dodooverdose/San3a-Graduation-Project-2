@@ -511,7 +511,6 @@
           </q-input>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
-          <q-btn flat label="Skip" color="grey-7" no-caps @click="submitReview(true)" />
           <q-btn
             unelevated
             color="primary"
@@ -554,6 +553,30 @@
             no-caps
             :disable="!selectedEta"
             @click="handleSubmitEta"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Job Status Popup -->
+    <q-dialog v-model="showJobStatusDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="task_alt" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Job Status</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Has request <strong>#{{ jobStatusTarget?.request_id }}</strong> been finished?
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn flat label="Not yet" color="grey-7" no-caps @click="handleJobStatusNo" />
+          <q-btn
+            unelevated
+            color="positive"
+            label="Yes, it's done"
+            icon="check_circle"
+            no-caps
+            @click="handleJobStatusYes"
           />
         </q-card-actions>
       </q-card>
@@ -610,9 +633,109 @@ const etaOptions = [
   { label: '30 minutes', value: 30 },
 ]
 
+const etaDialogQueue = ref([])
+
+const etaPendingIds = new Set()
+
+const promptEtaDialog = async (requestId, customerId) => {
+  if (etaDialogRequest.value?.requestId === requestId && showEtaDialog.value) return
+  if (etaDialogQueue.value.some((q) => q.requestId === requestId)) return
+  if (etaPendingIds.has(requestId)) return
+  etaPendingIds.add(requestId)
+
+  try {
+    // Skip if the request is no longer in 'accepted' status (already on-going/completed)
+    const { data: reqRow } = await supabase
+      .from('request')
+      .select('request_status')
+      .eq('request_id', requestId)
+      .maybeSingle()
+    const st = (reqRow?.request_status || '').toLowerCase()
+    if (st === 'on-going' || st === 'completed' || st === 'cancelled') return
+
+    // Re-check after async gap
+    if (etaDialogRequest.value?.requestId === requestId && showEtaDialog.value) return
+    if (etaDialogQueue.value.some((q) => q.requestId === requestId)) return
+
+    const item = { requestId, customerId }
+    if (showEtaDialog.value) {
+      etaDialogQueue.value.push(item)
+    } else {
+      etaDialogRequest.value = item
+      selectedEta.value = null
+      showEtaDialog.value = true
+    }
+  } finally {
+    etaPendingIds.delete(requestId)
+  }
+}
+
+const showNextEtaDialog = () => {
+  if (etaDialogQueue.value.length > 0) {
+    const next = etaDialogQueue.value.shift()
+    etaDialogRequest.value = next
+    selectedEta.value = null
+    showEtaDialog.value = true
+  }
+}
+
+const autoShowPendingEtaChecks = async () => {
+  const candidates = []
+  for (let i = 0; i < notifications.value.length; i++) {
+    const notif = notifications.value[i]
+    if (notif.read || notif.done || notif.etaSent) continue
+    if (notif.type === 'arrival-check') {
+      candidates.push({ notif, index: i })
+    }
+  }
+  if (!candidates.length) return
+
+  // Batch-check request statuses to skip on-going/completed
+  const requestIds = [...new Set(candidates.map((c) => c.notif.payload?.requestId || c.notif.requestId).filter(Boolean))]
+  let skipIds = new Set()
+  if (requestIds.length) {
+    const { data } = await supabase
+      .from('request')
+      .select('request_id, request_status')
+      .in('request_id', requestIds)
+    if (data) {
+      for (const r of data) {
+        const st = (r.request_status || '').toLowerCase()
+        if (st === 'on-going' || st === 'completed' || st === 'cancelled') {
+          skipIds.add(r.request_id)
+        }
+      }
+    }
+  }
+
+  for (const { notif } of candidates) {
+    const rid = notif.payload?.requestId || notif.requestId
+    if (rid && skipIds.has(Number(rid))) continue
+    promptEtaDialog(rid, notif.payload?.customerId)
+  }
+}
+
+const autoShowPendingJobStatus = () => {
+  for (let i = 0; i < notifications.value.length; i++) {
+    const notif = notifications.value[i]
+    if (notif.read || notif.done) continue
+    if (notif.type === 'job-finished') {
+      promptJobStatus(notif.payload?.requestId || notif.requestId, notif.payload?.userId)
+    }
+  }
+}
+
 const handleSubmitEta = async () => {
-  await submitEta(selectedEta.value, etaDialogRequest.value)
+  const result = await submitEta(selectedEta.value, etaDialogRequest.value)
+  if (result?.blocked) {
+    $q.notify({
+      type: 'warning',
+      message: `ETA is still active (${result.remaining} remaining). Wait for it to expire or customer response.`,
+    })
+    return
+  }
   $q.notify({ type: 'positive', message: `ETA of ${selectedEta.value} minutes sent to customer.` })
+  showNextEtaDialog()
 }
 
 const notifEtaSelections = ref({})
@@ -627,16 +750,61 @@ const reviewNotifIndex = ref(null)
 const ongoingChannel = ref(null)
 const ongoingDbChannel = ref(null)
 
-const handleJobDone = (notif, index) => {
-  markAsRead(index)
-  reviewTarget.value = {
-    request_id: notif.payload?.requestId || notif.requestId,
-    user_id: notif.payload?.userId,
+const showJobStatusDialog = ref(false)
+const jobStatusTarget = ref(null)
+const jobStatusQueue = ref([])
+
+const promptJobStatus = async (requestId, userId) => {
+  // Don't duplicate if already queued or showing
+  if (jobStatusTarget.value?.request_id === requestId) return
+  if (jobStatusQueue.value.some((q) => q.request_id === requestId)) return
+
+  // Skip if the request is already completed
+  const { data: reqRow } = await supabase
+    .from('request')
+    .select('request_status')
+    .eq('request_id', requestId)
+    .maybeSingle()
+  if ((reqRow?.request_status || '').toLowerCase() === 'completed') return
+
+  const item = { request_id: requestId, user_id: userId }
+  if (showJobStatusDialog.value) {
+    jobStatusQueue.value.push(item)
+  } else {
+    jobStatusTarget.value = item
+    showJobStatusDialog.value = true
   }
-  reviewNotifIndex.value = index
+}
+
+const showNextJobStatus = () => {
+  if (jobStatusQueue.value.length > 0) {
+    jobStatusTarget.value = jobStatusQueue.value.shift()
+    showJobStatusDialog.value = true
+  }
+}
+
+const handleJobStatusYes = () => {
+  showJobStatusDialog.value = false
+  // Open the review dialog
+  reviewTarget.value = {
+    request_id: jobStatusTarget.value.request_id,
+    user_id: jobStatusTarget.value.user_id,
+  }
+  reviewNotifIndex.value = null
   reviewStars.value = 0
   reviewText.value = ''
   showReviewDialog.value = true
+}
+
+const handleJobStatusNo = () => {
+  showJobStatusDialog.value = false
+  jobStatusTarget.value = null
+  showNextJobStatus()
+}
+
+const handleJobDone = (notif, index) => {
+  markAsRead(index)
+  promptJobStatus(notif.payload?.requestId || notif.requestId, notif.payload?.userId)
 }
 
 const submitReview = async (skip = false) => {
@@ -755,14 +923,9 @@ const submitReview = async (skip = false) => {
 const handleNotifClick = (notif, index) => {
   if (notif.type === 'arrival-check') {
     markAsRead(index)
-    // If the broadcast dialog isn't already open, open it from the notification payload
-    if (!showEtaDialog.value && notif.payload?.requestId) {
-      etaDialogRequest.value = {
-        requestId: notif.payload.requestId,
-        customerId: notif.payload.customerId,
-      }
-      selectedEta.value = null
-      showEtaDialog.value = true
+    showNotifications.value = false
+    if (notif.payload?.requestId) {
+      promptEtaDialog(notif.payload.requestId, notif.payload.customerId)
     }
     return
   }
@@ -781,7 +944,14 @@ const sendEtaFromNotif = async (notif, index) => {
     requestId: notif.payload?.requestId || notif.requestId,
     customerId: notif.payload?.customerId,
   }
-  await submitEta(minutes, requestData)
+  const result = await submitEta(minutes, requestData)
+  if (result?.blocked) {
+    $q.notify({
+      type: 'warning',
+      message: `ETA is still active (${result.remaining} remaining). Wait for it to expire or customer response.`,
+    })
+    return
+  }
   markAsRead(index)
   notifications.value[index].etaSent = true
   $q.notify({ type: 'positive', message: `ETA of ${minutes} minutes sent to customer.` })
@@ -1269,9 +1439,11 @@ onMounted(async () => {
     }
     if (technicianId.value) subscribeToCounterOffers()
     if (technicianId.value) subscribeToOngoingStatus()
-    if (technicianId.value) listenForArrivalChecks(technicianId.value)
+    if (technicianId.value) listenForArrivalChecks(technicianId.value, promptEtaDialog)
     if (technicianId.value) await ensureOngoingNotifications(user.email)
     await loadNotifications()
+    await autoShowPendingEtaChecks()
+    autoShowPendingJobStatus()
     const initialTab = route.query.tab === 'orders' ? 'orders' : 'requests'
     await setActiveTab(initialTab)
   } catch (err) {
@@ -1320,6 +1492,9 @@ const ensureOngoingNotifications = async (techEmail) => {
         type: 'job-finished',
       },
     })
+
+    // Auto-show job status popup
+    promptJobStatus(req.request_id, req.user_id)
   }
 }
 
@@ -1332,13 +1507,8 @@ const subscribeToOngoingStatus = () => {
     .on('broadcast', { event: 'job-ongoing' }, async ({ payload }) => {
       if (!payload) return
 
-      $q.notify({
-        type: 'info',
-        icon: 'task_alt',
-        message: `Request #${payload.requestId} is now on-going. Mark it done when finished!`,
-      })
-
       await loadNotifications()
+      promptJobStatus(payload.requestId, payload.userId)
 
       if (activeTab.value === 'orders') await fetchAcceptedOrders()
       else await fetchRequests()
@@ -1390,11 +1560,8 @@ const subscribeToOngoingStatus = () => {
           })
         }
 
-        $q.notify({
-          type: 'info',
-          icon: 'task_alt',
-          message: `Request #${updated.request_id} is now on-going. Mark it done when finished!`,
-        })
+        // Auto-show job status popup
+        promptJobStatus(updated.request_id, updated.user_id)
 
         if (activeTab.value === 'orders') await fetchAcceptedOrders()
         else await fetchRequests()
