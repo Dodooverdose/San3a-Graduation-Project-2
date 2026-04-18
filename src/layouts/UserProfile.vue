@@ -948,8 +948,11 @@ const openComplaintDialog = async () => {
 
       const { data, error } = await supabase
         .from('request')
-        .select('request_id, description_of_issue, request_status, technician_id')
+        .select(
+          'request_id, description_of_issue, request_status, technician_id, technician:technician_id(full_name)',
+        )
         .eq('user_id', idVal)
+        .not('technician_id', 'is', null)
         .order('request_id', { ascending: false })
 
       if (error) {
@@ -961,8 +964,9 @@ const openComplaintDialog = async () => {
       const tMap = {}
       userRequestOptions.value = (data || []).map((r) => {
         tMap[r.request_id] = r.technician_id
+        const techName = r.technician?.full_name || `Technician #${r.technician_id}`
         return {
-          label: `#${r.request_id} — ${r.description_of_issue || r.request_status || 'Request'}`,
+          label: `#${r.request_id} — ${techName} — ${r.description_of_issue || r.request_status || 'Request'}`,
           value: r.request_id,
         }
       })
@@ -1002,7 +1006,7 @@ const submitComplaint = async () => {
         : requestTechnicianMap.value[complaintForm.value.request_id] || null,
       complained_against_id: isTechnician.value
         ? requestCustomerMap.value[complaintForm.value.request_id] || null
-        : null,
+        : requestTechnicianMap.value[complaintForm.value.request_id] || null,
     }
 
     const { error } = await supabase.from('complaint').insert(payload)
