@@ -115,6 +115,20 @@
                 class="q-ml-xs"
               />
             </div>
+
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-weight-bold">Complaint Against</div>
+            <template v-if="complainedAgainstLoading">
+              <q-spinner size="sm" class="q-mr-sm" /> Loading...
+            </template>
+            <template v-else-if="complainedAgainstUser">
+              <div><strong>Name:</strong> {{ complainedAgainstUser.full_name || '—' }}</div>
+              <div><strong>Email:</strong> {{ complainedAgainstUser.email || '—' }}</div>
+              <div><strong>Phone:</strong> {{ complainedAgainstUser.phone_number || '—' }}</div>
+            </template>
+            <template v-else>
+              <div class="text-grey">No complained-against info available</div>
+            </template>
           </div>
         </q-card-section>
 
@@ -125,7 +139,10 @@
             no-caps
             color="positive"
             label="Mark Resolved"
-            @click="resolveComplaint(selectedComplaint.complaint_id); showDetailsDialog = false"
+            @click="
+              resolveComplaint(selectedComplaint.complaint_id)
+              showDetailsDialog = false
+            "
           />
           <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
@@ -159,6 +176,8 @@ const searchQuery = ref('')
 const filterStatus = ref(null)
 const showDetailsDialog = ref(false)
 const selectedComplaint = ref(null)
+const complainedAgainstUser = ref(null)
+const complainedAgainstLoading = ref(false)
 
 const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
 
@@ -196,9 +215,36 @@ const loadComplaints = async () => {
   }
 }
 
-const viewComplaint = (complaint) => {
+const viewComplaint = async (complaint) => {
   selectedComplaint.value = complaint
+  complainedAgainstUser.value = null
   showDetailsDialog.value = true
+
+  const isCustomerComplaint = complaint.complainant_role === 'customer'
+  const targetId =
+    complaint.complained_against_id ||
+    (isCustomerComplaint ? complaint.technician_id : complaint.user_id)
+
+  if (targetId) {
+    complainedAgainstLoading.value = true
+    try {
+      const table = isCustomerComplaint ? 'technician' : 'users'
+      const idColumn = isCustomerComplaint ? 'technician_id' : 'user_id'
+
+      const { data, error } = await supabase
+        .from(table)
+        .select('full_name, email, phone_number')
+        .eq(idColumn, targetId)
+        .maybeSingle()
+
+      if (error) throw error
+      complainedAgainstUser.value = data
+    } catch (err) {
+      console.error('Error fetching complained-against user:', err)
+    } finally {
+      complainedAgainstLoading.value = false
+    }
+  }
 }
 
 const resolveComplaint = async (id) => {
