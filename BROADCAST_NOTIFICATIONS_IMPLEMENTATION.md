@@ -1,6 +1,7 @@
 # Supabase Broadcast Notifications Implementation
 
 ## Overview
+
 This document describes the real-time notification system for the Sanعa marketplace using Supabase Broadcast channels. The system notifies customers when fixers place bids and notifies fixers when customers send counter-offers.
 
 ## Architecture
@@ -26,6 +27,7 @@ CUSTOMER COUNTER-OFFERS (Customer → Fixer):
 ### Customer-Side (IncomingOffersPage.vue)
 
 #### Subscription Setup
+
 ```javascript
 // Line 495-525: subscribeToFixerBidNotifications()
 const subscribeToFixerBidNotifications = () => {
@@ -42,10 +44,12 @@ const subscribeToFixerBidNotifications = () => {
 ```
 
 **Lifecycle:**
+
 - `onMounted()`: Calls `subscribeToFixerBidNotifications()` after fetching data
 - `onBeforeUnmount()`: Unsubscribes from `myBargainChannel`
 
 #### Counter-Offer Broadcast
+
 ```javascript
 // Line 571-587: submitBargain()
 const submitBargain = async () => {
@@ -55,7 +59,7 @@ const submitBargain = async () => {
     .update({ customer_price: price })
     .eq('request_id', bargainTarget.value.request_id)
     .select()
-  
+
   // 2. Broadcasts to fixer
   if (target.technician_id) {
     const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)
@@ -75,6 +79,7 @@ const submitBargain = async () => {
 ### Fixer-Side (ServiceProvider.vue)
 
 #### Subscription Setup
+
 ```javascript
 // Line 796-820: subscribeToCounterOffers()
 const subscribeToCounterOffers = () => {
@@ -91,10 +96,12 @@ const subscribeToCounterOffers = () => {
 ```
 
 **Lifecycle:**
+
 - `onMounted()`: Calls `subscribeToCounterOffers()` after fetching technician data
 - `onBeforeUnmount()`: Unsubscribes from `myBargainChannel`
 
 #### Fixer Bid Broadcast
+
 ```javascript
 // Line 672-742: submitOffer()
 const submitOffer = async () => {
@@ -108,7 +115,7 @@ const submitOffer = async () => {
     })
     .eq('request_id', offerTarget.value.request_id)
     .select()
-  
+
   // 2. Broadcasts to customer
   if (offerTarget.value.user_id) {
     const customerChannel = supabase.channel(`bargain-customer-${offerTarget.value.user_id}`)
@@ -129,14 +136,18 @@ const submitOffer = async () => {
 ## Notification Format
 
 ### For Customers (receiving fixer bids)
+
 **Panel Display:**
+
 - **Header:** `Fixer [fixer name]`
 - **Message:** `sent an offer of X EGP for request #Y.`
 - **Time:** Formatted timestamp
 - **Toast:** Generic offer received notification
 
 ### For Fixers (receiving customer counter-offers)
+
 **Panel Display:**
+
 - **Header:** `Customer`
 - **Message:** `sent a counter-offer of X EGP for request #Y.`
 - **Time:** Formatted timestamp
@@ -145,14 +156,18 @@ const submitOffer = async () => {
 ## Database Changes
 
 ### No Schema Changes Required
+
 The system uses existing `request` table columns:
+
 - `user_id` - Customer ID (identifies recipient of fixer bids)
 - `technician_id` - Fixer ID (identifies recipient of counter-offers)
 - `fixer_price` - Bid amount from fixer
 - `customer_price` - Counter-offer amount from customer
 
 ### RLS Policy Requirements
+
 Existing RLS policies should allow:
+
 - Technically authenticated users to UPDATE their own request rows
 - Broadcast is independent of RLS (happens at application level)
 
@@ -162,6 +177,7 @@ Existing RLS policies should allow:
 - **Customer to Fixer:** `bargain-fixer-{technicianId}`
 
 This ensures:
+
 - Notifications are only received by the intended recipient
 - No broadcast leakage to other users
 - Clean separation of concern
