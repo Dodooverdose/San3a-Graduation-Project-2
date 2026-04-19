@@ -407,6 +407,7 @@ export default {
     personalInfo: 'المعلومات الشخصية',
     fullName: 'الاسم الكامل',
     phoneNumber: 'رقم الهاتف',
+    invalidPhone: 'أدخل رقم هاتف مصري صحيح',
     specialty: 'التخصص',
     yearsOfExperience: 'سنوات الخبرة',
     security: 'الأمان',

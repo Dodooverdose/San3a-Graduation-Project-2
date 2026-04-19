@@ -160,6 +160,13 @@
                       outlined
                       dense
                       :readonly="!editing"
+                      prefix="+20"
+                      mask="### #### ####"
+                      unmasked-value
+                      :rules="[
+                        (val) =>
+                          !val || /^[0-9]{10,11}$/.test(val) || $t('userProfile.invalidPhone'),
+                      ]"
                     />
                     <q-input
                       :model-value="profileEmail"
@@ -172,12 +179,15 @@
                         <q-icon v-if="emailVerified" name="check_circle" color="positive" />
                       </template>
                     </q-input>
-                    <q-input
+                    <q-select
                       v-if="isTechnician"
                       v-model="form.specialty"
+                      :options="specialtyOptions"
                       :label="$t('userProfile.specialty')"
                       outlined
                       dense
+                      emit-value
+                      map-options
                       :readonly="!editing"
                     />
                     <q-input
@@ -351,6 +361,26 @@
             </div>
           </section>
 
+          <transition name="slide-up">
+            <div v-if="editing" class="sticky-save">
+              <q-btn
+                flat
+                no-caps
+                :label="$t('userProfile.discard')"
+                color="grey-7"
+                @click="discardChanges"
+              />
+              <q-btn
+                unelevated
+                no-caps
+                color="primary"
+                :label="$t('userProfile.saveChanges')"
+                :loading="saving"
+                @click="saveProfile"
+              />
+            </div>
+          </transition>
+
           <!-- Complaint Dialog -->
           <q-dialog v-model="showComplaintDialog" persistent>
             <q-card style="min-width: 420px; max-width: 520px">
@@ -435,26 +465,6 @@
               </q-card-section>
             </q-card>
           </q-dialog>
-
-          <transition name="slide-up">
-            <div v-if="editing" class="sticky-save">
-              <q-btn
-                flat
-                no-caps
-                :label="$t('userProfile.discard')"
-                color="grey-7"
-                @click="discardChanges"
-              />
-              <q-btn
-                unelevated
-                no-caps
-                color="primary"
-                :label="$t('userProfile.saveChanges')"
-                :loading="saving"
-                @click="saveProfile"
-              />
-            </div>
-          </transition>
         </div>
       </q-page>
     </q-page-container>
@@ -592,7 +602,7 @@ const technicianIssueTypeOptions = computed(() => [
 ])
 
 const activeIssueTypeOptions = computed(() =>
-  isTechnician.value ? technicianIssueTypeOptions : customerIssueTypeOptions,
+  isTechnician.value ? technicianIssueTypeOptions.value : customerIssueTypeOptions.value,
 )
 
 const customerOptions = ref([])
@@ -620,6 +630,15 @@ const languageOptions = [
   { label: 'Français', value: 'fr' },
   { label: 'Deutsch', value: 'de' },
 ]
+
+const specialtyOptions = computed(() => [
+  { label: t('services.plumbing'), value: 'plumber' },
+  { label: t('services.carpentry'), value: 'carpenter' },
+  { label: t('services.electrical'), value: 'electrician' },
+  { label: t('services.painting'), value: 'painter' },
+  { label: t('services.kitchenUtilities'), value: 'kitchen_fitter' },
+  { label: t('services.draperySeamstress'), value: 'drapery_seamstress' },
+])
 
 const isTechnician = computed(() => userRole.value === 'fixer')
 const emailVerified = computed(() => Boolean(currentAuthUser.value?.email_confirmed_at))
@@ -1478,18 +1497,15 @@ watch(language, (val) => {
 }
 
 .sticky-save {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 60px;
   display: flex;
   justify-content: center;
   gap: 10px;
-  padding: 10px;
+  padding: 16px 10px;
+  margin-top: 4px;
   background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid var(--san3a-gray-200);
-  box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.08);
-  z-index: 30;
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .visually-hidden {

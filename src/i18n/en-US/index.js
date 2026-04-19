@@ -460,6 +460,7 @@ export default {
     personalInfo: 'Personal Information',
     fullName: 'Full Name',
     phoneNumber: 'Phone Number',
+    invalidPhone: 'Enter a valid Egyptian phone number',
     specialty: 'Specialty',
     yearsOfExperience: 'Years of Experience',
     security: 'Security',
