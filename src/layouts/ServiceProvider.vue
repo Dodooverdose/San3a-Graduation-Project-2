@@ -333,6 +333,15 @@
                   <div v-if="req.customer_name" class="req-customer">
                     <q-icon name="person" size="16px" color="grey-7" />
                     <span>{{ req.customer_name }}</span>
+                    <q-rating
+                      :model-value="req.customerRating || 0"
+                      size="14px"
+                      color="amber"
+                      readonly
+                      class="q-ml-xs"
+                    />
+                    <span class="customer-rating-text">{{ req.customerRating || 0 }}</span>
+                    <span class="customer-rating-count">({{ req.customerRatingCount || 0 }})</span>
                   </div>
 
                   <p class="req-desc">
@@ -1374,11 +1383,15 @@ const fetchRequests = async () => {
     return
   }
   await fetchMyOffers()
-  requests.value = (data || []).map((r) => ({
+  const rows = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
+    customerRating: 0,
+    customerRatingCount: 0,
   }))
+  await enrichCustomerRatings(rows)
+  requests.value = rows
   requestsLoading.value = false
 }
 
@@ -1400,12 +1413,38 @@ const fetchAcceptedOrders = async () => {
     requestsLoading.value = false
     return
   }
-  requests.value = (data || []).map((r) => ({
+  const rows = (data || []).map((r) => ({
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
+    customerRating: 0,
+    customerRatingCount: 0,
   }))
+  await enrichCustomerRatings(rows)
+  requests.value = rows
   requestsLoading.value = false
+}
+
+const enrichCustomerRatings = async (rows) => {
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]
+  if (!userIds.length) return
+  const { data: ratingRows } = await supabase
+    .from('rating')
+    .select('user_id, technician_rating')
+    .in('user_id', userIds)
+    .not('technician_rating', 'is', null)
+  const ratingMap = {}
+  ;(ratingRows || []).forEach((r) => {
+    if (!ratingMap[r.user_id]) ratingMap[r.user_id] = []
+    ratingMap[r.user_id].push(r.technician_rating)
+  })
+  rows.forEach((r) => {
+    const ratings = ratingMap[r.user_id]
+    if (ratings && ratings.length) {
+      r.customerRating = Math.round((ratings.reduce((s, v) => s + v, 0) / ratings.length) * 10) / 10
+      r.customerRatingCount = ratings.length
+    }
+  })
 }
 
 const openOfferDialog = (req) => {
@@ -2031,6 +2070,15 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--san3a-gray-700);
   margin-bottom: 8px;
+}
+.customer-rating-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
+}
+.customer-rating-count {
+  font-size: 11px;
+  color: var(--san3a-gray-500);
 }
 .req-desc {
   font-size: 14px;

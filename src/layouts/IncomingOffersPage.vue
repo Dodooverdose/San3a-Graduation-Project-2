@@ -268,10 +268,22 @@
               >
                 <div class="single-offer-header">
                   <div class="fixer-name-row">
-                    <q-icon name="person" size="16px" color="grey-7" />
-                    <span class="fixer-name">{{
-                      offer.fixerInfo?.full_name || $t('incomingOffers.unknownFixer')
-                    }}</span>
+                    <q-avatar size="28px" color="primary" text-color="white" icon="person" />
+                    <div>
+                      <span class="fixer-name">{{
+                        offer.fixerInfo?.full_name || $t('incomingOffers.unknownFixer')
+                      }}</span>
+                      <div class="fixer-rating-row">
+                        <q-rating
+                          :model-value="offer.avgRating || 0"
+                          size="14px"
+                          color="amber"
+                          readonly
+                        />
+                        <span class="fixer-rating-text">{{ offer.avgRating || 0 }}</span>
+                        <span class="fixer-rating-count">({{ offer.totalRatings || 0 }})</span>
+                      </div>
+                    </div>
                   </div>
                   <q-badge
                     :color="
@@ -864,6 +876,36 @@ const fetchIncomingOffers = async () => {
           })
         })
       }
+      // Fetch average ratings for all technicians in offers
+      const allTechIds = [
+        ...new Set(result.flatMap((r) => r.offers.map((o) => o.technician_id).filter(Boolean))),
+      ]
+      if (allTechIds.length) {
+        const { data: ratingRows } = await supabase
+          .from('rating')
+          .select('technician_id, customer_rating')
+          .in('technician_id', allTechIds)
+          .not('customer_rating', 'is', null)
+        const ratingMap = {}
+        ;(ratingRows || []).forEach((r) => {
+          if (!ratingMap[r.technician_id]) ratingMap[r.technician_id] = []
+          ratingMap[r.technician_id].push(r.customer_rating)
+        })
+        result.forEach((r) => {
+          r.offers.forEach((o) => {
+            const ratings = ratingMap[o.technician_id]
+            if (ratings && ratings.length) {
+              o.avgRating =
+                Math.round((ratings.reduce((s, v) => s + v, 0) / ratings.length) * 10) / 10
+              o.totalRatings = ratings.length
+            } else {
+              o.avgRating = 0
+              o.totalRatings = 0
+            }
+          })
+        })
+      }
+
       incomingOffers.value = result
     }
     await loadNotifications()
@@ -1087,7 +1129,7 @@ const submitBargain = async () => {
         message: t('common.fixerEmailNotFound'),
       })
     }
-    $q.notify({ type: 'positive', message: t('common.offerSent') })
+    $q.notify({ type: 'positive', message: t('common.counterOfferSent') })
     const target = bargainTarget.value
     if (target.technician_id) {
       const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)
@@ -1352,6 +1394,21 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 700;
   color: var(--san3a-gray-800);
+}
+.fixer-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.fixer-rating-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
+}
+.fixer-rating-count {
+  font-size: 11px;
+  color: var(--san3a-gray-500);
 }
 .fixer-info-compact {
   display: flex;

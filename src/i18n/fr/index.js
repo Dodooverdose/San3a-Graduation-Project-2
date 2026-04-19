@@ -252,6 +252,7 @@ export default {
     reviewSubmitted: 'Évaluation soumise ! Demande complétée.',
     adminNotified: "L'administrateur a été notifié pour ré-examiner votre plainte.",
     somethingWrong: "Quelque chose s'est mal passé. Veuillez réessayer.",
+    counterOfferSent: 'Contre-offre envoyée',
   },
 
   serviceProvider: {

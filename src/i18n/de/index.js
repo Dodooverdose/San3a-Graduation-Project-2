@@ -250,6 +250,7 @@ export default {
     reviewSubmitted: 'Bewertung abgesendet! Anfrage abgeschlossen.',
     adminNotified: 'Der Administrator wurde benachrichtigt, Ihre Beschwerde erneut zu prüfen.',
     somethingWrong: 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+    counterOfferSent: 'Gegenangebot gesendet',
   },
 
   serviceProvider: {

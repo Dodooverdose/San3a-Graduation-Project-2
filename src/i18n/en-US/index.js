@@ -346,6 +346,7 @@ export default {
     adminNotifiedReReview: 'The admin has been notified to re-review your complaint.',
     somethingWrong: 'Something went wrong. Please try again.',
     counterOfferReceived: 'Customer counter-offer received for request #{id}.',
+    counterOfferSent: 'Counter Offer Sent',
   },
 
   // ── Orders Page ──

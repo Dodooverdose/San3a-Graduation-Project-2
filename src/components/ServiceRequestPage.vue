@@ -257,6 +257,14 @@
                     :label="req.request_status || 'pending'"
                   />
                 </div>
+                <div v-if="req.technician" class="technician-info-row">
+                  <q-avatar size="24px" color="primary" text-color="white" icon="person" />
+                  <span class="technician-name">{{ req.technician.full_name }}</span>
+                  <q-rating :model-value="req.techRating || 0" size="14px" color="amber" readonly />
+                  <span class="technician-rating-text">{{ req.techRating || 0 }}</span>
+                  <span class="technician-rating-count">({{ req.techRatingCount || 0 }})</span>
+                </div>
+
                 <p class="history-desc">
                   {{ req.description_of_issue || $t('common.noDescription') }}
                 </p>
@@ -457,12 +465,40 @@ const fetchHistory = async () => {
   historyError.value = null
   const { data, error } = await supabase
     .from('request')
-    .select('*')
+    .select('*, technician:technician_id(technician_id, full_name)')
     .eq('user_id', currentUserId.value)
     .eq('service_type', props.serviceType)
     .order('request_date', { ascending: false })
-  if (error) historyError.value = error.message
-  else requestHistory.value = data || []
+  if (error) {
+    historyError.value = error.message
+  } else {
+    const rows = data || []
+    // Fetch ratings for assigned technicians
+    const techIds = [...new Set(rows.map((r) => r.technician_id).filter(Boolean))]
+    const ratingMap = {}
+    if (techIds.length) {
+      const { data: ratingRows } = await supabase
+        .from('rating')
+        .select('technician_id, customer_rating')
+        .in('technician_id', techIds)
+        .not('customer_rating', 'is', null)
+      ;(ratingRows || []).forEach((r) => {
+        if (!ratingMap[r.technician_id]) ratingMap[r.technician_id] = []
+        ratingMap[r.technician_id].push(r.customer_rating)
+      })
+    }
+    rows.forEach((r) => {
+      const ratings = ratingMap[r.technician_id]
+      if (ratings && ratings.length) {
+        r.techRating = Math.round((ratings.reduce((s, v) => s + v, 0) / ratings.length) * 10) / 10
+        r.techRatingCount = ratings.length
+      } else {
+        r.techRating = 0
+        r.techRatingCount = 0
+      }
+    })
+    requestHistory.value = rows
+  }
   historyLoading.value = false
 }
 
@@ -805,6 +841,31 @@ onBeforeUnmount(() => {
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.technician-info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: var(--san3a-gray-50);
+  border: 1px solid var(--san3a-gray-200);
+  border-radius: var(--san3a-radius-md);
+}
+.technician-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
+}
+.technician-rating-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--san3a-gray-800);
+}
+.technician-rating-count {
+  font-size: 11px;
+  color: var(--san3a-gray-500);
 }
 
 .history-meta {

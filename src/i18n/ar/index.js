@@ -248,6 +248,7 @@ export default {
     reviewSubmitted: 'تم إرسال التقييم! اكتمل الطلب.',
     adminNotified: 'تم إخطار الإدارة لإعادة مراجعة شكواك.',
     somethingWrong: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
+    counterOfferSent: 'تم إرسال العرض المضاد',
   },
 
   serviceProvider: {
