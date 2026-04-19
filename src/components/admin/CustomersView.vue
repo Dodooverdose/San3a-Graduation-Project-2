@@ -65,15 +65,28 @@
 
         <q-card-section v-if="selectedCustomer">
           <div class="q-gutter-md">
-            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedCustomer._id }}</div>
-            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedCustomer._name }}</div>
-            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedCustomer._email }}</div>
-            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedCustomer._phone }}</div>
+            <div>
+              <strong>{{ $t('admin.colId') }}:</strong> {{ selectedCustomer._id }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colName') }}:</strong> {{ selectedCustomer._name }}
+            </div>
+            <div>
+              <strong>{{ $t('common.email') }}:</strong> {{ selectedCustomer._email }}
+            </div>
+            <div>
+              <strong>{{ $t('common.phone') }}:</strong> {{ selectedCustomer._phone }}
+            </div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
+          <q-btn
+            flat
+            :label="$t('common.close')"
+            color="primary"
+            @click="showDetailsDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -111,7 +124,12 @@
               class="q-mb-md"
               :rules="[(val) => (val && val.length > 0) || $t('admin.phoneRequired')]"
             />
-            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
+            <q-btn
+              type="submit"
+              color="primary"
+              :label="$t('common.save')"
+              class="q-mt-md full-width"
+            />
           </q-form>
         </q-card-section>
       </q-card>

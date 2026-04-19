@@ -62,18 +62,21 @@ export default {
     getStarted: 'Get Started',
     heroTitle: 'Your Trusted Home Services',
     heroHighlight: 'Marketplace in Egypt',
-    heroSubtitle: 'Connect with verified, skilled technicians for all your home repair and maintenance needs. Fast, reliable, and affordable.',
+    heroSubtitle:
+      'Connect with verified, skilled technicians for all your home repair and maintenance needs. Fast, reliable, and affordable.',
     ctaCustomer: 'Get Started as Customer',
     ctaTechnician: 'Join as Technician',
     browseServices: 'Browse Our Services',
-    browseServicesSubtitle: 'From plumbing to painting, find the right expert for every home service need',
+    browseServicesSubtitle:
+      'From plumbing to painting, find the right expert for every home service need',
     activeRequests: 'active requests',
     howItWorks: 'How Sanعa Works',
     howItWorksSubtitle: 'Get your home services done in three simple steps',
     readyTitle: 'Ready to Get Started?',
     readySubtitle: 'Join thousands of satisfied customers who trust Sanعa for their home services',
     signUpNow: 'Sign Up Now',
-    footerDesc: "Egypt's trusted home services marketplace connecting customers with skilled technicians.",
+    footerDesc:
+      "Egypt's trusted home services marketplace connecting customers with skilled technicians.",
     services: 'Services',
     company: 'Company',
     aboutUs: 'About Us',
@@ -166,7 +169,8 @@ export default {
     yearsOfExperience: 'Years of Experience',
     yearsPlaceholder: 'e.g., 5',
     validNumber: 'Enter a valid number',
-    technicianNote: "After registration, you'll need to complete your profile and verification before you can start receiving job requests.",
+    technicianNote:
+      "After registration, you'll need to complete your profile and verification before you can start receiving job requests.",
     alreadyHaveAccount: 'Already have an account?',
     agreeText: 'By signing up, you agree to our',
     plumber: 'Plumber',
@@ -223,7 +227,8 @@ export default {
     noOffersYet: 'No Offers Yet',
     welcomeBack: 'Welcome back',
     heroTitle: 'What do you need help with today?',
-    heroSubtitle: 'Pick a service, review your latest requests, or jump straight into the requests tab.',
+    heroSubtitle:
+      'Pick a service, review your latest requests, or jump straight into the requests tab.',
     recentRequests: 'Recent Requests',
     recentRequestsSubtitle: 'A quick look at your latest two requests',
     openRequests: 'Open Requests',
@@ -318,7 +323,8 @@ export default {
     yesItsDone: "Yes, it's done",
     noDescription: 'No description',
     submitReview: 'Submit Review',
-    etaStillActive: 'ETA is still active ({remaining} remaining). Wait for it to expire or customer response.',
+    etaStillActive:
+      'ETA is still active ({remaining} remaining). Wait for it to expire or customer response.',
     etaSentMsg: 'ETA of {minutes} minutes sent to customer.',
     customerOfferInvalid: 'Customer offer is invalid.',
     failedToAccept: 'Failed to accept: {error}',
@@ -327,7 +333,8 @@ export default {
     techProfileNotLoaded: 'Technician profile not loaded. Please sign in again.',
     enterValidBid: 'Please enter a valid bid amount.',
     failedSubmitOffer: 'Failed to submit offer: {error}',
-    offerNotSaved: 'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
+    offerNotSaved:
+      'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
     offerSentNoNotif: 'Offer sent, but notification persistence failed.',
     offerSentNoEmail: 'Offer sent, but customer email was not found.',
     offerSuccess: 'Offer submitted successfully!',
@@ -421,7 +428,8 @@ export default {
   // ── Pending Approval ──
   pendingApproval: {
     title: 'Your Profile Is Under Review',
-    description: 'Thank you for submitting your verification documents. Your account is currently in pending approval state. You will get full access once an admin approves your profile.',
+    description:
+      'Thank you for submitting your verification documents. Your account is currently in pending approval state. You will get full access once an admin approves your profile.',
     checkStatus: 'Check Status',
     resubmitDocuments: 'Resubmit Documents',
     signOut: 'Sign Out',

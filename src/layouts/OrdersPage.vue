@@ -150,9 +150,9 @@
             </q-item-section>
           </q-item>
         </q-list>
-        <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >{{ $t('ordersPage.noNotifications') }}</q-card-section
-        >
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg">{{
+          $t('ordersPage.noNotifications')
+        }}</q-card-section>
       </q-card>
     </q-dialog>
 
@@ -308,8 +308,18 @@
           :label="$t('common.requests')"
           @click="$router.push('/incoming-offers')"
         />
-        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="$router.push('/orders')" />
-        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="$router.push('/profile')" />
+        <q-tab
+          name="orders"
+          icon="receipt_long"
+          :label="$t('common.orders')"
+          @click="$router.push('/orders')"
+        />
+        <q-tab
+          name="profile"
+          icon="person"
+          :label="$t('common.profile')"
+          @click="$router.push('/profile')"
+        />
       </q-tabs>
     </q-footer>
 
@@ -540,7 +550,8 @@ const etaCountdownDisplay = computed(() => {
 
 const handleArrivalYes = async () => {
   const { error: err } = await confirmArrival(arrivalCheckRequest.value)
-  if (err) $q.notify({ type: 'negative', message: t('common.failedUpdateStatus') + ': ' + err.message })
+  if (err)
+    $q.notify({ type: 'negative', message: t('common.failedUpdateStatus') + ': ' + err.message })
   else $q.notify({ type: 'positive', message: t('common.requestOngoing') })
 }
 

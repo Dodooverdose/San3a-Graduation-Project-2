@@ -54,9 +54,7 @@
                   dense
                   hide-bottom-space
                   class="san3a-input"
-                  :rules="[
-                    (val) => (val && val.length >= 6) || $t('signInPage.passwordMinLength'),
-                  ]"
+                  :rules="[(val) => (val && val.length >= 6) || $t('signInPage.passwordMinLength')]"
                 >
                   <template v-slot:prepend>
                     <q-icon name="lock" color="grey-5" />
@@ -79,7 +77,9 @@
                   dense
                   class="remember-check"
                 />
-                <span class="forgot-link" @click="onForgotPassword">{{ $t('signInPage.forgotPassword') }}</span>
+                <span class="forgot-link" @click="onForgotPassword">{{
+                  $t('signInPage.forgotPassword')
+                }}</span>
               </div>
 
               <q-btn

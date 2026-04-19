@@ -81,10 +81,18 @@
 
         <q-card-section v-if="selectedRequest">
           <div class="q-gutter-md">
-            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedRequest._id }}</div>
-            <div><strong>{{ $t('admin.colCustomer') }}:</strong> {{ selectedRequest._customer_name }}</div>
-            <div><strong>{{ $t('admin.colCategory') }}:</strong> {{ selectedRequest._category }}</div>
-            <div><strong>{{ $t('admin.colDescription') }}:</strong> {{ selectedRequest._description }}</div>
+            <div>
+              <strong>{{ $t('admin.colId') }}:</strong> {{ selectedRequest._id }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colCustomer') }}:</strong> {{ selectedRequest._customer_name }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colCategory') }}:</strong> {{ selectedRequest._category }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colDescription') }}:</strong> {{ selectedRequest._description }}
+            </div>
             <div>
               <strong>{{ $t('admin.status') }}:</strong>
               <q-badge
@@ -101,12 +109,20 @@
             <div v-if="selectedRequest.final_price">
               <strong>{{ $t('admin.finalPrice') }}:</strong> {{ selectedRequest.final_price }}
             </div>
-            <div><strong>{{ $t('admin.colCreated') }}:</strong> {{ formatDate(selectedRequest.created_at) }}</div>
+            <div>
+              <strong>{{ $t('admin.colCreated') }}:</strong>
+              {{ formatDate(selectedRequest.created_at) }}
+            </div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
+          <q-btn
+            flat
+            :label="$t('common.close')"
+            color="primary"
+            @click="showDetailsDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -150,7 +166,12 @@
               class="q-mb-md"
               type="number"
             />
-            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
+            <q-btn
+              type="submit"
+              color="primary"
+              :label="$t('common.save')"
+              class="q-mt-md full-width"
+            />
           </q-form>
         </q-card-section>
       </q-card>

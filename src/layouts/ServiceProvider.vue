@@ -177,9 +177,9 @@
             </q-item-section>
           </q-item>
         </q-list>
-        <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >{{ $t('serviceProvider.noOffersYet') }}</q-card-section
-        >
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg">{{
+          $t('serviceProvider.noOffersYet')
+        }}</q-card-section>
       </q-card>
     </q-dialog>
 
@@ -194,7 +194,9 @@
           <div class="welcome-card">
             <div class="welcome-deco"></div>
             <div class="welcome-content">
-              <div class="welcome-name">{{ $t('serviceProvider.welcome', { name: fullName }) }}</div>
+              <div class="welcome-name">
+                {{ $t('serviceProvider.welcome', { name: fullName }) }}
+              </div>
               <div class="welcome-specialty">
                 <q-badge :color="specialtyColor" class="spec-badge">{{ specialtyLabel }}</q-badge>
                 <img
@@ -333,7 +335,9 @@
                     <span>{{ req.customer_name }}</span>
                   </div>
 
-                  <p class="req-desc">{{ req.description_of_issue || $t('serviceProvider.noDescription') }}</p>
+                  <p class="req-desc">
+                    {{ req.description_of_issue || $t('serviceProvider.noDescription') }}
+                  </p>
 
                   <div v-if="req.attached_image" class="req-image">
                     <img
@@ -352,7 +356,8 @@
                     </div>
                     <div v-if="req.schedule_time" class="meta-item">
                       <q-icon name="schedule" size="14px" color="grey-6" /><span
-                        >{{ $t('serviceProvider.scheduled') }} {{ formatDate(req.schedule_time) }}</span
+                        >{{ $t('serviceProvider.scheduled') }}
+                        {{ formatDate(req.schedule_time) }}</span
                       >
                     </div>
                     <div v-if="req.service_location" class="meta-item">
@@ -367,9 +372,9 @@
                       >
                     </div>
                     <div v-if="req.customer_price" class="meta-item price">
-                      <q-icon name="sell" size="14px" color="green-7" /><span
-                        >{{ $t('serviceProvider.customerBudget', { amount: req.customer_price }) }}</span
-                      >
+                      <q-icon name="sell" size="14px" color="green-7" /><span>{{
+                        $t('serviceProvider.customerBudget', { amount: req.customer_price })
+                      }}</span>
                     </div>
                   </div>
 
@@ -377,7 +382,11 @@
                   <div class="req-actions">
                     <div v-if="hasMyOffer(req)" class="offer-status">
                       <q-icon name="check_circle" color="positive" size="sm" />
-                      <span>{{ $t('serviceProvider.offerSubmitted', { amount: getMyOffer(req).offered_price }) }}</span>
+                      <span>{{
+                        $t('serviceProvider.offerSubmitted', {
+                          amount: getMyOffer(req).offered_price,
+                        })
+                      }}</span>
                       <q-badge
                         :color="statusColor(req.request_status)"
                         :label="req.request_status || 'pending'"
@@ -387,7 +396,11 @@
                     <q-btn
                       v-if="activeTab !== 'orders' && !isOfferAccepted(req)"
                       :color="isRequestTaken(req) || hasMyOffer(req) ? 'grey-5' : 'primary'"
-                      :label="hasMyOffer(req) ? $t('serviceProvider.updateBid') : $t('serviceProvider.placeBid')"
+                      :label="
+                        hasMyOffer(req)
+                          ? $t('serviceProvider.updateBid')
+                          : $t('serviceProvider.placeBid')
+                      "
                       icon="gavel"
                       no-caps
                       unelevated
@@ -401,9 +414,11 @@
                     >
                       <div class="counter-offer-banner">
                         <q-icon name="person" size="18px" color="green-8" />
-                        <span
-                          >{{ $t('serviceProvider.customerCounterOffer', { amount: getMyOffer(req).customer_counter_price }) }}</span
-                        >
+                        <span>{{
+                          $t('serviceProvider.customerCounterOffer', {
+                            amount: getMyOffer(req).customer_counter_price,
+                          })
+                        }}</span>
                       </div>
                       <div class="row items-center q-gutter-sm q-mt-sm">
                         <q-btn
@@ -411,7 +426,11 @@
                           dense
                           color="positive"
                           icon="check_circle"
-                          :label="$t('serviceProvider.acceptAmount', { amount: getMyOffer(req).customer_counter_price })"
+                          :label="
+                            $t('serviceProvider.acceptAmount', {
+                              amount: getMyOffer(req).customer_counter_price,
+                            })
+                          "
                           no-caps
                           :loading="acceptingCounterOfferId === req.request_id"
                           @click="acceptCustomerOffer(req)"
@@ -444,7 +463,10 @@
           <div v-if="offerTarget" class="text-caption text-grey-7 q-mt-xs">
             Request #{{ offerTarget.request_id }}
             <span v-if="offerTarget.customer_price">
-              — {{ $t('serviceProvider.customerBudget', { amount: offerTarget.customer_price }) }}</span
+              —
+              {{
+                $t('serviceProvider.customerBudget', { amount: offerTarget.customer_price })
+              }}</span
             >
           </div>
         </q-card-section>
@@ -472,7 +494,12 @@
           </q-input>
         </q-card-section>
         <q-card-actions align="right" class="q-px-md q-pb-md">
-          <q-btn flat :label="$t('common.cancel')" color="grey-7" @click="offerDialogOpen = false" />
+          <q-btn
+            flat
+            :label="$t('common.cancel')"
+            color="grey-7"
+            @click="offerDialogOpen = false"
+          />
           <q-btn
             :label="$t('serviceProvider.submitOffer')"
             color="primary"
@@ -503,8 +530,18 @@
           :label="$t('common.requests')"
           @click="setActiveTab('requests')"
         />
-        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="setActiveTab('orders')" />
-        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="router.push('/profile')" />
+        <q-tab
+          name="orders"
+          icon="receipt_long"
+          :label="$t('common.orders')"
+          @click="setActiveTab('orders')"
+        />
+        <q-tab
+          name="profile"
+          icon="person"
+          :label="$t('common.profile')"
+          @click="router.push('/profile')"
+        />
       </q-tabs>
     </q-footer>
 
@@ -562,7 +599,9 @@
           <div class="text-body2 text-grey-7 q-mt-xs">
             For request #{{ etaDialogRequest?.requestId }}
           </div>
-          <div class="text-body2 text-grey-7 q-mt-sm">{{ $t('serviceProvider.howMuchTimeLeft') }}</div>
+          <div class="text-body2 text-grey-7 q-mt-sm">
+            {{ $t('serviceProvider.howMuchTimeLeft') }}
+          </div>
         </q-card-section>
         <q-card-section>
           <q-option-group
@@ -593,7 +632,11 @@
           <q-icon name="gavel" size="56px" color="primary" />
           <div class="text-h6 q-mt-sm">{{ $t('serviceProvider.complaintResolution') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            {{ $t('serviceProvider.complaintReviewed', { id: complaintResolutionTarget?.payload?.complaintId }) }}
+            {{
+              $t('serviceProvider.complaintReviewed', {
+                id: complaintResolutionTarget?.payload?.complaintId,
+              })
+            }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
@@ -633,7 +676,9 @@
             "
           />
           <div class="text-h6 q-mt-md">{{ $t('serviceProvider.issueResolved') }}</div>
-          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">{{ $t('serviceProvider.thanksForChoosing') }}</div>
+          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">
+            {{ $t('serviceProvider.thanksForChoosing') }}
+          </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn
@@ -658,7 +703,13 @@
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
-          <q-btn flat :label="$t('serviceProvider.notYet')" color="grey-7" no-caps @click="handleJobStatusNo" />
+          <q-btn
+            flat
+            :label="$t('serviceProvider.notYet')"
+            color="grey-7"
+            no-caps
+            @click="handleJobStatusNo"
+          />
           <q-btn
             unelevated
             color="positive"
@@ -830,7 +881,10 @@ const handleSubmitEta = async () => {
     })
     return
   }
-  $q.notify({ type: 'positive', message: t('serviceProvider.etaSentMsg', { minutes: selectedEta.value }) })
+  $q.notify({
+    type: 'positive',
+    message: t('serviceProvider.etaSentMsg', { minutes: selectedEta.value }),
+  })
   showNextEtaDialog()
 }
 
@@ -1016,7 +1070,10 @@ const submitReview = async (skip = false) => {
 
     if (ratingError) {
       console.error('Rating save failed:', ratingError)
-      $q.notify({ type: 'negative', message: t('serviceProvider.reviewSaveFailed', { error: ratingError.message }) })
+      $q.notify({
+        type: 'negative',
+        message: t('serviceProvider.reviewSaveFailed', { error: ratingError.message }),
+      })
     }
   }
 
@@ -1397,7 +1454,10 @@ const acceptCustomerOffer = async (req) => {
     .eq('offer_id', offer.offer_id)
   if (offerErr) {
     acceptingCounterOfferId.value = null
-    $q.notify({ type: 'negative', message: t('serviceProvider.failedToAccept', { error: offerErr.message }) })
+    $q.notify({
+      type: 'negative',
+      message: t('serviceProvider.failedToAccept', { error: offerErr.message }),
+    })
     return
   }
   const { error: requestError } = await supabase
@@ -1451,7 +1511,10 @@ const submitOffer = async () => {
     .maybeSingle()
   offerSubmitting.value = false
   if (error) {
-    $q.notify({ type: 'negative', message: t('serviceProvider.failedSubmitOffer', { error: error.message }) })
+    $q.notify({
+      type: 'negative',
+      message: t('serviceProvider.failedSubmitOffer', { error: error.message }),
+    })
     return
   }
   if (!upsertedOffer) {

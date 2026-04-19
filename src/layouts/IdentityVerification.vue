@@ -83,7 +83,11 @@
                   unelevated
                   color="primary"
                   no-caps
-                  :label="isLastStep ? $t('verification.submitVerification') : $t('verification.confirmContinue')"
+                  :label="
+                    isLastStep
+                      ? $t('verification.submitVerification')
+                      : $t('verification.confirmContinue')
+                  "
                   :disable="!previewImage"
                   :loading="saving"
                   @click="saveAndContinue"

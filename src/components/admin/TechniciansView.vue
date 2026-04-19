@@ -33,7 +33,9 @@
       <template v-slot:body-cell-verified="props">
         <q-td :props="props">
           <q-badge
-            :label="props.row._isApproved ? $t('common.approved') : $t('admin.pendingVerificationBadge')"
+            :label="
+              props.row._isApproved ? $t('common.approved') : $t('admin.pendingVerificationBadge')
+            "
             :color="props.row._isApproved ? 'positive' : 'warning'"
           />
         </q-td>
@@ -86,15 +88,30 @@
 
         <q-card-section v-if="selectedTechnician">
           <div class="q-gutter-md">
-            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedTechnician._id }}</div>
-            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedTechnician._name }}</div>
-            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedTechnician._email }}</div>
-            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedTechnician._phone }}</div>
-            <div><strong>{{ $t('admin.colSpecialty') }}:</strong> {{ selectedTechnician.specialty || '-' }}</div>
+            <div>
+              <strong>{{ $t('admin.colId') }}:</strong> {{ selectedTechnician._id }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colName') }}:</strong> {{ selectedTechnician._name }}
+            </div>
+            <div>
+              <strong>{{ $t('common.email') }}:</strong> {{ selectedTechnician._email }}
+            </div>
+            <div>
+              <strong>{{ $t('common.phone') }}:</strong> {{ selectedTechnician._phone }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colSpecialty') }}:</strong>
+              {{ selectedTechnician.specialty || '-' }}
+            </div>
             <div>
               <strong>{{ $t('admin.status') }}:</strong>
               <q-badge
-                :label="selectedTechnician._isApproved ? $t('common.approved') : $t('admin.pendingVerificationBadge')"
+                :label="
+                  selectedTechnician._isApproved
+                    ? $t('common.approved')
+                    : $t('admin.pendingVerificationBadge')
+                "
                 :color="selectedTechnician._isApproved ? 'positive' : 'warning'"
               />
             </div>
@@ -102,7 +119,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
+          <q-btn
+            flat
+            :label="$t('common.close')"
+            color="primary"
+            @click="showDetailsDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -111,7 +133,7 @@
     <q-dialog v-model="showAddDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ editingId ? $t('common.save') : $t('admin.addTechnician') }} </div>
+          <div class="text-h6">{{ editingId ? $t('common.save') : $t('admin.addTechnician') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showAddDialog = false" />
         </q-card-section>
@@ -140,9 +162,19 @@
               class="q-mb-md"
               :rules="[(val) => (val && val.length > 0) || $t('admin.phoneRequired')]"
             />
-            <q-input v-model="formData.specialty" :label="$t('admin.colSpecialty')" outlined class="q-mb-md" />
+            <q-input
+              v-model="formData.specialty"
+              :label="$t('admin.colSpecialty')"
+              outlined
+              class="q-mb-md"
+            />
             <q-checkbox v-model="formData.verified" :label="$t('common.verified')" />
-            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
+            <q-btn
+              type="submit"
+              color="primary"
+              :label="$t('common.save')"
+              class="q-mt-md full-width"
+            />
           </q-form>
         </q-card-section>
       </q-card>
@@ -399,9 +431,7 @@ const toggleVerification = async (technician) => {
     if (error) throw error
     $q.notify({
       type: 'positive',
-      message: nextApproved
-        ? t('admin.techApproved')
-        : t('admin.techMovedPending'),
+      message: nextApproved ? t('admin.techApproved') : t('admin.techMovedPending'),
       position: 'top',
     })
     loadTechnicians()

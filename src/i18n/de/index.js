@@ -59,7 +59,8 @@ export default {
     getStarted: 'Loslegen',
     heroTitle: 'Ihr vertrauenswürdiger Hausservice',
     heroHighlight: 'Marktplatz in Ägypten',
-    heroSubtitle: 'Verbinden Sie sich mit verifizierten, qualifizierten Technikern für alle Ihre Reparatur- und Wartungsbedürfnisse. Schnell, zuverlässig und erschwinglich.',
+    heroSubtitle:
+      'Verbinden Sie sich mit verifizierten, qualifizierten Technikern für alle Ihre Reparatur- und Wartungsbedürfnisse. Schnell, zuverlässig und erschwinglich.',
     ctaCustomer: 'Als Kunde starten',
     ctaTechnician: 'Als Techniker beitreten',
     browseServices: 'Unsere Dienste durchsuchen',
@@ -160,7 +161,8 @@ export default {
     yearsOfExperience: 'Jahre Berufserfahrung',
     yearsPlaceholder: 'z.B. 5',
     validNumber: 'Geben Sie eine gültige Zahl ein',
-    technicianNote: 'Nach der Registrierung müssen Sie Ihr Profil und die Verifizierung abschließen, bevor Sie Aufträge erhalten können.',
+    technicianNote:
+      'Nach der Registrierung müssen Sie Ihr Profil und die Verifizierung abschließen, bevor Sie Aufträge erhalten können.',
     alreadyHaveAccount: 'Haben Sie bereits ein Konto?',
     agreeText: 'Mit der Registrierung akzeptieren Sie unsere',
     plumber: 'Klempner',
@@ -181,7 +183,8 @@ export default {
   forgotPasswordPage: {
     backToSignIn: 'Zurück zur Anmeldung',
     title: 'Passwort vergessen?',
-    subtitle: 'Geben Sie Ihre E-Mail oder Telefonnummer ein und wir senden Ihnen einen Link zum Zurücksetzen.',
+    subtitle:
+      'Geben Sie Ihre E-Mail oder Telefonnummer ein und wir senden Ihnen einen Link zum Zurücksetzen.',
     emailOrPhone: 'E-Mail oder Telefonnummer',
     placeholder: 'ihre.email@beispiel.de',
     emailRequired: 'E-Mail oder Telefonnummer ist erforderlich',
@@ -214,7 +217,8 @@ export default {
     noOffersYet: 'Noch keine Angebote',
     welcomeBack: 'Willkommen zurück',
     heroTitle: 'Was brauchen Sie heute?',
-    heroSubtitle: 'Wählen Sie einen Service, prüfen Sie Ihre Anfragen oder gehen Sie direkt zum Anfragen-Tab.',
+    heroSubtitle:
+      'Wählen Sie einen Service, prüfen Sie Ihre Anfragen oder gehen Sie direkt zum Anfragen-Tab.',
     recentRequests: 'Aktuelle Anfragen',
     recentRequestsSubtitle: 'Ein kurzer Blick auf Ihre letzten zwei Anfragen',
     openRequests: 'Offene Anfragen',
@@ -362,7 +366,8 @@ export default {
     retake: 'Erneut aufnehmen',
     submitVerification: 'Verifizierung absenden',
     confirmContinue: 'Bestätigen & Fortfahren',
-    privacyNote: 'Ihre Fotos werden nur zur Identitätsverifizierung und Sicherheitsprüfung verwendet.',
+    privacyNote:
+      'Ihre Fotos werden nur zur Identitätsverifizierung und Sicherheitsprüfung verwendet.',
     capture: 'Aufnehmen',
     selectImageFile: 'Bitte wählen Sie eine Bilddatei.',
     imageTooLarge: 'Das Bild ist zu groß. Maximale Größe: 6 MB.',
@@ -374,15 +379,18 @@ export default {
 
   pendingApproval: {
     title: 'Ihr Profil wird überprüft',
-    description: 'Vielen Dank für die Einreichung Ihrer Verifizierungsdokumente. Ihr Konto befindet sich derzeit in der Genehmigungsphase. Sie erhalten vollen Zugang, sobald ein Administrator Ihr Profil genehmigt.',
+    description:
+      'Vielen Dank für die Einreichung Ihrer Verifizierungsdokumente. Ihr Konto befindet sich derzeit in der Genehmigungsphase. Sie erhalten vollen Zugang, sobald ein Administrator Ihr Profil genehmigt.',
     checkStatus: 'Status überprüfen',
     resubmitDocuments: 'Dokumente erneut einreichen',
     signOut: 'Abmelden',
     rejectionReason: 'Ablehnungsgrund des Administrators',
-    rejectedMessage: 'Ihr Profil wurde abgelehnt. Bitte beheben Sie das Problem und reichen Sie erneut ein.',
+    rejectedMessage:
+      'Ihr Profil wurde abgelehnt. Bitte beheben Sie das Problem und reichen Sie erneut ein.',
     stillPending: 'Noch ausstehend. Bitte schauen Sie später wieder vorbei.',
     couldNotRefresh: 'Status konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.',
-    couldNotResubmit: 'Erneute Einreichung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
+    couldNotResubmit:
+      'Erneute Einreichung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
   },
 
   userProfile: {
@@ -618,7 +626,8 @@ export default {
     complaintAgainst: 'Beschwerde gegen',
     noComplaintAgainstInfo: 'Keine Informationen über den Beschuldigten verfügbar',
     markResolved: 'Als gelöst markieren',
-    complaintResolved: 'Beschwerde als gelöst markiert. Bestätigung an den Beschwerdeführer gesendet.',
+    complaintResolved:
+      'Beschwerde als gelöst markiert. Bestätigung an den Beschwerdeführer gesendet.',
     complaintReopened: 'Beschwerde wiedereröffnet',
     complaintDeleted: 'Beschwerde erfolgreich gelöscht',
     errorLoadingComplaints: 'Fehler beim Laden der Beschwerden',
@@ -651,7 +660,8 @@ export default {
     verificationApprovedRejected: 'Verifizierung als {status} markiert.',
     failedLoadVerifications: 'Verifizierungsprofile konnten nicht geladen werden.',
     failedUpdateReview: 'Überprüfungsstatus konnte nicht aktualisiert werden.',
-    writeRejectionReason: 'Bitte schreiben Sie einen Ablehnungsgrund, bevor Sie dieses Profil ablehnen.',
+    writeRejectionReason:
+      'Bitte schreiben Sie einen Ablehnungsgrund, bevor Sie dieses Profil ablehnen.',
     couldNotReject: 'Profil konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut.',
   },
 

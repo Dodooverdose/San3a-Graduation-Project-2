@@ -50,7 +50,9 @@
               <div class="text-subtitle1 text-weight-bold">{{ $t('admin.actionCenter') }}</div>
               <div class="text-caption text-grey-7">{{ $t('admin.actionCenterSub') }}</div>
             </div>
-            <q-badge color="warning" text-color="white">{{ actionItems.length }} {{ $t('admin.alerts') }}</q-badge>
+            <q-badge color="warning" text-color="white"
+              >{{ actionItems.length }} {{ $t('admin.alerts') }}</q-badge
+            >
           </div>
 
           <div class="action-list" v-if="actionItems.length">
@@ -122,7 +124,9 @@
     <div class="charts-grid">
       <q-card flat bordered class="chart-card">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-medium">{{ $t('admin.verificationPipeline') }}</div>
+          <div class="text-subtitle1 text-weight-medium">
+            {{ $t('admin.verificationPipeline') }}
+          </div>
           <div class="text-caption text-grey-7 q-mb-md">
             {{ $t('admin.verificationPipelineSub') }}
           </div>
@@ -175,7 +179,9 @@
             {{ $t('admin.serviceCategoryMixSub') }}
           </div>
 
-          <div v-if="serviceMix.length === 0" class="text-grey-7">{{ $t('admin.noCategoryData') }}</div>
+          <div v-if="serviceMix.length === 0" class="text-grey-7">
+            {{ $t('admin.noCategoryData') }}
+          </div>
 
           <div v-else class="service-mix-wrap">
             <div class="donut-wrap">
@@ -223,7 +229,9 @@
             />
           </div>
 
-          <div v-if="activityBars.length === 0" class="text-grey-7">{{ $t('admin.noRecentActivityFound') }}</div>
+          <div v-if="activityBars.length === 0" class="text-grey-7">
+            {{ $t('admin.noRecentActivityFound') }}
+          </div>
 
           <div v-for="day in activityBars" :key="day.date" class="activity-row">
             <div class="activity-label text-caption text-grey-8">{{ day.label }}</div>

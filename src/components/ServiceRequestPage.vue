@@ -40,9 +40,9 @@
 
             <div class="form-grid">
               <div class="field-group full-width">
-                <label class="field-label"
-                  >{{ $t('serviceRequest.describeIssue', { service: serviceLabel.toLowerCase() }) }}</label
-                >
+                <label class="field-label">{{
+                  $t('serviceRequest.describeIssue', { service: serviceLabel.toLowerCase() })
+                }}</label>
                 <q-input
                   v-model="requestText"
                   type="textarea"
@@ -147,7 +147,8 @@
                     class="payment-btn"
                     @click="paymentMethod = 'instapay'"
                   >
-                    <q-icon name="credit_card" class="q-mr-sm" /> {{ $t('serviceRequest.instapay') }}
+                    <q-icon name="credit_card" class="q-mr-sm" />
+                    {{ $t('serviceRequest.instapay') }}
                   </q-btn>
                 </div>
               </div>
@@ -256,7 +257,9 @@
                     :label="req.request_status || 'pending'"
                   />
                 </div>
-                <p class="history-desc">{{ req.description_of_issue || $t('common.noDescription') }}</p>
+                <p class="history-desc">
+                  {{ req.description_of_issue || $t('common.noDescription') }}
+                </p>
                 <div class="history-meta">
                   <div v-if="req.request_date" class="meta-item">
                     <q-icon name="event" size="14px" color="grey-6" />

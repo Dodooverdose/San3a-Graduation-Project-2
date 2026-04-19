@@ -11,7 +11,13 @@
         </div>
         <q-space />
         <div class="header-actions">
-          <q-btn flat no-caps class="signin-link" :label="$t('common.signIn')" @click="goTo('/signin')" />
+          <q-btn
+            flat
+            no-caps
+            class="signin-link"
+            :label="$t('common.signIn')"
+            @click="goTo('/signin')"
+          />
           <q-btn
             unelevated
             no-caps
@@ -94,7 +100,9 @@
                 </div>
                 <h3 class="service-name">{{ $t(service.titleKey) }}</h3>
                 <p class="service-desc">{{ $t(service.descKey) }}</p>
-                <div class="service-count">{{ service.count }} {{ $t('landing.activeRequests') }}</div>
+                <div class="service-count">
+                  {{ service.count }} {{ $t('landing.activeRequests') }}
+                </div>
               </div>
             </div>
           </div>
@@ -343,7 +351,10 @@ const loadLandingMetrics = async () => {
       : '--'
 
   stats.value = [
-    { number: typeof customers === 'number' ? formatCompact(customers) : '--', labelKey: 'landing.customers' },
+    {
+      number: typeof customers === 'number' ? formatCompact(customers) : '--',
+      labelKey: 'landing.customers',
+    },
     {
       number: typeof technicians === 'number' ? formatCompact(technicians) : '--',
       labelKey: 'landing.technicians',

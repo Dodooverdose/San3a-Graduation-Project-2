@@ -100,8 +100,13 @@
 
         <q-card-section v-if="selectedComplaint">
           <div class="q-gutter-md">
-            <div><strong>{{ $t('admin.complaintId') }}</strong> #{{ selectedComplaint.complaint_id }}</div>
-            <div><strong>{{ $t('admin.role') }}</strong> {{ selectedComplaint.complainant_role || '—' }}</div>
+            <div>
+              <strong>{{ $t('admin.complaintId') }}</strong> #{{ selectedComplaint.complaint_id }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.role') }}</strong>
+              {{ selectedComplaint.complainant_role || '—' }}
+            </div>
             <div>
               <strong>{{ $t('admin.filedBy') }}</strong>
               <template v-if="complainantLoading">
@@ -111,11 +116,17 @@
                 {{ complainantUser?.full_name || '—' }}
               </template>
             </div>
-            <div><strong>{{ $t('admin.colIssueType') }}:</strong> {{ selectedComplaint.issue_type || '—' }}</div>
+            <div>
+              <strong>{{ $t('admin.colIssueType') }}:</strong>
+              {{ selectedComplaint.issue_type || '—' }}
+            </div>
             <div v-if="selectedComplaint.request_id">
               <strong>{{ $t('admin.relatedRequest') }}</strong> #{{ selectedComplaint.request_id }}
             </div>
-            <div><strong>{{ $t('admin.colDescription') }}:</strong> {{ selectedComplaint.description || '—' }}</div>
+            <div>
+              <strong>{{ $t('admin.colDescription') }}:</strong>
+              {{ selectedComplaint.description || '—' }}
+            </div>
             <div>
               <strong>{{ $t('admin.colStatus') }}:</strong>
               <q-badge
@@ -131,9 +142,17 @@
               <q-spinner size="sm" class="q-mr-sm" /> Loading...
             </template>
             <template v-else-if="complainedAgainstUser">
-              <div><strong>{{ $t('admin.colName') }}:</strong> {{ complainedAgainstUser.full_name || '—' }}</div>
-              <div><strong>{{ $t('common.email') }}:</strong> {{ complainedAgainstUser.email || '—' }}</div>
-              <div><strong>{{ $t('common.phone') }}:</strong> {{ complainedAgainstUser.phone_number || '—' }}</div>
+              <div>
+                <strong>{{ $t('admin.colName') }}:</strong>
+                {{ complainedAgainstUser.full_name || '—' }}
+              </div>
+              <div>
+                <strong>{{ $t('common.email') }}:</strong> {{ complainedAgainstUser.email || '—' }}
+              </div>
+              <div>
+                <strong>{{ $t('common.phone') }}:</strong>
+                {{ complainedAgainstUser.phone_number || '—' }}
+              </div>
             </template>
             <template v-else>
               <div class="text-grey">{{ $t('admin.noComplaintAgainstInfo') }}</div>
@@ -150,7 +169,12 @@
             :label="$t('admin.markResolved')"
             @click="resolveAndClose"
           />
-          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
+          <q-btn
+            flat
+            :label="$t('common.close')"
+            color="primary"
+            @click="showDetailsDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>

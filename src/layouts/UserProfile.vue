@@ -68,14 +68,17 @@
                     text-color="white"
                     class="verify-badge"
                   >
-                    <q-icon name="verified" size="12px" class="q-mr-xs" /> {{ $t('common.verified') }}
+                    <q-icon name="verified" size="12px" class="q-mr-xs" />
+                    {{ $t('common.verified') }}
                   </q-badge>
                 </div>
                 <div class="hero-subline">{{ profileEmail || $t('userProfile.noEmailFound') }}</div>
                 <div class="hero-meta">
                   <span>{{ roleCity }}</span>
                   <span>{{ $t('userProfile.joined', { date: memberSinceLabel }) }}</span>
-                  <span v-if="isTechnician">{{ $t('userProfile.completedJobs', { count: jobsCompleted }) }}</span>
+                  <span v-if="isTechnician">{{
+                    $t('userProfile.completedJobs', { count: jobsCompleted })
+                  }}</span>
                 </div>
                 <div v-if="totalRatings > 0" class="hero-rating">
                   <q-rating
@@ -89,7 +92,8 @@
                   />
                   <span class="rating-text">{{ averageRating }}</span>
                   <span class="rating-count"
-                    >({{ totalRatings }} {{ totalRatings === 1 ? $t('common.review') : $t('common.reviews') }})</span
+                    >({{ totalRatings }}
+                    {{ totalRatings === 1 ? $t('common.review') : $t('common.reviews') }})</span
                   >
                 </div>
               </div>
@@ -157,7 +161,13 @@
                       dense
                       :readonly="!editing"
                     />
-                    <q-input :model-value="profileEmail" :label="$t('common.email')" outlined dense readonly>
+                    <q-input
+                      :model-value="profileEmail"
+                      :label="$t('common.email')"
+                      outlined
+                      dense
+                      readonly
+                    >
                       <template #append>
                         <q-icon v-if="emailVerified" name="check_circle" color="positive" />
                       </template>
@@ -365,7 +375,9 @@
                   >
                     <template v-slot:no-option>
                       <q-item>
-                        <q-item-section class="text-grey"> {{ $t('userProfile.noRequestsFound') }} </q-item-section>
+                        <q-item-section class="text-grey">
+                          {{ $t('userProfile.noRequestsFound') }}
+                        </q-item-section>
                       </q-item>
                     </template>
                   </q-select>
@@ -383,7 +395,9 @@
                   >
                     <template v-slot:no-option>
                       <q-item>
-                        <q-item-section class="text-grey"> {{ $t('userProfile.noRequestsFound') }} </q-item-section>
+                        <q-item-section class="text-grey">
+                          {{ $t('userProfile.noRequestsFound') }}
+                        </q-item-section>
                       </q-item>
                     </template>
                   </q-select>
@@ -424,7 +438,13 @@
 
           <transition name="slide-up">
             <div v-if="editing" class="sticky-save">
-              <q-btn flat no-caps :label="$t('userProfile.discard')" color="grey-7" @click="discardChanges" />
+              <q-btn
+                flat
+                no-caps
+                :label="$t('userProfile.discard')"
+                color="grey-7"
+                @click="discardChanges"
+              />
               <q-btn
                 unelevated
                 no-caps
@@ -460,7 +480,12 @@
             :label="$t('common.orders')"
             @click="goToPage({ path: '/service-provider', query: { tab: 'orders' } })"
           />
-          <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
+          <q-tab
+            name="profile"
+            icon="person"
+            :label="$t('common.profile')"
+            @click="goToPage('/profile')"
+          />
         </template>
         <template v-else>
           <q-tab name="home" icon="home" :label="$t('common.home')" @click="goToPage('/home')" />
@@ -470,8 +495,18 @@
             :label="$t('common.requests')"
             @click="goToPage('/incoming-offers')"
           />
-          <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="goToPage('/orders')" />
-          <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
+          <q-tab
+            name="orders"
+            icon="receipt_long"
+            :label="$t('common.orders')"
+            @click="goToPage('/orders')"
+          />
+          <q-tab
+            name="profile"
+            icon="person"
+            :label="$t('common.profile')"
+            @click="goToPage('/profile')"
+          />
         </template>
       </q-tabs>
     </q-footer>

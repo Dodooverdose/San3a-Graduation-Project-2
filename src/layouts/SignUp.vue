@@ -198,7 +198,8 @@
                       class="san3a-input"
                       :rules="[
                         (val) =>
-                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || $t('signUpPage.validEmailRequired'),
+                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) ||
+                          $t('signUpPage.validEmailRequired'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="mail" color="grey-5" /></template>
@@ -241,8 +242,7 @@
                       hide-bottom-space
                       class="san3a-input"
                       :rules="[
-                        (val) =>
-                          (val && val.length >= 6) || $t('signUpPage.passwordMinLength'),
+                        (val) => (val && val.length >= 6) || $t('signUpPage.passwordMinLength'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
@@ -266,7 +266,9 @@
                       dense
                       hide-bottom-space
                       class="san3a-input"
-                      :rules="[(val) => val === form.password || $t('signUpPage.passwordsMustMatch')]"
+                      :rules="[
+                        (val) => val === form.password || $t('signUpPage.passwordsMustMatch'),
+                      ]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
                       <template v-slot:append
@@ -367,7 +369,8 @@
           <!-- Footer -->
           <p class="auth-footer">
             {{ $t('signUpPage.agreeText') }}
-            <span class="footer-link">{{ $t('landing.termsOfService') }}</span> {{ $t('common.and') }}
+            <span class="footer-link">{{ $t('landing.termsOfService') }}</span>
+            {{ $t('common.and') }}
             <span class="footer-link">{{ $t('landing.privacyPolicy') }}</span>
           </p>
         </div>

@@ -179,9 +179,9 @@
             </q-item-section>
           </q-item>
         </q-list>
-        <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >{{ $t('homePage.noOffersYet') }}</q-card-section
-        >
+        <q-card-section v-else class="text-center text-grey-5 q-py-lg">{{
+          $t('homePage.noOffersYet')
+        }}</q-card-section>
       </q-card>
     </q-dialog>
 
@@ -243,7 +243,9 @@
                 <div class="recent-title">{{ $t('homePage.recentRequests') }}</div>
                 <div class="recent-sub">{{ $t('homePage.recentRequestsSubtitle') }}</div>
               </div>
-              <q-chip outline color="primary" icon="chevron_right" clickable>{{ $t('homePage.openRequests') }}</q-chip>
+              <q-chip outline color="primary" icon="chevron_right" clickable>{{
+                $t('homePage.openRequests')
+              }}</q-chip>
             </div>
             <q-separator />
             <div class="recent-body">
@@ -295,8 +297,18 @@
           :label="$t('common.requests')"
           @click="goToPage('/incoming-offers')"
         />
-        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="goToPage('/orders')" />
-        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
+        <q-tab
+          name="orders"
+          icon="receipt_long"
+          :label="$t('common.orders')"
+          @click="goToPage('/orders')"
+        />
+        <q-tab
+          name="profile"
+          icon="person"
+          :label="$t('common.profile')"
+          @click="goToPage('/profile')"
+        />
       </q-tabs>
     </q-footer>
 
@@ -352,7 +364,13 @@
           <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions v-if="etaSecondsLeft > 0" align="center" class="q-pb-md">
-          <q-btn unelevated color="primary" :label="$t('common.ok')" no-caps @click="showEtaMessage = false" />
+          <q-btn
+            unelevated
+            color="primary"
+            :label="$t('common.ok')"
+            no-caps
+            @click="showEtaMessage = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -424,7 +442,11 @@
           <q-icon name="gavel" size="56px" color="primary" />
           <div class="text-h6 q-mt-sm">{{ $t('homePage.complaintResolution') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            {{ $t('homePage.complaintReviewed', { id: complaintResolutionTarget?.payload?.complaintId }) }}
+            {{
+              $t('homePage.complaintReviewed', {
+                id: complaintResolutionTarget?.payload?.complaintId,
+              })
+            }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
@@ -464,7 +486,9 @@
             "
           />
           <div class="text-h6 q-mt-md">{{ $t('homePage.issueResolved') }}</div>
-          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">{{ $t('homePage.thanksForChoosing') }}</div>
+          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">
+            {{ $t('homePage.thanksForChoosing') }}
+          </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn
@@ -577,7 +601,8 @@ const etaCountdownDisplay = computed(() => {
 
 const handleArrivalYes = async () => {
   const { error } = await confirmArrival(arrivalCheckRequest.value)
-  if (error) $q.notify({ type: 'negative', message: t('homePage.failedUpdateStatus') + error.message })
+  if (error)
+    $q.notify({ type: 'negative', message: t('homePage.failedUpdateStatus') + error.message })
   else $q.notify({ type: 'positive', message: t('homePage.requestOngoing') })
 }
 

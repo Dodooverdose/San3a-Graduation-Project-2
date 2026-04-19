@@ -1,5 +1,9 @@
 <template>
-  <ServiceRequestPage serviceType="plumber" :serviceLabel="t('services.plumbing')" serviceIcon="/icons/plumbing.png" />
+  <ServiceRequestPage
+    serviceType="plumber"
+    :serviceLabel="t('services.plumbing')"
+    serviceIcon="/icons/plumbing.png"
+  />
 </template>
 <script setup>
 import { useI18n } from 'vue-i18n'

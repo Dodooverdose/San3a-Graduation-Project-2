@@ -33,7 +33,8 @@
                   hide-bottom-space
                   class="san3a-input"
                   :rules="[
-                    (val) => (val && val.trim().length > 0) || $t('forgotPasswordPage.emailRequired'),
+                    (val) =>
+                      (val && val.trim().length > 0) || $t('forgotPasswordPage.emailRequired'),
                   ]"
                 >
                   <template #prepend>

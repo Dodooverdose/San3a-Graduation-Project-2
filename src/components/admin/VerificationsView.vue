@@ -57,7 +57,9 @@
       <template v-slot:body-cell-account_type="props">
         <q-td :props="props">
           <q-badge
-            :label="props.row.account_type === 'technician' ? $t('admin.technicians') : $t('admin.users')"
+            :label="
+              props.row.account_type === 'technician' ? $t('admin.technicians') : $t('admin.users')
+            "
             :color="props.row.account_type === 'technician' ? 'secondary' : 'primary'"
           />
         </q-td>
@@ -121,10 +123,19 @@
 
         <q-card-section v-if="selectedRow" class="details-section">
           <div class="details-grid">
-            <div><strong>{{ $t('admin.account') }}</strong> {{ selectedRow.account_type }}</div>
-            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedRow.full_name || '-' }}</div>
-            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedRow.email || '-' }}</div>
-            <div><strong>{{ $t('admin.colStatus') }}:</strong> {{ formatStatus(selectedRow.review_status) }}</div>
+            <div>
+              <strong>{{ $t('admin.account') }}</strong> {{ selectedRow.account_type }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colName') }}:</strong> {{ selectedRow.full_name || '-' }}
+            </div>
+            <div>
+              <strong>{{ $t('common.email') }}:</strong> {{ selectedRow.email || '-' }}
+            </div>
+            <div>
+              <strong>{{ $t('admin.colStatus') }}:</strong>
+              {{ formatStatus(selectedRow.review_status) }}
+            </div>
             <div v-if="selectedRow.review_status === 'rejected' && selectedRow.reviewer_notes">
               <strong>{{ $t('admin.rejectionReason') }}</strong> {{ selectedRow.reviewer_notes }}
             </div>
@@ -132,12 +143,20 @@
               <strong>{{ $t('admin.submitted') }}</strong>
               {{ formatDate(selectedRow.verification_completed_at || selectedRow.submitted_at) }}
             </div>
-            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedRow.profile_details?.phoneNumber || '-' }}</div>
-            <div v-if="selectedRow.account_type === 'technician'">
-              <strong>{{ $t('admin.colSpecialty') }}:</strong> {{ selectedRow.profile_details?.specialty || '-' }}
+            <div>
+              <strong>{{ $t('common.phone') }}:</strong>
+              {{ selectedRow.profile_details?.phoneNumber || '-' }}
             </div>
             <div v-if="selectedRow.account_type === 'technician'">
-              <strong>{{ $t('admin.experience', { years: selectedRow.profile_details?.yearsOfExperience || '-' }) }}</strong>
+              <strong>{{ $t('admin.colSpecialty') }}:</strong>
+              {{ selectedRow.profile_details?.specialty || '-' }}
+            </div>
+            <div v-if="selectedRow.account_type === 'technician'">
+              <strong>{{
+                $t('admin.experience', {
+                  years: selectedRow.profile_details?.yearsOfExperience || '-',
+                })
+              }}</strong>
             </div>
           </div>
 
@@ -171,7 +190,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('admin.reject')" color="negative" @click="rejectWithReason(selectedRow)" />
+          <q-btn
+            flat
+            :label="$t('admin.reject')"
+            color="negative"
+            @click="rejectWithReason(selectedRow)"
+          />
           <q-btn
             unelevated
             :label="$t('admin.approve')"

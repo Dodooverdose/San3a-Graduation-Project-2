@@ -84,7 +84,11 @@ const statusChip = computed(() => {
   if (currentStatus.value === 'approved') {
     return { label: t('common.approved'), color: 'positive', icon: 'verified' }
   }
-  return { label: t('common.pending') + ' ' + t('common.approved'), color: 'orange', icon: 'pending_actions' }
+  return {
+    label: t('common.pending') + ' ' + t('common.approved'),
+    color: 'orange',
+    icon: 'pending_actions',
+  }
 })
 
 const checkStatus = async () => {
