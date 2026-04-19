@@ -59,7 +59,9 @@
                       ? 'task_alt'
                       : notif.type === 'still-going-check'
                         ? 'update'
-                        : 'build'
+                        : notif.type === 'complaint-resolution'
+                          ? 'gavel'
+                          : 'build'
                   "
                   size="20px"
                 />
@@ -68,14 +70,18 @@
             <q-item-section>
               <q-item-label class="notif-name">
                 {{
-                  notif.type === 'completion-check' || notif.type === 'still-going-check'
-                    ? notif.title || 'Request Status'
+                  notif.type === 'completion-check' ||
+                  notif.type === 'still-going-check' ||
+                  notif.type === 'complaint-resolution'
+                    ? notif.title || 'Notification'
                     : notif.fixerName
                 }}
               </q-item-label>
               <q-item-label caption>
                 {{
-                  notif.type === 'completion-check' || notif.type === 'still-going-check'
+                  notif.type === 'completion-check' ||
+                  notif.type === 'still-going-check' ||
+                  notif.type === 'complaint-resolution'
                     ? notif.message
                     : getNotifMessage(notif)
                 }}
@@ -101,6 +107,29 @@
                   size="sm"
                   no-caps
                   @click.stop="handleCompletionNo(notif, i)"
+                />
+              </div>
+              <div
+                v-else-if="notif.type === 'complaint-resolution' && !notif.done"
+                class="row q-gutter-xs"
+              >
+                <q-btn
+                  dense
+                  unelevated
+                  color="positive"
+                  label="Yes"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleComplaintResolutionYes(notif, i)"
+                />
+                <q-btn
+                  dense
+                  unelevated
+                  color="negative"
+                  label="No"
+                  size="sm"
+                  no-caps
+                  @click.stop="handleComplaintResolutionNo(notif, i)"
                 />
               </div>
               <div
@@ -389,6 +418,69 @@
       </q-card>
     </q-dialog>
 
+    <!-- Complaint Resolution Popup -->
+    <q-dialog v-model="showComplaintResolutionDialog" persistent>
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="gavel" size="56px" color="primary" />
+          <div class="text-h6 q-mt-sm">Complaint Resolution</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            Your complaint
+            <strong>#{{ complaintResolutionTarget?.payload?.complaintId }}</strong> has been
+            reviewed. Has your issue been resolved?
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn
+            flat
+            label="No"
+            color="grey-7"
+            no-caps
+            @click="handleComplaintResolutionNo(complaintResolutionTarget)"
+          />
+          <q-btn
+            unelevated
+            color="positive"
+            label="Yes, resolved"
+            icon="check_circle"
+            no-caps
+            @click="handleComplaintResolutionYes(complaintResolutionTarget)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Complaint Thank You Dialog -->
+    <q-dialog v-model="showComplaintThankYouDialog">
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center q-pt-lg">
+          <img
+            src="/icons/White.png"
+            alt="San3a logo"
+            style="
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+              background: #2d6a4f;
+              border-radius: 16px;
+              padding: 10px;
+            "
+          />
+          <div class="text-h6 q-mt-md">The issue has been resolved.</div>
+          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">Thanks for choosing Sanعa :)</div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn
+            unelevated
+            color="primary"
+            label="Close"
+            no-caps
+            @click="showComplaintThankYouDialog = false"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Customer Review Dialog -->
     <q-dialog v-model="showCustomerReviewDialog" persistent>
       <q-card style="min-width: 340px; border-radius: 20px">
@@ -516,7 +608,80 @@ const knownOfferPrices = ref(new Map())
 const recentRequests = ref([])
 const loadingRecentRequests = ref(false)
 
+// Complaint resolution state
+const showComplaintResolutionDialog = ref(false)
+const complaintResolutionTarget = ref(null)
+const showComplaintThankYouDialog = ref(false)
+
+const handleComplaintResolutionYes = async (notif, index) => {
+  try {
+    if (typeof index === 'number') {
+      notifications.value[index] = { ...notifications.value[index], done: true }
+      markAsRead(index)
+    }
+    showComplaintResolutionDialog.value = false
+    showNotifications.value = false
+    showComplaintThankYouDialog.value = true
+  } catch (err) {
+    console.error('Complaint resolution Yes failed:', err)
+  }
+}
+
+const handleComplaintResolutionNo = async (notif, index) => {
+  const complaintId = notif?.payload?.complaintId || notif?.notif?.payload?.complaintId
+  try {
+    if (complaintId) {
+      const { error: updateErr } = await supabase
+        .from('complaint')
+        .update({ status: 'Unsolved' })
+        .eq('complaint_id', complaintId)
+      if (updateErr) console.error('Failed to revert complaint status:', updateErr)
+
+      // Notify admin to re-review
+      const { data: admins, error: adminErr } = await supabase.from('admin').select('email')
+      if (adminErr) console.error('Failed to fetch admins:', adminErr)
+      if (admins?.length) {
+        for (const admin of admins) {
+          const { error: notifErr } = await supabase.from('notification_center').insert({
+            recipient_email: admin.email.trim().toLowerCase(),
+            title: 'Complaint Re-review Required',
+            message: `Complainant rejected the resolution for complaint #${complaintId}. Please re-review the issue.`,
+            notification_type: 'general',
+            icon: 'warning',
+            payload: { complaintId, type: 'complaint-re-review' },
+          })
+          if (notifErr) console.error('Failed to notify admin:', notifErr)
+        }
+      }
+    }
+    if (typeof index === 'number') {
+      notifications.value[index] = { ...notifications.value[index], done: true }
+      markAsRead(index)
+    }
+    showComplaintResolutionDialog.value = false
+    showNotifications.value = false
+    $q.notify({
+      type: 'info',
+      message: 'The admin has been notified to re-review your complaint.',
+      position: 'top',
+    })
+  } catch (err) {
+    console.error('Complaint resolution No failed:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Something went wrong. Please try again.',
+      position: 'top',
+    })
+  }
+}
+
 const openNotification = (notif, index) => {
+  if (notif.type === 'complaint-resolution' && !notif.done) {
+    complaintResolutionTarget.value = notif
+    showComplaintResolutionDialog.value = true
+    showNotifications.value = false
+    return
+  }
   if (handleCompletionNotifClick(notif, index)) {
     showNotifications.value = false
     return

@@ -58,7 +58,7 @@
             icon="check_circle"
             size="sm"
             color="positive"
-            @click="resolveComplaint(props.row.complaint_id)"
+            @click="resolveComplaint(props.row)"
           >
             <q-tooltip>Mark as Resolved</q-tooltip>
           </q-btn>
@@ -102,6 +102,15 @@
           <div class="q-gutter-md">
             <div><strong>Complaint ID:</strong> #{{ selectedComplaint.complaint_id }}</div>
             <div><strong>Role:</strong> {{ selectedComplaint.complainant_role || '—' }}</div>
+            <div>
+              <strong>Filed By:</strong>
+              <template v-if="complainantLoading">
+                <q-spinner size="xs" class="q-ml-xs" />
+              </template>
+              <template v-else>
+                {{ complainantUser?.full_name || '—' }}
+              </template>
+            </div>
             <div><strong>Issue Type:</strong> {{ selectedComplaint.issue_type || '—' }}</div>
             <div v-if="selectedComplaint.request_id">
               <strong>Related Request:</strong> #{{ selectedComplaint.request_id }}
@@ -139,10 +148,7 @@
             no-caps
             color="positive"
             label="Mark Resolved"
-            @click="
-              resolveComplaint(selectedComplaint.complaint_id)
-              showDetailsDialog = false
-            "
+            @click="resolveAndClose"
           />
           <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
@@ -178,6 +184,8 @@ const showDetailsDialog = ref(false)
 const selectedComplaint = ref(null)
 const complainedAgainstUser = ref(null)
 const complainedAgainstLoading = ref(false)
+const complainantUser = ref(null)
+const complainantLoading = ref(false)
 
 const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
 
@@ -218,9 +226,26 @@ const loadComplaints = async () => {
 const viewComplaint = async (complaint) => {
   selectedComplaint.value = complaint
   complainedAgainstUser.value = null
+  complainantUser.value = null
   showDetailsDialog.value = true
 
   const isCustomerComplaint = complaint.complainant_role === 'customer'
+
+  // Fetch complainant (filer) info
+  const filerTable = isCustomerComplaint ? 'users' : 'technician'
+  const filerIdColumn = isCustomerComplaint ? 'user_id' : 'technician_id'
+  const filerId = isCustomerComplaint ? complaint.user_id : complaint.technician_id
+  if (filerId) {
+    complainantLoading.value = true
+    supabase
+      .from(filerTable)
+      .select('full_name, email, phone_number')
+      .eq(filerIdColumn, filerId)
+      .maybeSingle()
+      .then(({ data }) => { complainantUser.value = data })
+      .catch((err) => console.error('Error fetching complainant:', err))
+      .finally(() => { complainantLoading.value = false })
+  }
   const targetId =
     complaint.complained_against_id ||
     (isCustomerComplaint ? complaint.technician_id : complaint.user_id)
@@ -247,7 +272,29 @@ const viewComplaint = async (complaint) => {
   }
 }
 
-const resolveComplaint = async (id) => {
+const resolveAndClose = () => {
+  resolveComplaint(selectedComplaint.value)
+  showDetailsDialog.value = false
+}
+
+const getComplainantEmail = async (complaint) => {
+  const isCustomer = complaint.complainant_role === 'customer'
+  const table = isCustomer ? 'users' : 'technician'
+  const idColumn = isCustomer ? 'user_id' : 'technician_id'
+  const targetId = isCustomer ? complaint.user_id : complaint.technician_id
+
+  if (!targetId) return null
+
+  const { data } = await supabase.from(table).select('email').eq(idColumn, targetId).maybeSingle()
+
+  return data?.email || null
+}
+
+const resolveComplaint = async (complaint) => {
+  const id = typeof complaint === 'object' ? complaint.complaint_id : complaint
+  const comp =
+    typeof complaint === 'object' ? complaint : complaints.value.find((c) => c.complaint_id === id)
+
   try {
     const { error } = await supabase
       .from('complaint')
@@ -255,7 +302,27 @@ const resolveComplaint = async (id) => {
       .eq('complaint_id', id)
 
     if (error) throw error
-    $q.notify({ type: 'positive', message: 'Complaint marked as Resolved', position: 'top' })
+
+    if (comp) {
+      const email = await getComplainantEmail(comp)
+      if (email) {
+        await supabase.from('notification_center').insert({
+          recipient_email: email.trim().toLowerCase(),
+          title: 'Complaint Resolution',
+          message: `Your complaint #${id} regarding "${comp.issue_type || 'N/A'}" has been reviewed. Has your issue been resolved?`,
+          request_id: comp.request_id ? String(comp.request_id) : null,
+          notification_type: 'complaint-resolution',
+          icon: 'gavel',
+          payload: { complaintId: id, type: 'complaint-resolution' },
+        })
+      }
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: 'Complaint marked as Resolved. Confirmation sent to complainant.',
+      position: 'top',
+    })
     loadComplaints()
   } catch (error) {
     console.error('Error resolving complaint:', error)
