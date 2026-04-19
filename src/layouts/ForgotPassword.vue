@@ -5,7 +5,7 @@
         <div class="auth-wrapper san3a-animate-in">
           <div class="back-link" @click="goToSignIn">
             <q-icon name="arrow_back" size="18px" />
-            <span>Back to Sign In</span>
+            <span>{{ $t('forgotPasswordPage.backToSignIn') }}</span>
           </div>
 
           <div class="auth-card">
@@ -16,24 +16,24 @@
                 </div>
                 <span class="brand-text">Sanعa</span>
               </div>
-              <h1 class="auth-title">Forgot Password?</h1>
+              <h1 class="auth-title">{{ $t('forgotPasswordPage.title') }}</h1>
               <p class="auth-subtitle">
-                Enter your email or phone number and we will send a reset link.
+                {{ $t('forgotPasswordPage.subtitle') }}
               </p>
             </div>
 
             <q-form @submit.prevent="onSubmit" class="auth-form">
               <div class="field-group">
-                <label class="field-label">Email or Phone Number</label>
+                <label class="field-label">{{ $t('forgotPasswordPage.emailOrPhone') }}</label>
                 <q-input
                   v-model="identifier"
-                  placeholder="your.email@example.com"
+                  :placeholder="$t('forgotPasswordPage.placeholder')"
                   outlined
                   dense
                   hide-bottom-space
                   class="san3a-input"
                   :rules="[
-                    (val) => (val && val.trim().length > 0) || 'Email or phone number is required',
+                    (val) => (val && val.trim().length > 0) || $t('forgotPasswordPage.emailRequired'),
                   ]"
                 >
                   <template #prepend>
@@ -46,7 +46,7 @@
                 unelevated
                 no-caps
                 color="primary"
-                label="Send Reset Link"
+                :label="$t('forgotPasswordPage.sendResetLink')"
                 class="submit-btn"
                 :loading="loading"
                 :disable="!identifier.trim()"
@@ -64,10 +64,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 
 const identifier = ref('')
 const loading = ref(false)
@@ -98,7 +100,7 @@ const lookupEmailByPhone = async (phone) => {
 const onSubmit = async () => {
   const value = identifier.value.trim()
   if (!value) {
-    $q.notify({ type: 'negative', message: 'Please enter your email or phone number.' })
+    $q.notify({ type: 'negative', message: t('forgotPasswordPage.enterEmailOrPhone') })
     return
   }
 
@@ -108,7 +110,7 @@ const onSubmit = async () => {
     if (!isEmail(value)) {
       email = await lookupEmailByPhone(value)
       if (!email) {
-        $q.notify({ type: 'negative', message: 'No account found with that phone number.' })
+        $q.notify({ type: 'negative', message: t('forgotPasswordPage.noAccountPhone') })
         return
       }
     }
@@ -122,11 +124,11 @@ const onSubmit = async () => {
       return
     }
 
-    $q.notify({ type: 'positive', message: 'Password reset email sent. Please check your inbox.' })
+    $q.notify({ type: 'positive', message: t('forgotPasswordPage.resetEmailSent') })
     identifier.value = ''
   } catch (err) {
     console.error(err)
-    $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
+    $q.notify({ type: 'negative', message: t('forgotPasswordPage.unexpectedError') })
   } finally {
     loading.value = false
   }

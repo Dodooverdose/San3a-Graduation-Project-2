@@ -11,12 +11,12 @@
         </div>
         <q-space />
         <div class="header-actions">
-          <q-btn flat no-caps class="signin-link" label="Sign In" @click="goTo('/signin')" />
+          <q-btn flat no-caps class="signin-link" :label="$t('common.signIn')" @click="goTo('/signin')" />
           <q-btn
             unelevated
             no-caps
             color="primary"
-            label="Get Started"
+            :label="$t('landing.getStarted')"
             class="get-started-btn"
             @click="goTo('/signup')"
           />
@@ -31,13 +31,12 @@
           <div class="hero-pattern"></div>
           <div class="hero-inner">
             <h1 class="hero-title san3a-animate-in">
-              Your Trusted Home Services
+              {{ $t('landing.heroTitle') }}
               <br />
-              <span class="hero-highlight">Marketplace in Egypt</span>
+              <span class="hero-highlight">{{ $t('landing.heroHighlight') }}</span>
             </h1>
             <p class="hero-subtitle san3a-animate-in san3a-stagger-1">
-              Connect with verified, skilled technicians for all your home repair and maintenance
-              needs. Fast, reliable, and affordable.
+              {{ $t('landing.heroSubtitle') }}
             </p>
             <div class="hero-cta san3a-animate-in san3a-stagger-2">
               <q-btn
@@ -45,7 +44,7 @@
                 no-caps
                 size="lg"
                 class="cta-primary"
-                label="Get Started as Customer"
+                :label="$t('landing.ctaCustomer')"
                 @click="goTo('/signup')"
               />
               <q-btn
@@ -53,7 +52,7 @@
                 no-caps
                 size="lg"
                 class="cta-outline"
-                label="Join as Technician"
+                :label="$t('landing.ctaTechnician')"
                 @click="goTo('/signup')"
               />
             </div>
@@ -70,7 +69,7 @@
               :class="`san3a-stagger-${i + 1}`"
             >
               <div class="stat-number">{{ stat.number }}</div>
-              <div class="stat-label">{{ stat.label }}</div>
+              <div class="stat-label">{{ $t(stat.labelKey) }}</div>
             </div>
           </div>
         </section>
@@ -78,9 +77,9 @@
         <!-- SERVICES SECTION -->
         <section class="services-section">
           <div class="section-inner">
-            <h2 class="section-title">Browse Our Services</h2>
+            <h2 class="section-title">{{ $t('landing.browseServices') }}</h2>
             <p class="section-subtitle">
-              From plumbing to painting, find the right expert for every home service need
+              {{ $t('landing.browseServicesSubtitle') }}
             </p>
             <div class="services-grid">
               <div
@@ -93,9 +92,9 @@
                 <div class="service-icon-wrap">
                   <q-icon :name="service.icon" size="32px" color="primary" />
                 </div>
-                <h3 class="service-name">{{ service.title }}</h3>
-                <p class="service-desc">{{ service.description }}</p>
-                <div class="service-count">{{ service.count }} active requests</div>
+                <h3 class="service-name">{{ $t(service.titleKey) }}</h3>
+                <p class="service-desc">{{ $t(service.descKey) }}</p>
+                <div class="service-count">{{ service.count }} {{ $t('landing.activeRequests') }}</div>
               </div>
             </div>
           </div>
@@ -104,8 +103,8 @@
         <!-- HOW IT WORKS SECTION -->
         <section class="how-section">
           <div class="section-inner">
-            <h2 class="section-title">How Sanعa Works</h2>
-            <p class="section-subtitle">Get your home services done in three simple steps</p>
+            <h2 class="section-title">{{ $t('landing.howItWorks') }}</h2>
+            <p class="section-subtitle">{{ $t('landing.howItWorksSubtitle') }}</p>
             <div class="steps-grid">
               <div
                 v-for="(step, i) in steps"
@@ -114,8 +113,8 @@
                 :class="`san3a-stagger-${i + 1}`"
               >
                 <div class="step-number">{{ step.number }}</div>
-                <h3 class="step-title">{{ step.title }}</h3>
-                <p class="step-desc">{{ step.description }}</p>
+                <h3 class="step-title">{{ $t(step.titleKey) }}</h3>
+                <p class="step-desc">{{ $t(step.descKey) }}</p>
               </div>
             </div>
             <div class="steps-line"></div>
@@ -135,8 +134,8 @@
                 <div class="trust-icon-wrap">
                   <q-icon :name="item.icon" size="32px" color="primary" />
                 </div>
-                <h3 class="trust-title">{{ item.title }}</h3>
-                <p class="trust-desc">{{ item.description }}</p>
+                <h3 class="trust-title">{{ $t(item.titleKey) }}</h3>
+                <p class="trust-desc">{{ $t(item.descKey) }}</p>
               </div>
             </div>
           </div>
@@ -145,9 +144,9 @@
         <!-- CTA SECTION -->
         <section class="cta-section">
           <div class="section-inner" style="text-align: center">
-            <h2 class="cta-heading">Ready to Get Started?</h2>
+            <h2 class="cta-heading">{{ $t('landing.readyTitle') }}</h2>
             <p class="cta-sub">
-              Join thousands of satisfied customers who trust Sanعa for their home services
+              {{ $t('landing.readySubtitle') }}
             </p>
             <div class="cta-buttons">
               <q-btn
@@ -155,7 +154,7 @@
                 no-caps
                 size="lg"
                 class="cta-white"
-                label="Sign Up Now"
+                :label="$t('landing.signUpNow')"
                 @click="goTo('/signup')"
               />
               <q-btn
@@ -163,7 +162,7 @@
                 no-caps
                 size="lg"
                 class="cta-outline-white"
-                label="Sign In"
+                :label="$t('common.signIn')"
                 @click="goTo('/signin')"
               />
             </div>
@@ -182,39 +181,38 @@
                   <span class="brand-name" style="color: #fff">Sanعa</span>
                 </div>
                 <p class="footer-desc">
-                  Egypt's trusted home services marketplace connecting customers with skilled
-                  technicians.
+                  {{ $t('landing.footerDesc') }}
                 </p>
               </div>
               <div class="footer-col">
-                <h4 class="footer-heading">Services</h4>
+                <h4 class="footer-heading">{{ $t('landing.services') }}</h4>
                 <ul class="footer-links">
-                  <li>Plumbing</li>
-                  <li>Electrical</li>
-                  <li>Carpentry</li>
-                  <li>Painting</li>
+                  <li>{{ $t('services.plumbing') }}</li>
+                  <li>{{ $t('services.electrical') }}</li>
+                  <li>{{ $t('services.carpentry') }}</li>
+                  <li>{{ $t('services.painting') }}</li>
                 </ul>
               </div>
               <div class="footer-col">
-                <h4 class="footer-heading">Company</h4>
+                <h4 class="footer-heading">{{ $t('landing.company') }}</h4>
                 <ul class="footer-links">
-                  <li>About Us</li>
-                  <li>How It Works</li>
-                  <li>Become a Technician</li>
-                  <li>Contact</li>
+                  <li>{{ $t('landing.aboutUs') }}</li>
+                  <li>{{ $t('landing.howItWorksLink') }}</li>
+                  <li>{{ $t('landing.becomeATechnician') }}</li>
+                  <li>{{ $t('landing.contact') }}</li>
                 </ul>
               </div>
               <div class="footer-col">
-                <h4 class="footer-heading">Legal</h4>
+                <h4 class="footer-heading">{{ $t('landing.legal') }}</h4>
                 <ul class="footer-links">
-                  <li>Terms of Service</li>
-                  <li>Privacy Policy</li>
-                  <li>Cookie Policy</li>
+                  <li>{{ $t('landing.termsOfService') }}</li>
+                  <li>{{ $t('landing.privacyPolicy') }}</li>
+                  <li>{{ $t('landing.cookiePolicy') }}</li>
                 </ul>
               </div>
             </div>
             <div class="footer-bottom">
-              <p>&copy; 2026 Sanعa. All rights reserved.</p>
+              <p>{{ $t('landing.copyright') }}</p>
             </div>
           </div>
         </footer>
@@ -225,56 +223,58 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
+useI18n()
 const goTo = (path) => router.push(path)
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
 const stats = ref([
-  { number: '--', label: 'Customers' },
-  { number: '--', label: 'Technicians' },
-  { number: '--', label: 'Requests Posted' },
-  { number: '--', label: 'Completion Rate' },
+  { number: '--', labelKey: 'landing.customers' },
+  { number: '--', labelKey: 'landing.technicians' },
+  { number: '--', labelKey: 'landing.requestsPosted' },
+  { number: '--', labelKey: 'landing.completionRate' },
 ])
 
 const serviceCatalog = [
   {
     key: 'plumber',
     icon: 'plumbing',
-    title: 'Plumbing',
-    description: 'Expert plumbing services for all your needs',
+    titleKey: 'services.plumbing',
+    descKey: 'landing.plumbingDesc',
   },
   {
     key: 'electrician',
     icon: 'electrical_services',
-    title: 'Electrical',
-    description: 'Safe and certified electrical work',
+    titleKey: 'services.electrical',
+    descKey: 'landing.electricalDesc',
   },
   {
     key: 'carpenter',
     icon: 'handyman',
-    title: 'Carpentry',
-    description: 'Custom woodwork and furniture repair',
+    titleKey: 'services.carpentry',
+    descKey: 'landing.carpentryDesc',
   },
   {
     key: 'painter',
     icon: 'format_paint',
-    title: 'Painting',
-    description: 'Professional painting and finishing',
+    titleKey: 'services.painting',
+    descKey: 'landing.paintingDesc',
   },
   {
     key: 'kitchen_fitter',
     icon: 'kitchen',
-    title: 'Kitchen Services',
-    description: 'Kitchen installation and repairs',
+    titleKey: 'services.kitchenUtilities',
+    descKey: 'landing.kitchenDesc',
   },
   {
     key: 'drapery_seamstress',
     icon: 'curtains',
-    title: 'Drapery',
-    description: 'Curtains, blinds, and window treatments',
+    titleKey: 'services.draperySeamstress',
+    descKey: 'landing.draperyDesc',
   },
 ]
 
@@ -311,10 +311,10 @@ const loadLandingMetrics = async () => {
       totalRequests > 0 ? `${Math.round((completedRequests / totalRequests) * 100)}%` : '--'
 
     stats.value = [
-      { number: formatCompact(customers), label: 'Customers' },
-      { number: formatCompact(technicians), label: 'Technicians' },
-      { number: formatCompact(totalRequests), label: 'Requests Posted' },
-      { number: completionRate, label: 'Completion Rate' },
+      { number: formatCompact(customers), labelKey: 'landing.customers' },
+      { number: formatCompact(technicians), labelKey: 'landing.technicians' },
+      { number: formatCompact(totalRequests), labelKey: 'landing.requestsPosted' },
+      { number: completionRate, labelKey: 'landing.completionRate' },
     ]
 
     services.value = serviceCatalog.map((service) => ({
@@ -343,16 +343,16 @@ const loadLandingMetrics = async () => {
       : '--'
 
   stats.value = [
-    { number: typeof customers === 'number' ? formatCompact(customers) : '--', label: 'Customers' },
+    { number: typeof customers === 'number' ? formatCompact(customers) : '--', labelKey: 'landing.customers' },
     {
       number: typeof technicians === 'number' ? formatCompact(technicians) : '--',
-      label: 'Technicians',
+      labelKey: 'landing.technicians',
     },
     {
       number: typeof totalRequests === 'number' ? formatCompact(totalRequests) : '--',
-      label: 'Requests Posted',
+      labelKey: 'landing.requestsPosted',
     },
-    { number: completionRate, label: 'Completion Rate' },
+    { number: completionRate, labelKey: 'landing.completionRate' },
   ]
 
   const activeByService = Object.fromEntries(serviceCatalog.map((service) => [service.key, 0]))
@@ -379,36 +379,36 @@ onMounted(() => {
 const steps = [
   {
     number: 1,
-    title: 'Describe Your Need',
-    description: 'Tell us what you need in a few simple steps',
+    titleKey: 'landing.step1Title',
+    descKey: 'landing.step1Desc',
   },
   {
     number: 2,
-    title: 'Compare Offers',
-    description: 'Receive and compare offers from qualified technicians',
+    titleKey: 'landing.step2Title',
+    descKey: 'landing.step2Desc',
   },
   {
     number: 3,
-    title: 'Get It Done',
-    description: 'Choose the best offer and get your service completed',
+    titleKey: 'landing.step3Title',
+    descKey: 'landing.step3Desc',
   },
 ]
 
 const trustItems = [
   {
     icon: 'verified_user',
-    title: 'Verified Professionals',
-    description: 'All technicians are vetted and verified with background checks',
+    titleKey: 'landing.verifiedProfessionals',
+    descKey: 'landing.verifiedProfessionalsDesc',
   },
   {
     icon: 'star',
-    title: 'Quality Guaranteed',
-    description: 'Read reviews and ratings from real customers before you book',
+    titleKey: 'landing.qualityGuaranteed',
+    descKey: 'landing.qualityGuaranteedDesc',
   },
   {
     icon: 'schedule',
-    title: 'Fast Response',
-    description: 'Get offers from technicians within hours, not days',
+    titleKey: 'landing.fastResponse',
+    descKey: 'landing.fastResponseDesc',
   },
 ]
 </script>

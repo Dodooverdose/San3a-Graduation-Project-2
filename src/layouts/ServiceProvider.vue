@@ -27,14 +27,14 @@
     <q-dialog v-model="showNotifications" position="top" seamless>
       <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="notif-title">Notifications</div>
+          <div class="notif-title">{{ $t('serviceProvider.notifications') }}</div>
           <q-space />
           <q-btn
             v-if="notifications.length > 0"
             flat
             dense
             no-caps
-            label="Clear All"
+            :label="$t('serviceProvider.clearAll')"
             color="negative"
             size="sm"
             class="q-mr-sm"
@@ -76,7 +76,7 @@
               <!-- Inline ETA picker for arrival-check notifications -->
               <div v-if="notif.type === 'arrival-check' && !notif.etaSent" class="q-mt-sm">
                 <div class="text-caption text-grey-8 q-mb-xs">
-                  How much time left till you arrive?
+                  {{ $t('serviceProvider.howMuchTimeLeft') }}
                 </div>
                 <q-option-group
                   v-model="notifEtaSelections[notif.id]"
@@ -91,7 +91,7 @@
                   dense
                   unelevated
                   color="primary"
-                  label="Send ETA"
+                  :label="$t('serviceProvider.sendETA')"
                   icon="send"
                   size="sm"
                   no-caps
@@ -101,14 +101,14 @@
                 />
               </div>
               <div v-else-if="notif.type === 'arrival-check' && notif.etaSent" class="q-mt-xs">
-                <q-badge color="positive" label="ETA sent" />
+                <q-badge color="positive" :label="$t('serviceProvider.etaSent')" />
               </div>
               <!-- Job finished notification with Done button -->
               <div v-if="notif.type === 'job-finished' && !notif.done" class="q-mt-sm">
                 <q-btn
                   unelevated
                   color="positive"
-                  label="Done"
+                  :label="$t('common.done')"
                   icon="check_circle"
                   no-caps
                   size="sm"
@@ -116,7 +116,7 @@
                 />
               </div>
               <div v-else-if="notif.type === 'job-finished' && notif.done" class="q-mt-xs">
-                <q-badge color="positive" label="Completed" />
+                <q-badge color="positive" :label="$t('serviceProvider.completed')" />
               </div>
               <!-- Complaint resolution notification -->
               <div
@@ -127,7 +127,7 @@
                   dense
                   unelevated
                   color="positive"
-                  label="Yes"
+                  :label="$t('common.yes')"
                   size="sm"
                   no-caps
                   @click.stop="handleComplaintResolutionYes(notif, i)"
@@ -136,14 +136,14 @@
                   dense
                   unelevated
                   color="negative"
-                  label="No"
+                  :label="$t('common.no')"
                   size="sm"
                   no-caps
                   @click.stop="handleComplaintResolutionNo(notif, i)"
                 />
               </div>
               <div v-else-if="notif.type === 'complaint-resolution' && notif.done" class="q-mt-xs">
-                <q-badge color="positive" label="Responded" />
+                <q-badge color="positive" :label="$t('serviceProvider.responded')" />
               </div>
             </q-item-section>
             <q-item-section
@@ -178,7 +178,7 @@
           </q-item>
         </q-list>
         <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >No Offers Yet</q-card-section
+          >{{ $t('serviceProvider.noOffersYet') }}</q-card-section
         >
       </q-card>
     </q-dialog>
@@ -194,7 +194,7 @@
           <div class="welcome-card">
             <div class="welcome-deco"></div>
             <div class="welcome-content">
-              <div class="welcome-name">Welcome, {{ fullName }}!</div>
+              <div class="welcome-name">{{ $t('serviceProvider.welcome', { name: fullName }) }}</div>
               <div class="welcome-specialty">
                 <q-badge :color="specialtyColor" class="spec-badge">{{ specialtyLabel }}</q-badge>
                 <img
@@ -205,13 +205,9 @@
                 />
               </div>
               <div class="welcome-meta">
-                You are registered as a <strong>{{ specialtyLabel }}</strong
-                >.
+                {{ $t('serviceProvider.registeredAs', { specialty: specialtyLabel }) }}
                 <span v-if="yearsOfExperience !== null">
-                  You have <strong>{{ yearsOfExperience }}</strong> year{{
-                    yearsOfExperience === 1 ? '' : 's'
-                  }}
-                  of experience.</span
+                  {{ yearsOfExperience }} {{ $t('serviceProvider.yearsExp') }}</span
                 >
               </div>
             </div>
@@ -237,7 +233,7 @@
                 <q-select
                   v-model="selectedOrderStatus"
                   :options="orderStatusOptions"
-                  label="Filter by Status"
+                  :label="$t('serviceProvider.filterStatus')"
                   outlined
                   dense
                   clearable
@@ -254,7 +250,7 @@
                 <q-select
                   v-model="selectedDistricts"
                   :options="cairoDistricts"
-                  label="Filter by District"
+                  :label="$t('serviceProvider.filterDistrict')"
                   outlined
                   dense
                   multiple
@@ -267,7 +263,7 @@
                 <q-select
                   v-model="selectedPaymentMethod"
                   :options="paymentMethodOptions"
-                  label="Filter by Payment"
+                  :label="$t('serviceProvider.filterPayment')"
                   outlined
                   dense
                   clearable
@@ -282,18 +278,18 @@
               <!-- Loading -->
               <div v-if="requestsLoading" class="state-center-sm">
                 <q-spinner color="primary" size="48px" />
-                <div class="q-mt-md text-grey-7">Loading requests...</div>
+                <div class="q-mt-md text-grey-7">{{ $t('serviceProvider.loadingRequests') }}</div>
               </div>
 
               <!-- Error -->
               <div v-else-if="requestsError" class="state-center-sm">
                 <q-icon name="error" size="64px" color="negative" />
-                <div class="state-title">Failed to load requests</div>
+                <div class="state-title">{{ $t('serviceProvider.failedToLoad') }}</div>
                 <div class="state-sub">{{ requestsError }}</div>
                 <q-btn
                   flat
                   color="primary"
-                  label="Retry"
+                  :label="$t('common.retry')"
                   icon="refresh"
                   class="q-mt-sm"
                   @click="activeTab === 'orders' ? fetchAcceptedOrders() : fetchRequests()"
@@ -306,10 +302,10 @@
                 <div class="state-title">
                   {{
                     activeTab === 'orders'
-                      ? 'No accepted orders yet.'
+                      ? $t('serviceProvider.noAcceptedOrders')
                       : selectedDistricts.length
-                        ? 'No requests in selected districts.'
-                        : 'No requests available for your specialty yet.'
+                        ? $t('serviceProvider.noRequestsDistrict')
+                        : $t('serviceProvider.noRequestsSpecialty')
                   }}
                 </div>
               </div>
@@ -337,7 +333,7 @@
                     <span>{{ req.customer_name }}</span>
                   </div>
 
-                  <p class="req-desc">{{ req.description_of_issue || 'No description' }}</p>
+                  <p class="req-desc">{{ req.description_of_issue || $t('serviceProvider.noDescription') }}</p>
 
                   <div v-if="req.attached_image" class="req-image">
                     <img
@@ -356,7 +352,7 @@
                     </div>
                     <div v-if="req.schedule_time" class="meta-item">
                       <q-icon name="schedule" size="14px" color="grey-6" /><span
-                        >Scheduled: {{ formatDate(req.schedule_time) }}</span
+                        >{{ $t('serviceProvider.scheduled') }} {{ formatDate(req.schedule_time) }}</span
                       >
                     </div>
                     <div v-if="req.service_location" class="meta-item">
@@ -372,7 +368,7 @@
                     </div>
                     <div v-if="req.customer_price" class="meta-item price">
                       <q-icon name="sell" size="14px" color="green-7" /><span
-                        >Customer budget: {{ req.customer_price }} EGP</span
+                        >{{ $t('serviceProvider.customerBudget', { amount: req.customer_price }) }}</span
                       >
                     </div>
                   </div>
@@ -381,7 +377,7 @@
                   <div class="req-actions">
                     <div v-if="hasMyOffer(req)" class="offer-status">
                       <q-icon name="check_circle" color="positive" size="sm" />
-                      <span>Offer submitted: {{ getMyOffer(req).offered_price }} EGP</span>
+                      <span>{{ $t('serviceProvider.offerSubmitted', { amount: getMyOffer(req).offered_price }) }}</span>
                       <q-badge
                         :color="statusColor(req.request_status)"
                         :label="req.request_status || 'pending'"
@@ -391,7 +387,7 @@
                     <q-btn
                       v-if="activeTab !== 'orders' && !isOfferAccepted(req)"
                       :color="isRequestTaken(req) || hasMyOffer(req) ? 'grey-5' : 'primary'"
-                      :label="hasMyOffer(req) ? 'Update Bid' : 'Place Bid'"
+                      :label="hasMyOffer(req) ? $t('serviceProvider.updateBid') : $t('serviceProvider.placeBid')"
                       icon="gavel"
                       no-caps
                       unelevated
@@ -406,8 +402,7 @@
                       <div class="counter-offer-banner">
                         <q-icon name="person" size="18px" color="green-8" />
                         <span
-                          >Customer counter-offer:
-                          <strong>{{ getMyOffer(req).customer_counter_price }} EGP</strong></span
+                          >{{ $t('serviceProvider.customerCounterOffer', { amount: getMyOffer(req).customer_counter_price }) }}</span
                         >
                       </div>
                       <div class="row items-center q-gutter-sm q-mt-sm">
@@ -416,7 +411,7 @@
                           dense
                           color="positive"
                           icon="check_circle"
-                          :label="`Accept ${getMyOffer(req).customer_counter_price} EGP`"
+                          :label="$t('serviceProvider.acceptAmount', { amount: getMyOffer(req).customer_counter_price })"
                           no-caps
                           :loading="acceptingCounterOfferId === req.request_id"
                           @click="acceptCustomerOffer(req)"
@@ -426,7 +421,7 @@
                           dense
                           color="warning"
                           icon="gavel"
-                          label="Bargain"
+                          :label="$t('serviceProvider.bargain')"
                           no-caps
                           @click="openCounterOfferDialog(req)"
                         />
@@ -445,11 +440,11 @@
     <q-dialog v-model="offerDialogOpen" persistent>
       <q-card class="offer-dialog">
         <q-card-section>
-          <div class="dialog-title">Place Your Bid</div>
+          <div class="dialog-title">{{ $t('serviceProvider.placeYourBid') }}</div>
           <div v-if="offerTarget" class="text-caption text-grey-7 q-mt-xs">
             Request #{{ offerTarget.request_id }}
             <span v-if="offerTarget.customer_price">
-              — Customer budget: {{ offerTarget.customer_price }} EGP</span
+              — {{ $t('serviceProvider.customerBudget', { amount: offerTarget.customer_price }) }}</span
             >
           </div>
         </q-card-section>
@@ -458,9 +453,9 @@
             v-model.number="offerPrice"
             type="number"
             outlined
-            label="Your Price (EGP)"
-            prefix="EGP"
-            :rules="[(val) => val > 0 || 'Price must be greater than 0']"
+            :label="$t('serviceProvider.yourPrice')"
+            :prefix="$t('common.egp')"
+            :rules="[(val) => val > 0 || $t('serviceProvider.enterValidBid')]"
             class="q-mb-md"
           >
             <template #prepend><q-icon name="sell" /></template>
@@ -469,7 +464,7 @@
             v-model="offerMessage"
             type="textarea"
             outlined
-            label="Message (optional)"
+            :label="$t('serviceProvider.messageOptional')"
             autogrow
             :input-style="{ minHeight: '80px' }"
           >
@@ -477,9 +472,9 @@
           </q-input>
         </q-card-section>
         <q-card-actions align="right" class="q-px-md q-pb-md">
-          <q-btn flat label="Cancel" color="grey-7" @click="offerDialogOpen = false" />
+          <q-btn flat :label="$t('common.cancel')" color="grey-7" @click="offerDialogOpen = false" />
           <q-btn
-            label="Submit Offer"
+            :label="$t('serviceProvider.submitOffer')"
             color="primary"
             icon="send"
             no-caps
@@ -505,11 +500,11 @@
         <q-tab
           name="requests"
           icon="request_page"
-          label="Requests"
+          :label="$t('common.requests')"
           @click="setActiveTab('requests')"
         />
-        <q-tab name="orders" icon="receipt_long" label="Orders" @click="setActiveTab('orders')" />
-        <q-tab name="profile" icon="person" label="Profile" @click="router.push('/profile')" />
+        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="setActiveTab('orders')" />
+        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="router.push('/profile')" />
       </q-tabs>
     </q-footer>
 
@@ -518,7 +513,7 @@
       <q-card style="min-width: 360px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="star" size="56px" color="amber" />
-          <div class="text-h6 q-mt-sm">Rate the Customer</div>
+          <div class="text-h6 q-mt-sm">{{ $t('serviceProvider.rateCustomer') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">Request #{{ reviewTarget?.request_id }}</div>
         </q-card-section>
         <q-card-section>
@@ -536,7 +531,7 @@
             v-model="reviewText"
             type="textarea"
             outlined
-            label="Write a description (optional)"
+            :label="$t('serviceProvider.writeDescription')"
             autogrow
             :input-style="{ minHeight: '80px' }"
           >
@@ -547,7 +542,7 @@
           <q-btn
             unelevated
             color="primary"
-            label="Submit Review"
+            :label="$t('serviceProvider.submitReview')"
             icon="send"
             no-caps
             :loading="reviewSubmitting"
@@ -563,11 +558,11 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="warning" />
-          <div class="text-h6 q-mt-sm">Customer is waiting!</div>
+          <div class="text-h6 q-mt-sm">{{ $t('serviceProvider.customerWaiting') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
             For request #{{ etaDialogRequest?.requestId }}
           </div>
-          <div class="text-body2 text-grey-7 q-mt-sm">How much time left till you arrive?</div>
+          <div class="text-body2 text-grey-7 q-mt-sm">{{ $t('serviceProvider.howMuchTimeLeft') }}</div>
         </q-card-section>
         <q-card-section>
           <q-option-group
@@ -581,7 +576,7 @@
           <q-btn
             unelevated
             color="primary"
-            label="Send"
+            :label="$t('common.send')"
             icon="send"
             no-caps
             :disable="!selectedEta"
@@ -596,17 +591,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="gavel" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Complaint Resolution</div>
+          <div class="text-h6 q-mt-sm">{{ $t('serviceProvider.complaintResolution') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Your complaint
-            <strong>#{{ complaintResolutionTarget?.payload?.complaintId }}</strong> has been
-            reviewed. Has your issue been resolved?
+            {{ $t('serviceProvider.complaintReviewed', { id: complaintResolutionTarget?.payload?.complaintId }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="No"
+            :label="$t('common.no')"
             color="grey-7"
             no-caps
             @click="handleComplaintResolutionNo(complaintResolutionTarget)"
@@ -614,7 +607,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes, resolved"
+            :label="$t('serviceProvider.yesResolved')"
             icon="check_circle"
             no-caps
             @click="handleComplaintResolutionYes(complaintResolutionTarget)"
@@ -639,14 +632,14 @@
               padding: 10px;
             "
           />
-          <div class="text-h6 q-mt-md">The issue has been resolved.</div>
-          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">Thanks for choosing Sanعa :)</div>
+          <div class="text-h6 q-mt-md">{{ $t('serviceProvider.issueResolved') }}</div>
+          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">{{ $t('serviceProvider.thanksForChoosing') }}</div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn
             unelevated
             color="primary"
-            label="Close"
+            :label="$t('common.close')"
             no-caps
             @click="showComplaintThankYouDialog = false"
           />
@@ -659,17 +652,17 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="task_alt" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Job Status</div>
+          <div class="text-h6 q-mt-sm">{{ $t('serviceProvider.jobStatus') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Has request <strong>#{{ jobStatusTarget?.request_id }}</strong> been finished?
+            {{ $t('serviceProvider.hasRequestFinished', { id: jobStatusTarget?.request_id }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
-          <q-btn flat label="Not yet" color="grey-7" no-caps @click="handleJobStatusNo" />
+          <q-btn flat :label="$t('serviceProvider.notYet')" color="grey-7" no-caps @click="handleJobStatusNo" />
           <q-btn
             unelevated
             color="positive"
-            label="Yes, it's done"
+            :label="$t('serviceProvider.yesItsDone')"
             icon="check_circle"
             no-caps
             @click="handleJobStatusYes"
@@ -683,7 +676,7 @@
       <q-card style="max-width: 90vw; max-height: 90vh">
         <q-img :src="previewImage" fit="contain" style="max-height: 80vh" />
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="primary" v-close-popup />
+          <q-btn flat :label="$t('common.close')" color="primary" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -694,9 +687,12 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()
@@ -720,14 +716,14 @@ const navTab = ref('requests')
 const { showEtaDialog, etaDialogRequest, selectedEta, listenForArrivalChecks, submitEta } =
   useArrivalCheck()
 
-const etaOptions = [
-  { label: '5 minutes', value: 5 },
-  { label: '10 minutes', value: 10 },
-  { label: '15 minutes', value: 15 },
-  { label: '20 minutes', value: 20 },
-  { label: '25 minutes', value: 25 },
-  { label: '30 minutes', value: 30 },
-]
+const etaOptions = computed(() => [
+  { label: t('serviceProvider.eta5min'), value: 5 },
+  { label: t('serviceProvider.eta10min'), value: 10 },
+  { label: t('serviceProvider.eta15min'), value: 15 },
+  { label: t('serviceProvider.eta20min'), value: 20 },
+  { label: t('serviceProvider.eta25min'), value: 25 },
+  { label: t('serviceProvider.eta30min'), value: 30 },
+])
 
 const etaDialogQueue = ref([])
 
@@ -830,11 +826,11 @@ const handleSubmitEta = async () => {
   if (result?.blocked) {
     $q.notify({
       type: 'warning',
-      message: `ETA is still active (${result.remaining} remaining). Wait for it to expire or customer response.`,
+      message: t('serviceProvider.etaStillActive', { remaining: result.remaining }),
     })
     return
   }
-  $q.notify({ type: 'positive', message: `ETA of ${selectedEta.value} minutes sent to customer.` })
+  $q.notify({ type: 'positive', message: t('serviceProvider.etaSentMsg', { minutes: selectedEta.value }) })
   showNextEtaDialog()
 }
 
@@ -958,14 +954,14 @@ const handleComplaintResolutionNo = async (notif, index) => {
     showComplaintResolutionDialog.value = false
     $q.notify({
       type: 'info',
-      message: 'The admin has been notified to re-review your complaint.',
+      message: t('serviceProvider.adminNotifiedReReview'),
       position: 'top',
     })
   } catch (err) {
     console.error('Complaint resolution No failed:', err)
     $q.notify({
       type: 'negative',
-      message: 'Something went wrong. Please try again.',
+      message: t('serviceProvider.somethingWrong'),
       position: 'top',
     })
   }
@@ -1020,7 +1016,7 @@ const submitReview = async (skip = false) => {
 
     if (ratingError) {
       console.error('Rating save failed:', ratingError)
-      $q.notify({ type: 'negative', message: 'Review save failed: ' + ratingError.message })
+      $q.notify({ type: 'negative', message: t('serviceProvider.reviewSaveFailed', { error: ratingError.message }) })
     }
   }
 
@@ -1054,15 +1050,15 @@ const submitReview = async (skip = false) => {
       })
       if (!result) {
         console.error('Failed to send completion-check notification to customer:', customerEmail)
-        $q.notify({ type: 'warning', message: 'Could not notify the customer. Please try again.' })
+        $q.notify({ type: 'warning', message: t('serviceProvider.couldNotNotifyCustomer') })
       }
     } else {
       console.error('Could not find customer email for user_id:', userId)
-      $q.notify({ type: 'warning', message: 'Customer email not found — notification not sent.' })
+      $q.notify({ type: 'warning', message: t('serviceProvider.customerEmailNotFound') })
     }
   } else {
     console.error('No user_id available to send completion-check notification')
-    $q.notify({ type: 'warning', message: 'Customer info missing — notification not sent.' })
+    $q.notify({ type: 'warning', message: t('serviceProvider.customerInfoMissing') })
   }
 
   // Mark notification as done
@@ -1075,7 +1071,7 @@ const submitReview = async (skip = false) => {
   reviewTarget.value = null
   reviewNotifIndex.value = null
 
-  $q.notify({ type: 'positive', message: 'Review submitted! Waiting for customer confirmation.' })
+  $q.notify({ type: 'positive', message: t('serviceProvider.reviewSubmitted') })
 
   if (activeTab.value === 'orders') {
     await fetchAcceptedOrders()
@@ -1118,13 +1114,13 @@ const sendEtaFromNotif = async (notif, index) => {
   if (result?.blocked) {
     $q.notify({
       type: 'warning',
-      message: `ETA is still active (${result.remaining} remaining). Wait for it to expire or customer response.`,
+      message: t('serviceProvider.etaStillActive', { remaining: result.remaining }),
     })
     return
   }
   markAsRead(index)
   notifications.value[index].etaSent = true
-  $q.notify({ type: 'positive', message: `ETA of ${minutes} minutes sent to customer.` })
+  $q.notify({ type: 'positive', message: t('serviceProvider.etaSentMsg', { minutes }) })
 }
 
 const setActiveTab = async (tab) => {
@@ -1149,12 +1145,12 @@ const requestsError = ref(null)
 const selectedDistricts = ref([])
 const selectedPaymentMethod = ref(null)
 const selectedOrderStatus = ref(null)
-const orderStatusOptions = [
-  { label: 'All', value: null },
-  { label: 'Accepted', value: 'accepted' },
-  { label: 'On-going', value: 'on-going' },
-  { label: 'Completed', value: 'completed' },
-]
+const orderStatusOptions = computed(() => [
+  { label: t('serviceProvider.filterStatusAll'), value: null },
+  { label: t('serviceProvider.filterStatusAccepted'), value: 'accepted' },
+  { label: t('serviceProvider.filterStatusOngoing'), value: 'on-going' },
+  { label: t('serviceProvider.filterStatusCompleted'), value: 'completed' },
+])
 const offerDialogOpen = ref(false)
 const previewImage = ref(null)
 const offerTarget = ref(null)
@@ -1216,10 +1212,10 @@ const cairoDistricts = [
   'Hadayek El-Ahram',
 ]
 
-const paymentMethodOptions = [
-  { label: 'Cash', value: 'cash' },
-  { label: 'Instapay', value: 'instapay' },
-]
+const paymentMethodOptions = computed(() => [
+  { label: t('serviceProvider.paymentCash'), value: 'cash' },
+  { label: t('serviceProvider.paymentInstapay'), value: 'instapay' },
+])
 
 const specialtyMap = {
   plumber: { label: 'Plumber', icon: '/icons/plumbing.png', color: 'blue' },
@@ -1391,7 +1387,7 @@ const acceptCustomerOffer = async (req) => {
   if (!offer) return
   const acceptedPrice = Number(offer.customer_counter_price)
   if (!Number.isFinite(acceptedPrice) || acceptedPrice <= 0) {
-    $q.notify({ type: 'warning', message: 'Customer offer is invalid.' })
+    $q.notify({ type: 'warning', message: t('serviceProvider.customerOfferInvalid') })
     return
   }
   acceptingCounterOfferId.value = req.request_id
@@ -1401,7 +1397,7 @@ const acceptCustomerOffer = async (req) => {
     .eq('offer_id', offer.offer_id)
   if (offerErr) {
     acceptingCounterOfferId.value = null
-    $q.notify({ type: 'negative', message: 'Failed to accept: ' + offerErr.message })
+    $q.notify({ type: 'negative', message: t('serviceProvider.failedToAccept', { error: offerErr.message }) })
     return
   }
   const { error: requestError } = await supabase
@@ -1418,23 +1414,23 @@ const acceptCustomerOffer = async (req) => {
   if (requestError) {
     $q.notify({
       type: 'negative',
-      message: 'Failed to accept customer offer: ' + requestError.message,
+      message: t('serviceProvider.failedToAcceptCustomer', { error: requestError.message }),
     })
     return
   }
-  $q.notify({ type: 'positive', message: 'Customer offer accepted. Order confirmed!' })
+  $q.notify({ type: 'positive', message: t('serviceProvider.customerOfferAccepted') })
   await fetchRequests()
 }
 
 const submitOffer = async () => {
   if (!offerTarget.value || !offerPrice.value || offerPrice.value <= 0) return
   if (!technicianId.value) {
-    $q.notify({ type: 'negative', message: 'Technician profile not loaded. Please sign in again.' })
+    $q.notify({ type: 'negative', message: t('serviceProvider.techProfileNotLoaded') })
     return
   }
   const normalizedPrice = Number(offerPrice.value)
   if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
-    $q.notify({ type: 'warning', message: 'Please enter a valid bid amount.' })
+    $q.notify({ type: 'warning', message: t('serviceProvider.enterValidBid') })
     return
   }
   offerSubmitting.value = true
@@ -1455,13 +1451,13 @@ const submitOffer = async () => {
     .maybeSingle()
   offerSubmitting.value = false
   if (error) {
-    $q.notify({ type: 'negative', message: 'Failed to submit offer: ' + error.message })
+    $q.notify({ type: 'negative', message: t('serviceProvider.failedSubmitOffer', { error: error.message }) })
     return
   }
   if (!upsertedOffer) {
     $q.notify({
       type: 'negative',
-      message: 'Offer was not saved (0 rows updated). Check database policy (RLS) or row filter.',
+      message: t('serviceProvider.offerNotSaved'),
     })
     return
   }
@@ -1495,11 +1491,11 @@ const submitOffer = async () => {
     })
     if (!savedNotification) {
       console.warn('Offer notification not saved.')
-      $q.notify({ type: 'warning', message: 'Offer sent, but notification persistence failed.' })
+      $q.notify({ type: 'warning', message: t('serviceProvider.offerSentNoNotif') })
     }
   } else {
     console.warn('Offer notification skipped: customer email not found.')
-    $q.notify({ type: 'warning', message: 'Offer sent, but customer email was not found.' })
+    $q.notify({ type: 'warning', message: t('serviceProvider.offerSentNoEmail') })
   }
 
   if (trimmedMessage && offerTarget.value.user_id) {
@@ -1513,7 +1509,7 @@ const submitOffer = async () => {
       },
     })
   }
-  $q.notify({ type: 'positive', message: 'Offer submitted successfully!' })
+  $q.notify({ type: 'positive', message: t('serviceProvider.offerSuccess') })
   offerDialogOpen.value = false
 
   if (offerTarget.value.user_id) {
@@ -1568,7 +1564,7 @@ const subscribeToCounterOffers = () => {
       $q.notify({
         type: 'info',
         icon: 'notifications_active',
-        message: `Customer counter-offer received for request #${payload.requestId}.`,
+        message: t('serviceProvider.counterOfferReceived', { id: payload.requestId }),
       })
       fetchRequests()
     })

@@ -6,14 +6,14 @@
           <div class="header-brand-icon-w">
             <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
           </div>
-          <span class="header-brand-name-w">Profile</span>
+          <span class="header-brand-name-w">{{ $t('userProfile.headerTitle') }}</span>
         </div>
         <q-space />
         <q-btn
           flat
           no-caps
           icon="logout"
-          label="Log Out"
+          :label="$t('common.logOut')"
           class="header-logout-btn"
           @click="logout"
         />
@@ -24,7 +24,7 @@
       <q-page class="profile-page">
         <div v-if="loading" class="state-center">
           <q-spinner-dots size="48px" color="primary" />
-          <div class="text-grey-7 q-mt-sm">Loading profile...</div>
+          <div class="text-grey-7 q-mt-sm">{{ $t('userProfile.loadingProfile') }}</div>
         </div>
 
         <div v-else class="profile-wrap san3a-animate-in">
@@ -54,13 +54,13 @@
 
               <div>
                 <div class="hero-name-row">
-                  <h1 class="hero-name">{{ profileName || 'Unknown User' }}</h1>
+                  <h1 class="hero-name">{{ profileName || $t('userProfile.unknownUser') }}</h1>
                   <q-badge
                     :color="isTechnician ? 'primary' : 'secondary'"
                     text-color="white"
                     class="role-badge"
                   >
-                    {{ isTechnician ? 'Technician' : 'Customer' }}
+                    {{ isTechnician ? $t('userProfile.technician') : $t('userProfile.customer') }}
                   </q-badge>
                   <q-badge
                     v-if="isVerifiedAccount"
@@ -68,14 +68,14 @@
                     text-color="white"
                     class="verify-badge"
                   >
-                    <q-icon name="verified" size="12px" class="q-mr-xs" /> Verified
+                    <q-icon name="verified" size="12px" class="q-mr-xs" /> {{ $t('common.verified') }}
                   </q-badge>
                 </div>
-                <div class="hero-subline">{{ profileEmail || 'No email found' }}</div>
+                <div class="hero-subline">{{ profileEmail || $t('userProfile.noEmailFound') }}</div>
                 <div class="hero-meta">
                   <span>{{ roleCity }}</span>
-                  <span>Joined {{ memberSinceLabel }}</span>
-                  <span v-if="isTechnician">{{ jobsCompleted }} completed jobs</span>
+                  <span>{{ $t('userProfile.joined', { date: memberSinceLabel }) }}</span>
+                  <span v-if="isTechnician">{{ $t('userProfile.completedJobs', { count: jobsCompleted }) }}</span>
                 </div>
                 <div v-if="totalRatings > 0" class="hero-rating">
                   <q-rating
@@ -89,7 +89,7 @@
                   />
                   <span class="rating-text">{{ averageRating }}</span>
                   <span class="rating-count"
-                    >({{ totalRatings }} {{ totalRatings === 1 ? 'review' : 'reviews' }})</span
+                    >({{ totalRatings }} {{ totalRatings === 1 ? $t('common.review') : $t('common.reviews') }})</span
                   >
                 </div>
               </div>
@@ -101,7 +101,7 @@
                 no-caps
                 color="primary"
                 icon="edit"
-                :label="editing ? 'Cancel Editing' : 'Edit Profile'"
+                :label="editing ? $t('userProfile.cancelEditing') : $t('userProfile.editProfile')"
                 @click="toggleEditing"
               />
             </div>
@@ -122,8 +122,8 @@
               </q-circular-progress>
             </div>
             <div class="completion-content">
-              <div class="completion-title">Complete your profile</div>
-              <div class="completion-sub">A complete profile improves trust and visibility.</div>
+              <div class="completion-title">{{ $t('userProfile.completeProfile') }}</div>
+              <div class="completion-sub">{{ $t('userProfile.completeProfileSub') }}</div>
               <ul class="missing-list" v-if="missingItems.length">
                 <li v-for="item in missingItems" :key="item">
                   <q-icon name="warning" size="14px" color="warning" />
@@ -138,26 +138,26 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Personal Information</div>
+                    <div class="card-title">{{ $t('userProfile.personalInfo') }}</div>
                     <q-icon name="person" color="grey-6" />
                   </div>
 
                   <div class="form-grid">
                     <q-input
                       v-model="form.full_name"
-                      label="Full Name"
+                      :label="$t('userProfile.fullName')"
                       outlined
                       dense
                       :readonly="!editing"
                     />
                     <q-input
                       v-model="form.phone_number"
-                      label="Phone Number"
+                      :label="$t('userProfile.phoneNumber')"
                       outlined
                       dense
                       :readonly="!editing"
                     />
-                    <q-input :model-value="profileEmail" label="Email" outlined dense readonly>
+                    <q-input :model-value="profileEmail" :label="$t('common.email')" outlined dense readonly>
                       <template #append>
                         <q-icon v-if="emailVerified" name="check_circle" color="positive" />
                       </template>
@@ -165,7 +165,7 @@
                     <q-input
                       v-if="isTechnician"
                       v-model="form.specialty"
-                      label="Specialty"
+                      :label="$t('userProfile.specialty')"
                       outlined
                       dense
                       :readonly="!editing"
@@ -175,7 +175,7 @@
                       v-model.number="form.years_of_experience"
                       type="number"
                       min="0"
-                      label="Years of Experience"
+                      :label="$t('userProfile.yearsOfExperience')"
                       outlined
                       dense
                       :readonly="!editing"
@@ -187,28 +187,28 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Security</div>
+                    <div class="card-title">{{ $t('userProfile.security') }}</div>
                     <q-icon name="security" color="grey-6" />
                   </div>
 
                   <div class="security-row">
                     <div>
-                      <div class="row-title">Password</div>
-                      <div class="row-sub">Manage your account password securely.</div>
+                      <div class="row-title">{{ $t('userProfile.passwordTitle') }}</div>
+                      <div class="row-sub">{{ $t('userProfile.passwordSub') }}</div>
                     </div>
                     <q-btn
                       flat
                       color="primary"
                       no-caps
-                      label="Change"
+                      :label="$t('common.change')"
                       @click="goToPage('/reset-password')"
                     />
                   </div>
 
                   <div class="security-row">
                     <div>
-                      <div class="row-title">Two-factor Authentication</div>
-                      <div class="row-sub">Add an extra protection layer to your account.</div>
+                      <div class="row-title">{{ $t('userProfile.twoFactor') }}</div>
+                      <div class="row-sub">{{ $t('userProfile.twoFactorSub') }}</div>
                     </div>
                     <q-toggle v-model="twoFactorEnabled" color="primary" disable />
                   </div>
@@ -218,13 +218,13 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Preferences</div>
+                    <div class="card-title">{{ $t('userProfile.preferences') }}</div>
                     <q-icon name="settings" color="grey-6" />
                   </div>
 
                   <div class="pref-row">
                     <q-icon name="language" color="grey-6" />
-                    <span>Language</span>
+                    <span>{{ $t('userProfile.language') }}</span>
                     <q-space />
                     <q-select
                       v-model="language"
@@ -239,7 +239,7 @@
 
                   <div class="pref-row">
                     <q-icon name="dark_mode" color="grey-6" />
-                    <span>Dark Mode</span>
+                    <span>{{ $t('userProfile.darkMode') }}</span>
                     <q-space />
                     <q-toggle v-model="darkMode" color="primary" />
                   </div>
@@ -249,7 +249,7 @@
               <q-card v-if="isTechnician" flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Services and Expertise</div>
+                    <div class="card-title">{{ $t('userProfile.servicesExpertise') }}</div>
                     <q-icon name="construction" color="grey-6" />
                   </div>
 
@@ -265,7 +265,7 @@
                       {{ service }}
                     </q-chip>
                     <div v-if="serviceChips.length === 0" class="row-sub">
-                      No services added yet.
+                      {{ $t('userProfile.noServicesYet') }}
                     </div>
                   </div>
                 </q-card-section>
@@ -276,7 +276,7 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Account Stats</div>
+                    <div class="card-title">{{ $t('userProfile.accountStats') }}</div>
                     <q-icon name="trending_up" color="grey-6" />
                   </div>
                   <div class="stats-list">
@@ -291,18 +291,18 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Verification Status</div>
+                    <div class="card-title">{{ $t('userProfile.verificationStatus') }}</div>
                     <q-icon name="verified_user" color="grey-6" />
                   </div>
 
                   <div class="verify-row">
-                    <span>Email Verified</span>
+                    <span>{{ $t('userProfile.emailVerified') }}</span>
                     <q-badge :color="emailVerified ? 'positive' : 'warning'" text-color="white">
-                      {{ emailVerified ? 'Verified' : 'Pending' }}
+                      {{ emailVerified ? $t('common.verified') : $t('common.pending') }}
                     </q-badge>
                   </div>
                   <div v-if="isTechnician" class="verify-row">
-                    <span>Technician Verification</span>
+                    <span>{{ $t('userProfile.technicianVerification') }}</span>
                     <q-badge :color="isVerifiedAccount ? 'positive' : 'warning'" text-color="white">
                       {{ technicianVerificationLabel }}
                     </q-badge>
@@ -313,12 +313,12 @@
               <q-card flat bordered class="profile-card">
                 <q-card-section>
                   <div class="card-head">
-                    <div class="card-title">Recent Activity</div>
+                    <div class="card-title">{{ $t('userProfile.recentActivity') }}</div>
                     <q-icon name="history" color="grey-6" />
                   </div>
 
                   <div v-if="recentActivity.length === 0" class="row-sub">
-                    No recent activity yet.
+                    {{ $t('userProfile.noRecentActivity') }}
                   </div>
                   <div v-else class="activity-list">
                     <div v-for="item in recentActivity" :key="item.id" class="activity-item">
@@ -332,7 +332,7 @@
                     no-caps
                     color="negative"
                     icon="report_problem"
-                    label="File a Complaint"
+                    :label="$t('userProfile.fileComplaint')"
                     class="full-width q-mt-md"
                     @click="openComplaintDialog"
                   />
@@ -345,7 +345,7 @@
           <q-dialog v-model="showComplaintDialog" persistent>
             <q-card style="min-width: 420px; max-width: 520px">
               <q-card-section class="row items-center q-pb-none">
-                <div class="text-h6">File a Complaint</div>
+                <div class="text-h6">{{ $t('userProfile.fileComplaint') }}</div>
                 <q-space />
                 <q-btn icon="close" flat round dense @click="showComplaintDialog = false" />
               </q-card-section>
@@ -358,14 +358,14 @@
                     :options="technicianRequestOptions"
                     outlined
                     dense
-                    label="Select Request"
+                    :label="$t('userProfile.selectRequest')"
                     emit-value
                     map-options
-                    :rules="[(val) => !!val || 'Please select a request']"
+                    :rules="[(val) => !!val || $t('userProfile.selectRequestRequired')]"
                   >
                     <template v-slot:no-option>
                       <q-item>
-                        <q-item-section class="text-grey"> No requests found </q-item-section>
+                        <q-item-section class="text-grey"> {{ $t('userProfile.noRequestsFound') }} </q-item-section>
                       </q-item>
                     </template>
                   </q-select>
@@ -376,14 +376,14 @@
                     :options="userRequestOptions"
                     outlined
                     dense
-                    label="Select Request"
+                    :label="$t('userProfile.selectRequest')"
                     emit-value
                     map-options
-                    :rules="[(val) => !!val || 'Please select a request']"
+                    :rules="[(val) => !!val || $t('userProfile.selectRequestRequired')]"
                   >
                     <template v-slot:no-option>
                       <q-item>
-                        <q-item-section class="text-grey"> No requests found </q-item-section>
+                        <q-item-section class="text-grey"> {{ $t('userProfile.noRequestsFound') }} </q-item-section>
                       </q-item>
                     </template>
                   </q-select>
@@ -393,18 +393,18 @@
                     :options="activeIssueTypeOptions"
                     outlined
                     dense
-                    label="Issue Type"
-                    :rules="[(val) => !!val || 'Please select an issue type']"
+                    :label="$t('userProfile.issueType')"
+                    :rules="[(val) => !!val || $t('userProfile.selectIssueType')]"
                   />
 
                   <q-input
                     v-model="complaintForm.description"
-                    label="Description"
+                    :label="$t('userProfile.description')"
                     outlined
                     type="textarea"
                     rows="4"
                     :rules="[
-                      (val) => (!!val && val.trim().length > 0) || 'Please describe the issue',
+                      (val) => (!!val && val.trim().length > 0) || $t('userProfile.describeIssue'),
                     ]"
                   />
 
@@ -413,7 +413,7 @@
                     unelevated
                     no-caps
                     color="negative"
-                    label="Submit Complaint"
+                    :label="$t('userProfile.submitComplaint')"
                     class="full-width"
                     :loading="submittingComplaint"
                   />
@@ -424,12 +424,12 @@
 
           <transition name="slide-up">
             <div v-if="editing" class="sticky-save">
-              <q-btn flat no-caps label="Discard" color="grey-7" @click="discardChanges" />
+              <q-btn flat no-caps :label="$t('userProfile.discard')" color="grey-7" @click="discardChanges" />
               <q-btn
                 unelevated
                 no-caps
                 color="primary"
-                label="Save Changes"
+                :label="$t('userProfile.saveChanges')"
                 :loading="saving"
                 @click="saveProfile"
               />
@@ -451,27 +451,27 @@
           <q-tab
             name="requests"
             icon="request_page"
-            label="Requests"
+            :label="$t('common.requests')"
             @click="goToPage('/service-provider')"
           />
           <q-tab
             name="orders"
             icon="receipt_long"
-            label="Orders"
+            :label="$t('common.orders')"
             @click="goToPage({ path: '/service-provider', query: { tab: 'orders' } })"
           />
-          <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+          <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
         </template>
         <template v-else>
-          <q-tab name="home" icon="home" label="Home" @click="goToPage('/home')" />
+          <q-tab name="home" icon="home" :label="$t('common.home')" @click="goToPage('/home')" />
           <q-tab
             name="offers"
             icon="handshake"
-            label="Requests"
+            :label="$t('common.requests')"
             @click="goToPage('/incoming-offers')"
           />
-          <q-tab name="orders" icon="receipt_long" label="Orders" @click="goToPage('/orders')" />
-          <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+          <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="goToPage('/orders')" />
+          <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
         </template>
       </q-tabs>
     </q-footer>
@@ -483,7 +483,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useI18n } from 'vue-i18n'
 
+const { t, locale } = useI18n()
 const router = useRouter()
 const $q = useQuasar()
 
@@ -492,7 +494,7 @@ const saving = ref(false)
 const editing = ref(false)
 const activeTab = ref('profile')
 const darkMode = ref($q.dark.isActive)
-const language = ref('en')
+const language = ref(localStorage.getItem('san3a-locale') || 'en-US')
 const twoFactorEnabled = ref(false)
 
 const fileInputRef = ref(null)
@@ -530,29 +532,29 @@ const complaintForm = ref({
   description: '',
 })
 
-const customerIssueTypeOptions = [
-  'Service Quality',
-  'Late Arrival',
-  'Overcharging',
-  'Unprofessional Behavior',
-  'Incomplete Work',
-  'Damage to Property',
-  'No Show',
-  'Communication Issue',
-  'Other',
-]
+const customerIssueTypeOptions = computed(() => [
+  t('userProfile.serviceQuality'),
+  t('userProfile.lateArrival'),
+  t('userProfile.overcharging'),
+  t('userProfile.unprofessionalBehavior'),
+  t('userProfile.incompleteWork'),
+  t('userProfile.damageToProperty'),
+  t('userProfile.noShow'),
+  t('userProfile.communicationIssue'),
+  t('userProfile.other'),
+])
 
-const technicianIssueTypeOptions = [
-  'Customer No Show',
-  'Incorrect Job Description',
-  'Unsafe Work Environment',
-  'Payment Dispute',
-  'Harassment or Abuse',
-  'Unreachable Customer',
-  'Cancelled After Arrival',
-  'Scope Change Without Notice',
-  'Other',
-]
+const technicianIssueTypeOptions = computed(() => [
+  t('userProfile.customerNoShow'),
+  t('userProfile.incorrectJobDescription'),
+  t('userProfile.unsafeWorkEnvironment'),
+  t('userProfile.paymentDispute'),
+  t('userProfile.harassmentOrAbuse'),
+  t('userProfile.unreachableCustomer'),
+  t('userProfile.cancelledAfterArrival'),
+  t('userProfile.scopeChangeWithoutNotice'),
+  t('userProfile.other'),
+])
 
 const activeIssueTypeOptions = computed(() =>
   isTechnician.value ? technicianIssueTypeOptions : customerIssueTypeOptions,
@@ -578,8 +580,10 @@ const initialForm = ref({
 })
 
 const languageOptions = [
-  { label: 'English', value: 'en' },
-  { label: 'Arabic', value: 'ar' },
+  { label: 'English', value: 'en-US' },
+  { label: 'العربية', value: 'ar' },
+  { label: 'Français', value: 'fr' },
+  { label: 'Deutsch', value: 'de' },
 ]
 
 const isTechnician = computed(() => userRole.value === 'fixer')
@@ -589,9 +593,9 @@ const isVerifiedAccount = computed(() =>
 )
 const technicianVerificationLabel = computed(() => {
   if (technicianVerificationStatus.value === 'approved' || technicianIsVerified.value)
-    return 'Verified'
-  if (technicianVerificationStatus.value === 'rejected') return 'Rejected'
-  return 'Pending'
+    return t('common.verified')
+  if (technicianVerificationStatus.value === 'rejected') return t('common.rejected')
+  return t('common.pending')
 })
 
 const memberSinceLabel = computed(() => {
@@ -613,17 +617,17 @@ const serviceChips = computed(() => {
 const statItems = computed(() => {
   if (isTechnician.value) {
     return [
-      { label: 'Offers Sent', value: offersSent.value },
-      { label: 'Accepted Jobs', value: acceptedJobs.value },
-      { label: 'Jobs Completed', value: jobsCompleted.value },
-      { label: 'Response Rate', value: responseRate.value },
+      { label: t('userProfile.offersSent'), value: offersSent.value },
+      { label: t('userProfile.acceptedJobs'), value: acceptedJobs.value },
+      { label: t('userProfile.jobsCompleted'), value: jobsCompleted.value },
+      { label: t('userProfile.responseRate'), value: responseRate.value },
     ]
   }
 
   return [
-    { label: 'Requests Posted', value: requestsPosted.value },
-    { label: 'Active Requests', value: activeRequests.value },
-    { label: 'Completed Requests', value: completedRequests.value },
+    { label: t('userProfile.requestsPostedStat'), value: requestsPosted.value },
+    { label: t('userProfile.activeRequestsStat'), value: activeRequests.value },
+    { label: t('userProfile.completedRequestsStat'), value: completedRequests.value },
   ]
 })
 
@@ -646,10 +650,10 @@ const completionPercent = computed(() => {
 
 const missingItems = computed(() => {
   const items = []
-  if (!form.value.phone_number) items.push('Add phone number')
-  if (isTechnician.value && !form.value.specialty) items.push('Add your specialty')
+  if (!form.value.phone_number) items.push(t('userProfile.addPhoneNumber'))
+  if (isTechnician.value && !form.value.specialty) items.push(t('userProfile.addSpecialty'))
   if (isTechnician.value && !technicianIsVerified.value)
-    items.push('Complete technician verification')
+    items.push(t('userProfile.completeTechVerification'))
   return items.slice(0, 3)
 })
 
@@ -871,7 +875,7 @@ const loadProfile = async () => {
     }
   } catch (error) {
     console.error('Failed to load profile:', error)
-    $q.notify({ type: 'negative', message: 'Failed to load profile data.' })
+    $q.notify({ type: 'negative', message: t('userProfile.failedLoadProfile') })
   } finally {
     loading.value = false
   }
@@ -918,10 +922,10 @@ const saveProfile = async () => {
     initialForm.value = { ...form.value }
     profileName.value = form.value.full_name
     editing.value = false
-    $q.notify({ type: 'positive', message: 'Profile updated successfully.', position: 'top-right' })
+    $q.notify({ type: 'positive', message: t('userProfile.profileUpdated'), position: 'top-right' })
   } catch (error) {
     console.error('Failed to save profile:', error)
-    $q.notify({ type: 'negative', message: error?.message || 'Failed to save profile.' })
+    $q.notify({ type: 'negative', message: error?.message || t('userProfile.profileFailed') })
   } finally {
     saving.value = false
   }
@@ -1064,14 +1068,14 @@ const submitComplaint = async () => {
     showComplaintDialog.value = false
     $q.notify({
       type: 'positive',
-      message: 'Complaint submitted successfully.',
+      message: t('userProfile.complaintSubmitted'),
       position: 'top-right',
     })
   } catch (err) {
     console.error('Failed to submit complaint:', err)
     $q.notify({
       type: 'negative',
-      message: err?.message || 'Failed to submit complaint.',
+      message: err?.message || t('userProfile.complaintFailed'),
     })
   } finally {
     submittingComplaint.value = false
@@ -1089,7 +1093,7 @@ const logout = async () => {
     router.push('/')
   } catch (error) {
     console.error('Logout failed:', error)
-    $q.notify({ type: 'negative', message: 'Failed to log out. Please try again.' })
+    $q.notify({ type: 'negative', message: t('userProfile.logoutFailed') })
   }
 }
 
@@ -1103,6 +1107,13 @@ watch(darkMode, (val) => {
   document.body.classList.add('dark-transition')
   $q.dark.set(val)
   setTimeout(() => document.body.classList.remove('dark-transition'), 500)
+})
+
+watch(language, (val) => {
+  locale.value = val
+  localStorage.setItem('san3a-locale', val)
+  document.documentElement.dir = val === 'ar' ? 'rtl' : 'ltr'
+  document.documentElement.lang = val === 'en-US' ? 'en' : val
 })
 </script>
 

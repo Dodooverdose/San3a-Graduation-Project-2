@@ -6,7 +6,7 @@
           <!-- Back link -->
           <div class="back-link" @click="goBack">
             <q-icon name="arrow_back" size="18px" />
-            <span>Back to Home</span>
+            <span>{{ $t('signUpPage.backToHome') }}</span>
           </div>
 
           <!-- Auth Card -->
@@ -19,8 +19,8 @@
                 </div>
                 <span class="brand-text">Sanعa</span>
               </div>
-              <h1 class="auth-title">Create Your Account</h1>
-              <p class="auth-subtitle">Join Sanعa and get started in minutes</p>
+              <h1 class="auth-title">{{ $t('signUpPage.createAccount') }}</h1>
+              <p class="auth-subtitle">{{ $t('signUpPage.subtitle') }}</p>
             </div>
 
             <!-- Role Tabs -->
@@ -33,8 +33,8 @@
               indicator-color="primary"
               align="justify"
             >
-              <q-tab name="customer" label="I'm a Customer" />
-              <q-tab name="fixer" label="I'm a Technician" />
+              <q-tab name="customer" :label="$t('signUpPage.imCustomer')" />
+              <q-tab name="fixer" :label="$t('signUpPage.imTechnician')" />
             </q-tabs>
 
             <q-tab-panels v-model="roleTab" animated class="role-panels">
@@ -42,15 +42,15 @@
               <q-tab-panel name="customer" class="q-pa-none">
                 <q-form @submit.prevent="onSubmit" class="auth-form">
                   <div class="field-group">
-                    <label class="field-label">Full Name</label>
+                    <label class="field-label">{{ $t('signUpPage.fullName') }}</label>
                     <q-input
                       v-model="form.fullName"
-                      placeholder="Ahmed Hassan"
+                      :placeholder="$t('signUpPage.customerPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
-                      :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+                      :rules="[(val) => (val && val.length > 0) || $t('signUpPage.nameRequired')]"
                     >
                       <template v-slot:prepend><q-icon name="person" color="grey-5" /></template>
                     </q-input>
@@ -151,7 +151,7 @@
 
                   <q-checkbox v-model="form.agreeTerms" dense class="terms-check">
                     <template v-slot:default>
-                      <span class="terms-label">I agree to the terms and conditions</span>
+                      <span class="terms-label">{{ $t('signUpPage.agreeTerms') }}</span>
                     </template>
                   </q-checkbox>
 
@@ -159,7 +159,7 @@
                     unelevated
                     no-caps
                     color="primary"
-                    label="Create Customer Account"
+                    :label="$t('signUpPage.createCustomerAccount')"
                     class="submit-btn"
                     :disable="!isSignUpEnabled"
                     :loading="loading"
@@ -172,33 +172,33 @@
               <q-tab-panel name="fixer" class="q-pa-none">
                 <q-form @submit.prevent="onSubmit" class="auth-form">
                   <div class="field-group">
-                    <label class="field-label">Full Name</label>
+                    <label class="field-label">{{ $t('signUpPage.fullName') }}</label>
                     <q-input
                       v-model="form.fullName"
-                      placeholder="Mohamed Samir"
+                      :placeholder="$t('signUpPage.technicianPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
-                      :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+                      :rules="[(val) => (val && val.length > 0) || $t('signUpPage.nameRequired')]"
                     >
                       <template v-slot:prepend><q-icon name="person" color="grey-5" /></template>
                     </q-input>
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Email Address</label>
+                    <label class="field-label">{{ $t('signUpPage.emailAddress') }}</label>
                     <q-input
                       v-model="form.email"
                       type="email"
-                      placeholder="your.email@example.com"
+                      :placeholder="$t('signUpPage.emailPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
                       :rules="[
                         (val) =>
-                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required',
+                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || $t('signUpPage.validEmailRequired'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="mail" color="grey-5" /></template>
@@ -206,11 +206,11 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Phone Number</label>
+                    <label class="field-label">{{ $t('signUpPage.phoneNumber') }}</label>
                     <q-input
                       v-model="form.phoneNumber"
                       type="tel"
-                      placeholder="1XX XXX XXXX"
+                      :placeholder="$t('signUpPage.phonePlaceholder')"
                       prefix="+20"
                       mask="### ### ####"
                       outlined
@@ -220,10 +220,10 @@
                       :rules="[
                         (val) =>
                           (val && val.replace(/\s/g, '').length === 10) ||
-                          'Enter a valid phone number',
+                          $t('signUpPage.validPhone'),
                         (val) =>
                           /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') ||
-                          'Number must start with 10, 11, 12, or 15',
+                          $t('signUpPage.phoneStart'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="phone" color="grey-5" /></template>
@@ -231,18 +231,18 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Password</label>
+                    <label class="field-label">{{ $t('signUpPage.password') }}</label>
                     <q-input
                       v-model="form.password"
                       :type="showPassword ? 'text' : 'password'"
-                      placeholder="Create a strong password"
+                      :placeholder="$t('signUpPage.passwordPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
                       :rules="[
                         (val) =>
-                          (val && val.length >= 6) || 'Password must be at least 6 characters',
+                          (val && val.length >= 6) || $t('signUpPage.passwordMinLength'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
@@ -257,16 +257,16 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Confirm Password</label>
+                    <label class="field-label">{{ $t('signUpPage.confirmPassword') }}</label>
                     <q-input
                       v-model="form.confirmPassword"
                       :type="showConfirmPassword ? 'text' : 'password'"
-                      placeholder="Confirm your password"
+                      :placeholder="$t('signUpPage.confirmPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
-                      :rules="[(val) => val === form.password || 'Passwords must match']"
+                      :rules="[(val) => val === form.password || $t('signUpPage.passwordsMustMatch')]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
                       <template v-slot:append
@@ -280,7 +280,7 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Specialty</label>
+                    <label class="field-label">{{ $t('signUpPage.specialty') }}</label>
                     <q-select
                       v-model="form.specialty"
                       :options="specialtyOptions"
@@ -289,20 +289,20 @@
                       outlined
                       dense
                       hide-bottom-space
-                      placeholder="Select your specialty"
+                      :placeholder="$t('signUpPage.selectSpecialty')"
                       class="san3a-input"
-                      :rules="[(val) => !!val || 'Please select a specialty']"
+                      :rules="[(val) => !!val || $t('signUpPage.selectSpecialtyRequired')]"
                     >
                       <template v-slot:prepend><q-icon name="build" color="grey-5" /></template>
                     </q-select>
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Years of Experience</label>
+                    <label class="field-label">{{ $t('signUpPage.yearsOfExperience') }}</label>
                     <q-input
                       v-model.number="form.yearsOfExperience"
                       type="number"
-                      placeholder="e.g., 5"
+                      :placeholder="$t('signUpPage.yearsPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
@@ -315,7 +315,7 @@
                             val !== '' &&
                             Number.isInteger(Number(val)) &&
                             Number(val) >= 0) ||
-                          'Enter a valid number',
+                          $t('signUpPage.validNumber'),
                       ]"
                     >
                       <template v-slot:prepend
@@ -327,15 +327,12 @@
                   <!-- Info box -->
                   <div class="info-box">
                     <q-icon name="info" size="18px" />
-                    <p>
-                      After registration, you'll need to complete your profile and verification
-                      before you can start receiving job requests.
-                    </p>
+                    <p>{{ $t('signUpPage.technicianNote') }}</p>
                   </div>
 
                   <q-checkbox v-model="form.agreeTerms" dense class="terms-check">
                     <template v-slot:default>
-                      <span class="terms-label">I agree to the terms and conditions</span>
+                      <span class="terms-label">{{ $t('signUpPage.agreeTerms') }}</span>
                     </template>
                   </q-checkbox>
 
@@ -343,7 +340,7 @@
                     unelevated
                     no-caps
                     color="secondary"
-                    label="Create Technician Account"
+                    :label="$t('signUpPage.createTechnicianAccount')"
                     class="submit-btn"
                     :disable="!isSignUpEnabled"
                     :loading="loading"
@@ -356,22 +353,22 @@
             <!-- Divider -->
             <div class="auth-divider">
               <div class="divider-line"></div>
-              <span class="divider-text">or</span>
+              <span class="divider-text">{{ $t('common.or') }}</span>
               <div class="divider-line"></div>
             </div>
 
             <!-- Sign In link -->
             <p class="switch-text">
-              Already have an account?
-              <span class="switch-link" @click="goToSignIn">Sign in</span>
+              {{ $t('signUpPage.alreadyHaveAccount') }}
+              <span class="switch-link" @click="goToSignIn">{{ $t('common.signIn') }}</span>
             </p>
           </div>
 
           <!-- Footer -->
           <p class="auth-footer">
-            By signing up, you agree to our
-            <span class="footer-link">Terms of Service</span> and
-            <span class="footer-link">Privacy Policy</span>
+            {{ $t('signUpPage.agreeText') }}
+            <span class="footer-link">{{ $t('landing.termsOfService') }}</span> {{ $t('common.and') }}
+            <span class="footer-link">{{ $t('landing.privacyPolicy') }}</span>
           </p>
         </div>
       </q-page>
@@ -384,7 +381,9 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const $q = useQuasar()
 
@@ -393,14 +392,14 @@ const goToSignIn = () => router.push('/signin')
 
 const roleTab = ref('customer')
 
-const specialtyOptions = [
-  { label: 'Plumber', value: 'plumber' },
-  { label: 'Electrician', value: 'electrician' },
-  { label: 'Carpenter', value: 'carpenter' },
-  { label: 'Painter', value: 'painter' },
-  { label: 'Kitchen Fitter', value: 'kitchen_fitter' },
-  { label: 'Drapery Seamstress', value: 'drapery_seamstress' },
-]
+const specialtyOptions = computed(() => [
+  { label: t('signUpPage.plumber'), value: 'plumber' },
+  { label: t('signUpPage.electrician'), value: 'electrician' },
+  { label: t('signUpPage.carpenter'), value: 'carpenter' },
+  { label: t('signUpPage.painter'), value: 'painter' },
+  { label: t('signUpPage.kitchenFitter'), value: 'kitchen_fitter' },
+  { label: t('signUpPage.draperySeamstress'), value: 'drapery_seamstress' },
+])
 
 const form = ref({
   fullName: '',
@@ -443,31 +442,31 @@ const isSignUpEnabled = computed(() => {
 
 const onSubmit = async () => {
   if (!form.value.fullName || form.value.fullName.length === 0) {
-    $q.notify({ type: 'negative', message: 'Full name is required' })
+    $q.notify({ type: 'negative', message: t('signUpPage.fullNameRequired') })
     return
   }
   if (!form.value.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    $q.notify({ type: 'negative', message: 'Valid email is required' })
+    $q.notify({ type: 'negative', message: t('signUpPage.validEmailReq') })
     return
   }
   if (!form.value.password || form.value.password.length < 6) {
-    $q.notify({ type: 'negative', message: 'Password must be at least 6 characters' })
+    $q.notify({ type: 'negative', message: t('signUpPage.passwordMinLength') })
     return
   }
   if (form.value.password !== form.value.confirmPassword) {
-    $q.notify({ type: 'negative', message: 'Passwords must match' })
+    $q.notify({ type: 'negative', message: t('signUpPage.passwordsMustMatch') })
     return
   }
   if (!form.value.role) {
-    $q.notify({ type: 'negative', message: 'Please select a role' })
+    $q.notify({ type: 'negative', message: t('signUpPage.selectRole') })
     return
   }
   if (form.value.role === 'fixer' && !form.value.specialty) {
-    $q.notify({ type: 'negative', message: 'Please select a specialty' })
+    $q.notify({ type: 'negative', message: t('signUpPage.selectSpecialtyRequired') })
     return
   }
   if (!form.value.agreeTerms) {
-    $q.notify({ type: 'negative', message: 'You must agree to the terms and conditions' })
+    $q.notify({ type: 'negative', message: t('signUpPage.mustAgreeTerms') })
     return
   }
 
@@ -482,7 +481,7 @@ const onSubmit = async () => {
     if (existingUser || existingTechnician) {
       $q.notify({
         type: 'negative',
-        message: 'An account with this email already exists. Please sign in instead.',
+        message: t('signUpPage.emailExists'),
       })
       loading.value = false
       return
@@ -524,7 +523,7 @@ const onSubmit = async () => {
 
     $q.notify({
       type: 'positive',
-      message: `Welcome ${form.value.fullName}! Account created successfully.`,
+      message: t('signUpPage.welcomeMsg', { name: form.value.fullName }),
     })
 
     const selectedRole = form.value.role
@@ -544,7 +543,7 @@ const onSubmit = async () => {
 
     await router.push({ path: '/verify-identity/id-front', query: verificationQuery })
   } catch (err) {
-    $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
+    $q.notify({ type: 'negative', message: t('signUpPage.unexpectedError') })
     console.error(err)
   } finally {
     loading.value = false

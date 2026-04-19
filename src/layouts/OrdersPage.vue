@@ -27,14 +27,14 @@
     <q-dialog v-model="showNotifications" position="top" seamless>
       <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="notif-title">Notifications</div>
+          <div class="notif-title">{{ $t('ordersPage.notifications') }}</div>
           <q-space />
           <q-btn
             v-if="notifications.length > 0"
             flat
             dense
             no-caps
-            label="Clear All"
+            :label="$t('ordersPage.clearAll')"
             color="negative"
             size="sm"
             class="q-mr-sm"
@@ -69,7 +69,7 @@
               <q-item-label class="text-weight-bold">
                 {{
                   notif.type === 'completion-check' || notif.type === 'still-going-check'
-                    ? notif.title || 'Request Status'
+                    ? notif.title || $t('ordersPage.requestStatus')
                     : notif.fixerName
                 }}
               </q-item-label>
@@ -151,7 +151,7 @@
           </q-item>
         </q-list>
         <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >No notifications yet</q-card-section
+          >{{ $t('ordersPage.noNotifications') }}</q-card-section
         >
       </q-card>
     </q-dialog>
@@ -161,13 +161,13 @@
         <!-- Loading -->
         <div v-if="loading" class="state-center">
           <q-spinner color="primary" size="48px" />
-          <div class="q-mt-md text-grey-7">Loading your orders...</div>
+          <div class="q-mt-md text-grey-7">{{ $t('ordersPage.loadingOrders') }}</div>
         </div>
 
         <!-- Error -->
         <div v-else-if="error" class="state-center">
           <q-icon name="error_outline" size="72px" color="negative" />
-          <div class="state-title">Something went wrong</div>
+          <div class="state-title">{{ $t('ordersPage.somethingWrong') }}</div>
           <div class="state-sub">{{ error }}</div>
           <q-btn
             unelevated
@@ -183,12 +183,12 @@
         <!-- Empty -->
         <div v-else-if="allOrders.length === 0" class="state-center">
           <q-icon name="receipt_long" size="80px" color="grey-4" />
-          <div class="state-title">No orders yet</div>
-          <div class="state-sub">Your service requests will appear here</div>
+          <div class="state-title">{{ $t('ordersPage.noOrdersTitle') }}</div>
+          <div class="state-sub">{{ $t('ordersPage.noOrdersSubtitle') }}</div>
           <q-btn
             unelevated
             color="primary"
-            label="Browse Services"
+            :label="$t('ordersPage.browseServices')"
             icon="home"
             class="q-mt-lg"
             rounded
@@ -198,7 +198,7 @@
 
         <!-- Orders Dashboard -->
         <div v-else class="orders-shell san3a-animate-in">
-          <div class="page-title">My Orders</div>
+          <div class="page-title">{{ $t('ordersPage.myOrders') }}</div>
           <div class="orders-summary q-mb-md">
             <q-badge color="primary" class="q-pa-sm text-body2"
               >{{ allOrders.length }} total
@@ -283,7 +283,7 @@
 
               <div v-else class="category-empty">
                 <q-icon name="inbox" size="32px" color="grey-4" />
-                <span>No {{ cat.label.toLowerCase() }} orders yet</span>
+                <span>{{ $t('ordersPage.noOrders') }}</span>
               </div>
             </q-expansion-item>
           </div>
@@ -301,15 +301,15 @@
         narrow-indicator
         dense
       >
-        <q-tab name="home" icon="home" label="Home" @click="$router.push('/home')" />
+        <q-tab name="home" icon="home" :label="$t('common.home')" @click="$router.push('/home')" />
         <q-tab
           name="offers"
           icon="handshake"
-          label="Requests"
+          :label="$t('common.requests')"
           @click="$router.push('/incoming-offers')"
         />
-        <q-tab name="orders" icon="receipt_long" label="Orders" @click="$router.push('/orders')" />
-        <q-tab name="profile" icon="person" label="Profile" @click="$router.push('/profile')" />
+        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="$router.push('/orders')" />
+        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="$router.push('/profile')" />
       </q-tabs>
     </q-footer>
 
@@ -469,6 +469,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
@@ -476,6 +477,7 @@ import { useCustomerCompletionCheck } from 'src/composables/useCustomerCompletio
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 const activeTab = ref('orders')
 const loading = ref(true)
 const error = ref(null)
@@ -538,13 +540,13 @@ const etaCountdownDisplay = computed(() => {
 
 const handleArrivalYes = async () => {
   const { error: err } = await confirmArrival(arrivalCheckRequest.value)
-  if (err) $q.notify({ type: 'negative', message: 'Failed to update status: ' + err.message })
-  else $q.notify({ type: 'positive', message: 'Great! Request is now on-going.' })
+  if (err) $q.notify({ type: 'negative', message: t('common.failedUpdateStatus') + ': ' + err.message })
+  else $q.notify({ type: 'positive', message: t('common.requestOngoing') })
 }
 
 const handleArrivalNo = async () => {
   await reportNoArrival(arrivalCheckRequest.value)
-  $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
+  $q.notify({ type: 'info', message: t('common.technicianNotified') })
 }
 
 const onSubmitCustomerReview = async (skip = false) => {
@@ -552,7 +554,7 @@ const onSubmitCustomerReview = async (skip = false) => {
   if (success) {
     $q.notify({
       type: 'positive',
-      message: skip ? 'Request marked as completed.' : 'Review submitted! Request completed.',
+      message: skip ? t('common.requestCompleted') : t('common.reviewSubmitted'),
     })
   }
 }

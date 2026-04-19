@@ -6,14 +6,14 @@
         :options="statusOptions"
         outlined
         dense
-        label="Filter by Status"
+        :label="$t('admin.filterByStatus')"
         class="toolbar-filter"
       />
       <q-input
         v-model="searchQuery"
         outlined
         dense
-        placeholder="Search requests..."
+        :placeholder="$t('admin.searchRequests')"
         class="toolbar-search"
       >
         <template v-slot:prepend>
@@ -74,39 +74,39 @@
     <q-dialog v-model="showDetailsDialog">
       <q-card class="admin-dialog-card" style="min-width: 500px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Request Details</div>
+          <div class="text-h6">{{ $t('admin.requestDetails') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
         </q-card-section>
 
         <q-card-section v-if="selectedRequest">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedRequest._id }}</div>
-            <div><strong>Customer:</strong> {{ selectedRequest._customer_name }}</div>
-            <div><strong>Category:</strong> {{ selectedRequest._category }}</div>
-            <div><strong>Description:</strong> {{ selectedRequest._description }}</div>
+            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedRequest._id }}</div>
+            <div><strong>{{ $t('admin.colCustomer') }}:</strong> {{ selectedRequest._customer_name }}</div>
+            <div><strong>{{ $t('admin.colCategory') }}:</strong> {{ selectedRequest._category }}</div>
+            <div><strong>{{ $t('admin.colDescription') }}:</strong> {{ selectedRequest._description }}</div>
             <div>
-              <strong>Status:</strong>
+              <strong>{{ $t('admin.status') }}:</strong>
               <q-badge
                 :label="selectedRequest._status"
                 :color="getStatusColor(selectedRequest._status)"
               />
             </div>
             <div v-if="selectedRequest.fixer_price">
-              <strong>Technician Price:</strong> {{ selectedRequest.fixer_price }}
+              <strong>{{ $t('admin.technicianPrice') }}:</strong> {{ selectedRequest.fixer_price }}
             </div>
             <div v-if="selectedRequest.customer_price">
-              <strong>Customer Price:</strong> {{ selectedRequest.customer_price }}
+              <strong>{{ $t('admin.customerPrice') }}:</strong> {{ selectedRequest.customer_price }}
             </div>
             <div v-if="selectedRequest.final_price">
-              <strong>Final Price:</strong> {{ selectedRequest.final_price }}
+              <strong>{{ $t('admin.finalPrice') }}:</strong> {{ selectedRequest.final_price }}
             </div>
-            <div><strong>Created:</strong> {{ formatDate(selectedRequest.created_at) }}</div>
+            <div><strong>{{ $t('admin.colCreated') }}:</strong> {{ formatDate(selectedRequest.created_at) }}</div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -115,7 +115,7 @@
     <q-dialog v-model="showEditDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Edit Request</div>
+          <div class="text-h6">{{ $t('admin.editRequest') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showEditDialog = false" />
         </q-card-section>
@@ -126,31 +126,31 @@
               v-model="formData.status"
               :options="statusOptions"
               outlined
-              label="Status"
+              :label="$t('admin.status')"
               class="q-mb-md"
             />
             <q-input
               v-model="formData.fixer_price"
-              label="Technician Price"
+              :label="$t('admin.technicianPrice')"
               outlined
               class="q-mb-md"
               type="number"
             />
             <q-input
               v-model="formData.customer_price"
-              label="Customer Price"
+              :label="$t('admin.customerPrice')"
               outlined
               class="q-mb-md"
               type="number"
             />
             <q-input
               v-model="formData.final_price"
-              label="Final Price"
+              :label="$t('admin.finalPrice')"
               outlined
               class="q-mb-md"
               type="number"
             />
-            <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
+            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
           </q-form>
         </q-card-section>
       </q-card>
@@ -161,17 +161,19 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
+const { t } = useI18n()
 
 const columns = [
-  { name: 'id', label: 'ID', field: '_id', align: 'left' },
-  { name: 'customer_name', label: 'Customer', field: '_customer_name', align: 'left' },
-  { name: 'category', label: 'Category', field: '_category', align: 'left' },
-  { name: 'description', label: 'Description', field: '_description', align: 'left' },
-  { name: 'status', label: 'Request Status', field: '_status', align: 'center' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+  { name: 'id', label: t('admin.colId'), field: '_id', align: 'left' },
+  { name: 'customer_name', label: t('admin.colCustomer'), field: '_customer_name', align: 'left' },
+  { name: 'category', label: t('admin.colCategory'), field: '_category', align: 'left' },
+  { name: 'description', label: t('admin.colDescription'), field: '_description', align: 'left' },
+  { name: 'status', label: t('admin.colRequestStatus'), field: '_status', align: 'center' },
+  { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
 const statusOptions = ['pending', 'assigned', 'in-progress', 'completed', 'cancelled']
@@ -260,7 +262,7 @@ const loadRequests = async () => {
     console.error('Error loading requests:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error loading requests',
+      message: t('admin.errorLoadingRequests'),
       position: 'top',
     })
   } finally {
@@ -295,7 +297,7 @@ const saveRequest = async () => {
     if (error) throw error
     $q.notify({
       type: 'positive',
-      message: 'Request updated successfully',
+      message: t('admin.requestUpdated'),
       position: 'top',
     })
     showEditDialog.value = false
@@ -304,7 +306,7 @@ const saveRequest = async () => {
     console.error('Error saving request:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error saving request',
+      message: t('admin.errorSavingRequest'),
       position: 'top',
     })
   }
@@ -313,8 +315,8 @@ const saveRequest = async () => {
 const deleteRequest = async (request) => {
   try {
     await $q.dialog({
-      title: 'Confirm',
-      message: 'Are you sure you want to delete this request?',
+      title: t('common.confirm'),
+      message: t('admin.deleteRequestConfirm'),
       cancel: true,
       persistent: true,
     })
@@ -327,7 +329,7 @@ const deleteRequest = async (request) => {
     if (error) throw error
     $q.notify({
       type: 'positive',
-      message: 'Request deleted successfully',
+      message: t('admin.requestDeleted'),
       position: 'top',
     })
     loadRequests()
@@ -336,7 +338,7 @@ const deleteRequest = async (request) => {
       console.error('Error deleting request:', error)
       $q.notify({
         type: 'negative',
-        message: 'Error deleting request',
+        message: t('admin.errorDeletingRequest'),
         position: 'top',
       })
     }

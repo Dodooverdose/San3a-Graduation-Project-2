@@ -16,8 +16,8 @@
             <img src="/icons/White.png" alt="Sanعa logo" class="brand-logo-mark" />
           </div>
           <div>
-            <div class="header-brand-name-w">Sanعa Admin</div>
-            <div class="header-brand-sub">Operations Dashboard</div>
+            <div class="header-brand-name-w">{{ $t('admin.brand') }}</div>
+            <div class="header-brand-sub">{{ $t('admin.operationsDashboard') }}</div>
           </div>
         </div>
         <q-space />
@@ -35,7 +35,7 @@
     </q-header>
 
     <q-drawer v-model="drawerOpen" side="left" overlay bordered class="admin-drawer">
-      <div class="drawer-title">Management</div>
+      <div class="drawer-title">{{ $t('admin.management') }}</div>
       <q-list class="sidebar-list" separator>
         <q-item
           v-for="item in navItems"
@@ -76,7 +76,7 @@
 
           <aside class="admin-activity san3a-animate-in san3a-stagger-2">
             <div class="activity-head">
-              <div class="activity-title">Recent Activity</div>
+              <div class="activity-title">{{ $t('admin.recentActivity') }}</div>
               <q-icon name="history" color="primary" />
             </div>
             <div v-if="activityLoading" class="activity-state">
@@ -84,7 +84,7 @@
             </div>
             <div v-else-if="activityItems.length === 0" class="activity-state">
               <q-icon name="inbox" size="30px" color="grey-5" />
-              <div>No recent events</div>
+              <div>{{ $t('admin.noRecentEvents') }}</div>
             </div>
             <div v-else class="activity-list">
               <div v-for="item in activityItems" :key="item.id" class="activity-item">
@@ -106,6 +106,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 import TechniciansView from 'src/components/admin/TechniciansView.vue'
 import CustomersView from 'src/components/admin/CustomersView.vue'
@@ -116,18 +117,19 @@ import AnalyticsView from 'src/components/admin/AnalyticsView.vue'
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 const activeTab = ref('analytics')
 const drawerOpen = ref(false)
 const activityItems = ref([])
 const activityLoading = ref(false)
 
 const navItems = [
-  { key: 'analytics', label: 'Analytics', icon: 'insights' },
-  { key: 'technicians', label: 'Technicians', icon: 'engineering' },
-  { key: 'customers', label: 'Customers', icon: 'person' },
-  { key: 'requests', label: 'Requests', icon: 'assignment' },
-  { key: 'pending', label: 'Verifications', icon: 'pending_actions' },
-  { key: 'complaints', label: 'Complaints', icon: 'flag' },
+  { key: 'analytics', label: t('admin.analytics'), icon: 'insights' },
+  { key: 'technicians', label: t('admin.technicians'), icon: 'engineering' },
+  { key: 'customers', label: t('admin.customers'), icon: 'person' },
+  { key: 'requests', label: t('admin.requests'), icon: 'assignment' },
+  { key: 'pending', label: t('admin.verifications'), icon: 'pending_actions' },
+  { key: 'complaints', label: t('admin.complaints'), icon: 'flag' },
 ]
 
 const selectTab = (key) => {
@@ -137,9 +139,9 @@ const selectTab = (key) => {
 
 const relativeTime = (dateStr) => {
   const date = new Date(dateStr)
-  if (Number.isNaN(date.getTime())) return 'Just now'
+  if (Number.isNaN(date.getTime())) return t('admin.justNow')
   const diff = Math.floor((Date.now() - date.getTime()) / 60000)
-  if (diff < 1) return 'Just now'
+  if (diff < 1) return t('admin.justNow')
   if (diff < 60) return `${diff}m ago`
   if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
   return `${Math.floor(diff / 1440)}d ago`
@@ -212,7 +214,7 @@ const logout = async () => {
     router.push('/signin')
   } catch (error) {
     console.error('Logout error:', error)
-    $q.notify({ type: 'negative', message: 'Error logging out', position: 'top' })
+    $q.notify({ type: 'negative', message: t('admin.errorLoggingOut'), position: 'top' })
   }
 }
 

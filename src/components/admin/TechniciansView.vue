@@ -3,7 +3,7 @@
     <div class="view-toolbar q-mb-md">
       <q-btn
         color="primary"
-        label="Add Technician"
+        :label="$t('admin.addTechnician')"
         icon="add"
         class="toolbar-btn"
         @click="showAddDialog = true"
@@ -12,7 +12,7 @@
         v-model="searchQuery"
         outlined
         dense
-        placeholder="Search technicians..."
+        :placeholder="$t('admin.searchTechnicians')"
         class="toolbar-search"
       >
         <template v-slot:prepend>
@@ -33,7 +33,7 @@
       <template v-slot:body-cell-verified="props">
         <q-td :props="props">
           <q-badge
-            :label="props.row._isApproved ? 'Approved' : 'Pending Verification'"
+            :label="props.row._isApproved ? $t('common.approved') : $t('admin.pendingVerificationBadge')"
             :color="props.row._isApproved ? 'positive' : 'warning'"
           />
         </q-td>
@@ -68,7 +68,7 @@
             @click="toggleVerification(props.row)"
             :color="props.row._isApproved ? 'negative' : 'warning'"
             :title="
-              props.row._isApproved ? 'Set as pending verification' : 'Approve technician account'
+              props.row._isApproved ? $t('admin.setAsPending') : $t('admin.approveTechAccount')
             "
           />
         </q-td>
@@ -79,22 +79,22 @@
     <q-dialog v-model="showDetailsDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Technician Details</div>
+          <div class="text-h6">{{ $t('admin.technicianDetails') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
         </q-card-section>
 
         <q-card-section v-if="selectedTechnician">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedTechnician._id }}</div>
-            <div><strong>Name:</strong> {{ selectedTechnician._name }}</div>
-            <div><strong>Email:</strong> {{ selectedTechnician._email }}</div>
-            <div><strong>Phone:</strong> {{ selectedTechnician._phone }}</div>
-            <div><strong>Specialty:</strong> {{ selectedTechnician.specialty || '-' }}</div>
+            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedTechnician._id }}</div>
+            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedTechnician._name }}</div>
+            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedTechnician._email }}</div>
+            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedTechnician._phone }}</div>
+            <div><strong>{{ $t('admin.colSpecialty') }}:</strong> {{ selectedTechnician.specialty || '-' }}</div>
             <div>
-              <strong>Status:</strong>
+              <strong>{{ $t('admin.status') }}:</strong>
               <q-badge
-                :label="selectedTechnician._isApproved ? 'Approved' : 'Pending Verification'"
+                :label="selectedTechnician._isApproved ? $t('common.approved') : $t('admin.pendingVerificationBadge')"
                 :color="selectedTechnician._isApproved ? 'positive' : 'warning'"
               />
             </div>
@@ -102,7 +102,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -111,7 +111,7 @@
     <q-dialog v-model="showAddDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ editingId ? 'Edit' : 'Add' }} Technician</div>
+          <div class="text-h6">{{ editingId ? $t('common.save') : $t('admin.addTechnician') }} </div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showAddDialog = false" />
         </q-card-section>
@@ -120,29 +120,29 @@
           <q-form @submit="saveTechnician">
             <q-input
               v-model="formData.full_name"
-              label="Full Name"
+              :label="$t('admin.colName')"
               outlined
               class="q-mb-md"
-              :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.nameRequired')]"
             />
             <q-input
               v-model="formData.email"
-              label="Email"
+              :label="$t('common.email')"
               outlined
               class="q-mb-md"
               type="email"
-              :rules="[(val) => (val && val.length > 0) || 'Email is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.emailRequired')]"
             />
             <q-input
               v-model="formData.phone_number"
-              label="Phone"
+              :label="$t('common.phone')"
               outlined
               class="q-mb-md"
-              :rules="[(val) => (val && val.length > 0) || 'Phone is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.phoneRequired')]"
             />
-            <q-input v-model="formData.specialty" label="Specialty" outlined class="q-mb-md" />
-            <q-checkbox v-model="formData.verified" label="Verified" />
-            <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
+            <q-input v-model="formData.specialty" :label="$t('admin.colSpecialty')" outlined class="q-mb-md" />
+            <q-checkbox v-model="formData.verified" :label="$t('common.verified')" />
+            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
           </q-form>
         </q-card-section>
       </q-card>
@@ -153,18 +153,20 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
+const { t } = useI18n()
 
 const columns = [
-  { name: 'id', label: 'ID', field: '_id', align: 'left' },
-  { name: 'name', label: 'Name', field: '_name', align: 'left' },
-  { name: 'email', label: 'Email', field: '_email', align: 'left' },
-  { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
-  { name: 'specialty', label: 'Specialty', field: 'specialty', align: 'left' },
-  { name: 'verified', label: 'Status', field: 'verified', align: 'center' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+  { name: 'id', label: t('admin.colId'), field: '_id', align: 'left' },
+  { name: 'name', label: t('admin.colName'), field: '_name', align: 'left' },
+  { name: 'email', label: t('common.email'), field: '_email', align: 'left' },
+  { name: 'phone', label: t('common.phone'), field: '_phone', align: 'left' },
+  { name: 'specialty', label: t('admin.colSpecialty'), field: 'specialty', align: 'left' },
+  { name: 'verified', label: t('admin.status'), field: 'verified', align: 'center' },
+  { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
 const technicians = ref([])
@@ -251,7 +253,7 @@ const loadTechnicians = async () => {
     console.error('Error loading technicians:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error loading technicians',
+      message: t('admin.errorLoadingTech'),
       position: 'top',
     })
   } finally {
@@ -292,7 +294,7 @@ const saveTechnician = async () => {
       if (stateError) throw stateError
       $q.notify({
         type: 'positive',
-        message: 'Technician updated successfully',
+        message: t('admin.techUpdated'),
         position: 'top',
       })
     } else {
@@ -319,7 +321,7 @@ const saveTechnician = async () => {
       }
       $q.notify({
         type: 'positive',
-        message: 'Technician added successfully',
+        message: t('admin.techAdded'),
         position: 'top',
       })
     }
@@ -330,7 +332,7 @@ const saveTechnician = async () => {
     console.error('Error saving technician:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error saving technician',
+      message: t('admin.errorSavingTech'),
       position: 'top',
     })
   }
@@ -344,8 +346,8 @@ const viewTechnician = (technician) => {
 const deleteTechnician = async (technician) => {
   try {
     await $q.dialog({
-      title: 'Confirm',
-      message: 'Are you sure you want to delete this technician?',
+      title: t('common.confirm'),
+      message: t('admin.deleteTechConfirm'),
       cancel: true,
       persistent: true,
     })
@@ -364,7 +366,7 @@ const deleteTechnician = async (technician) => {
 
     $q.notify({
       type: 'positive',
-      message: 'Technician deleted successfully',
+      message: t('admin.techDeleted'),
       position: 'top',
     })
     loadTechnicians()
@@ -373,7 +375,7 @@ const deleteTechnician = async (technician) => {
       console.error('Error deleting technician:', error)
       $q.notify({
         type: 'negative',
-        message: 'Error deleting technician',
+        message: t('admin.errorDeletingTech'),
         position: 'top',
       })
     }
@@ -398,8 +400,8 @@ const toggleVerification = async (technician) => {
     $q.notify({
       type: 'positive',
       message: nextApproved
-        ? 'Technician account approved.'
-        : 'Technician moved back to pending verification.',
+        ? t('admin.techApproved')
+        : t('admin.techMovedPending'),
       position: 'top',
     })
     loadTechnicians()
@@ -407,7 +409,7 @@ const toggleVerification = async (technician) => {
     console.error('Error updating verification:', error)
     $q.notify({
       type: 'negative',
-      message: error?.message || 'Error updating verification',
+      message: error?.message || t('admin.errorUpdatingVerification'),
       position: 'top',
     })
   }

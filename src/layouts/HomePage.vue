@@ -27,14 +27,14 @@
     <q-dialog v-model="showNotifications" position="top" seamless>
       <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="notif-card-title">Notifications</div>
+          <div class="notif-card-title">{{ $t('homePage.notifications') }}</div>
           <q-space />
           <q-btn
             v-if="notifications.length > 0"
             flat
             dense
             no-caps
-            label="Clear All"
+            :label="$t('homePage.clearAll')"
             color="negative"
             size="sm"
             class="q-mr-sm"
@@ -73,7 +73,7 @@
                   notif.type === 'completion-check' ||
                   notif.type === 'still-going-check' ||
                   notif.type === 'complaint-resolution'
-                    ? notif.title || 'Notification'
+                    ? notif.title || $t('homePage.notification')
                     : notif.fixerName
                 }}
               </q-item-label>
@@ -94,7 +94,7 @@
                   dense
                   unelevated
                   color="positive"
-                  label="Yes"
+                  :label="$t('common.yes')"
                   size="sm"
                   no-caps
                   @click.stop="handleCompletionYes(notif, i)"
@@ -103,7 +103,7 @@
                   dense
                   unelevated
                   color="negative"
-                  label="No"
+                  :label="$t('common.no')"
                   size="sm"
                   no-caps
                   @click.stop="handleCompletionNo(notif, i)"
@@ -117,7 +117,7 @@
                   dense
                   unelevated
                   color="positive"
-                  label="Yes"
+                  :label="$t('common.yes')"
                   size="sm"
                   no-caps
                   @click.stop="handleComplaintResolutionYes(notif, i)"
@@ -126,7 +126,7 @@
                   dense
                   unelevated
                   color="negative"
-                  label="No"
+                  :label="$t('common.no')"
                   size="sm"
                   no-caps
                   @click.stop="handleComplaintResolutionNo(notif, i)"
@@ -140,7 +140,7 @@
                   dense
                   unelevated
                   color="positive"
-                  label="Yes"
+                  :label="$t('common.yes')"
                   size="sm"
                   no-caps
                   @click.stop="handleStillGoingYes(notif, i)"
@@ -149,13 +149,13 @@
                   dense
                   unelevated
                   color="negative"
-                  label="No"
+                  :label="$t('common.no')"
                   size="sm"
                   no-caps
                   @click.stop="handleStillGoingNo(notif, i)"
                 />
               </div>
-              <q-badge v-else-if="notif.done" color="green" label="Done" />
+              <q-badge v-else-if="notif.done" color="green" :label="$t('common.done')" />
               <div v-else class="row q-gutter-xs">
                 <q-btn
                   dense
@@ -180,7 +180,7 @@
           </q-item>
         </q-list>
         <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >No Offers Yet</q-card-section
+          >{{ $t('homePage.noOffersYet') }}</q-card-section
         >
       </q-card>
     </q-dialog>
@@ -193,11 +193,10 @@
             <div class="hero-deco"></div>
             <div class="hero-content">
               <div class="hero-copy">
-                <div class="hero-eyebrow">Welcome back</div>
-                <div class="hero-title">What do you need help with today?</div>
+                <div class="hero-eyebrow">{{ $t('homePage.welcomeBack') }}</div>
+                <div class="hero-title">{{ $t('homePage.heroTitle') }}</div>
                 <div class="hero-subtitle">
-                  Pick a service, review your latest requests, or jump straight into the requests
-                  tab.
+                  {{ $t('homePage.heroSubtitle') }}
                 </div>
               </div>
               <div class="hero-actions">
@@ -206,7 +205,7 @@
                   no-caps
                   class="hero-btn-primary"
                   icon="assignment"
-                  label="Requests"
+                  :label="$t('common.requests')"
                   @click="goToPage('/incoming-offers')"
                 />
                 <q-btn
@@ -214,7 +213,7 @@
                   no-caps
                   class="hero-btn-ghost"
                   icon="person"
-                  label="Profile"
+                  :label="$t('common.profile')"
                   @click="goToPage('/profile')"
                 />
               </div>
@@ -241,18 +240,18 @@
           <div class="recent-card san3a-animate-in" @click="goToPage('/incoming-offers')">
             <div class="recent-header">
               <div>
-                <div class="recent-title">Recent Requests</div>
-                <div class="recent-sub">A quick look at your latest two requests</div>
+                <div class="recent-title">{{ $t('homePage.recentRequests') }}</div>
+                <div class="recent-sub">{{ $t('homePage.recentRequestsSubtitle') }}</div>
               </div>
-              <q-chip outline color="primary" icon="chevron_right" clickable>Open Requests</q-chip>
+              <q-chip outline color="primary" icon="chevron_right" clickable>{{ $t('homePage.openRequests') }}</q-chip>
             </div>
             <q-separator />
             <div class="recent-body">
               <div v-if="loadingRecentRequests" class="text-center q-py-md text-grey-6">
-                Loading recent requests...
+                {{ $t('homePage.loadingRequests') }}
               </div>
               <div v-else-if="recentRequests.length === 0" class="text-center q-py-lg text-grey-6">
-                No requests yet. Create your first request from the service categories above.
+                {{ $t('homePage.noRequestsYet') }}
               </div>
               <div v-else class="recent-list">
                 <div v-for="req in recentRequests" :key="req._id" class="recent-item">
@@ -267,7 +266,7 @@
                       </div>
                       <div class="recent-req-cat">{{ req._category }}</div>
                       <div class="recent-req-desc">
-                        {{ req._description || 'No description provided' }}
+                        {{ req._description || $t('homePage.noDescriptionProvided') }}
                       </div>
                     </div>
                   </div>
@@ -289,15 +288,15 @@
         narrow-indicator
         dense
       >
-        <q-tab name="home" icon="home" label="Home" @click="goToPage('/home')" />
+        <q-tab name="home" icon="home" :label="$t('common.home')" @click="goToPage('/home')" />
         <q-tab
           name="offers"
           icon="handshake"
-          label="Requests"
+          :label="$t('common.requests')"
           @click="goToPage('/incoming-offers')"
         />
-        <q-tab name="orders" icon="receipt_long" label="Orders" @click="goToPage('/orders')" />
-        <q-tab name="profile" icon="person" label="Profile" @click="goToPage('/profile')" />
+        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="goToPage('/orders')" />
+        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="goToPage('/profile')" />
       </q-tabs>
     </q-footer>
 
@@ -306,7 +305,7 @@
       <q-card style="min-width: 320px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="person_pin_circle" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Did the technician arrive?</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.didTechnicianArrive') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
             Request #{{ arrivalCheckRequest?.request_id }}
           </div>
@@ -315,7 +314,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes"
+            :label="$t('common.yes')"
             icon="check"
             no-caps
             @click="handleArrivalYes"
@@ -323,7 +322,7 @@
           <q-btn
             unelevated
             color="negative"
-            label="No"
+            :label="$t('common.no')"
             icon="close"
             no-caps
             @click="handleArrivalNo"
@@ -337,7 +336,7 @@
       <q-card style="min-width: 320px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Technician ETA</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.technicianETA') }}</div>
           <div
             v-if="etaSecondsLeft > 0"
             class="text-h3 q-mt-md"
@@ -349,11 +348,11 @@
           >
             {{ etaCountdownDisplay }}
           </div>
-          <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
+          <div v-else class="text-h6 text-negative q-mt-md">{{ $t('homePage.timeIsUp') }}</div>
           <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions v-if="etaSecondsLeft > 0" align="center" class="q-pb-md">
-          <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
+          <q-btn unelevated color="primary" :label="$t('common.ok')" no-caps @click="showEtaMessage = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -363,15 +362,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="task_alt" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.requestStatus') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Has request <strong>#{{ completionCheckTarget?.request_id }}</strong> been completed?
+            {{ $t('homePage.hasRequestCompleted', { id: completionCheckTarget?.request_id }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="No"
+            :label="$t('common.no')"
             color="grey-7"
             no-caps
             @click="handleCompletionNo(completionCheckTarget)"
@@ -379,7 +378,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes, it's done"
+            :label="$t('homePage.yesItsDone')"
             icon="check_circle"
             no-caps
             @click="handleCompletionYes(completionCheckTarget)"
@@ -393,15 +392,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="update" size="56px" color="warning" />
-          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.requestStatus') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Is request <strong>#{{ stillGoingCheckTarget?.request_id }}</strong> still going?
+            {{ $t('homePage.isRequestStillGoing', { id: stillGoingCheckTarget?.request_id }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="Yes, still going"
+            :label="$t('homePage.yesStillGoing')"
             color="grey-7"
             no-caps
             @click="handleStillGoingYes(stillGoingCheckTarget)"
@@ -409,7 +408,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="No, it's done"
+            :label="$t('homePage.noItsDone')"
             icon="check_circle"
             no-caps
             @click="handleStillGoingNo(stillGoingCheckTarget)"
@@ -423,17 +422,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="gavel" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Complaint Resolution</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.complaintResolution') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Your complaint
-            <strong>#{{ complaintResolutionTarget?.payload?.complaintId }}</strong> has been
-            reviewed. Has your issue been resolved?
+            {{ $t('homePage.complaintReviewed', { id: complaintResolutionTarget?.payload?.complaintId }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="No"
+            :label="$t('common.no')"
             color="grey-7"
             no-caps
             @click="handleComplaintResolutionNo(complaintResolutionTarget)"
@@ -441,7 +438,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes, resolved"
+            :label="$t('homePage.yesResolved')"
             icon="check_circle"
             no-caps
             @click="handleComplaintResolutionYes(complaintResolutionTarget)"
@@ -466,14 +463,14 @@
               padding: 10px;
             "
           />
-          <div class="text-h6 q-mt-md">The issue has been resolved.</div>
-          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">Thanks for choosing Sanعa :)</div>
+          <div class="text-h6 q-mt-md">{{ $t('homePage.issueResolved') }}</div>
+          <div class="text-body1 q-mt-sm" style="color: #2d6a4f">{{ $t('homePage.thanksForChoosing') }}</div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md">
           <q-btn
             unelevated
             color="primary"
-            label="Close"
+            :label="$t('common.close')"
             no-caps
             @click="showComplaintThankYouDialog = false"
           />
@@ -486,15 +483,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="rate_review" size="56px" color="amber" />
-          <div class="text-h6 q-mt-sm">Rate the Technician</div>
-          <div class="text-body2 text-grey-7 q-mt-xs">How was the service?</div>
+          <div class="text-h6 q-mt-sm">{{ $t('homePage.rateTechnician') }}</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">{{ $t('homePage.howWasService') }}</div>
         </q-card-section>
         <q-card-section class="text-center">
           <q-rating v-model="customerReviewStars" size="2.5em" color="amber" icon="star" />
           <q-input
             v-model="customerReviewText"
             type="textarea"
-            label="Leave a comment (optional)"
+            :label="$t('homePage.leaveComment')"
             filled
             autogrow
             class="q-mt-md"
@@ -504,7 +501,7 @@
           <q-btn
             unelevated
             color="primary"
-            label="Submit Review"
+            :label="$t('homePage.submitReview')"
             no-caps
             :loading="customerReviewSubmitting"
             :disable="customerReviewStars === 0"
@@ -521,12 +518,14 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
+import { useI18n } from 'vue-i18n'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 import { useCustomerCompletionCheck } from 'src/composables/useCustomerCompletionCheck'
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 const notificationCenter = useNotificationCenter()
 const {
   notifications,
@@ -578,13 +577,13 @@ const etaCountdownDisplay = computed(() => {
 
 const handleArrivalYes = async () => {
   const { error } = await confirmArrival(arrivalCheckRequest.value)
-  if (error) $q.notify({ type: 'negative', message: 'Failed to update status: ' + error.message })
-  else $q.notify({ type: 'positive', message: 'Great! Request is now on-going.' })
+  if (error) $q.notify({ type: 'negative', message: t('homePage.failedUpdateStatus') + error.message })
+  else $q.notify({ type: 'positive', message: t('homePage.requestOngoing') })
 }
 
 const handleArrivalNo = async () => {
   await reportNoArrival(arrivalCheckRequest.value)
-  $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
+  $q.notify({ type: 'info', message: t('homePage.technicianNotified') })
 }
 
 const onSubmitCustomerReview = async (skip = false) => {
@@ -592,7 +591,7 @@ const onSubmitCustomerReview = async (skip = false) => {
   if (success) {
     $q.notify({
       type: 'positive',
-      message: skip ? 'Request marked as completed.' : 'Review submitted! Request completed.',
+      message: skip ? t('homePage.requestCompleted') : t('homePage.reviewSubmitted'),
     })
   }
 }
@@ -662,14 +661,14 @@ const handleComplaintResolutionNo = async (notif, index) => {
     showNotifications.value = false
     $q.notify({
       type: 'info',
-      message: 'The admin has been notified to re-review your complaint.',
+      message: t('homePage.adminNotified'),
       position: 'top',
     })
   } catch (err) {
     console.error('Complaint resolution No failed:', err)
     $q.notify({
       type: 'negative',
-      message: 'Something went wrong. Please try again.',
+      message: t('homePage.somethingWrong'),
       position: 'top',
     })
   }
@@ -817,13 +816,13 @@ const getStatusColor = (status) => {
   return map[String(status || '').toLowerCase()] || 'grey'
 }
 
-const items = ref([
-  { label: 'Plumbing', icon: '/icons/plumbing.png', route: '/plumbing' },
-  { label: 'Carpentry', icon: '/icons/carpentry.png', route: '/carpentry' },
-  { label: 'Electrical', icon: '/icons/electrical.png', route: '/electrical' },
-  { label: 'Kitchen Utilities', icon: '/icons/kitchen.png', route: '/kitchen' },
-  { label: 'Painters and Decorators', icon: '/icons/painters.png', route: '/painters' },
-  { label: 'Drapery Seamstress', icon: '/icons/drapery.png', route: '/drapery' },
+const items = computed(() => [
+  { label: t('services.plumbing'), icon: '/icons/plumbing.png', route: '/plumbing' },
+  { label: t('services.carpentry'), icon: '/icons/carpentry.png', route: '/carpentry' },
+  { label: t('services.electrical'), icon: '/icons/electrical.png', route: '/electrical' },
+  { label: t('services.kitchenUtilities'), icon: '/icons/kitchen.png', route: '/kitchen' },
+  { label: t('services.paintersAndDecorators'), icon: '/icons/painters.png', route: '/painters' },
+  { label: t('services.draperySeamstress'), icon: '/icons/drapery.png', route: '/drapery' },
 ])
 </script>
 

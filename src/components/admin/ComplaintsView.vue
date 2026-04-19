@@ -6,14 +6,14 @@
         :options="statusOptions"
         outlined
         dense
-        label="Filter by Status"
+        :label="$t('admin.filterByStatus')"
         class="toolbar-filter"
       />
       <q-input
         v-model="searchQuery"
         outlined
         dense
-        placeholder="Search complaints..."
+        :placeholder="$t('admin.searchComplaints')"
         class="toolbar-search"
       >
         <template v-slot:prepend>
@@ -48,7 +48,7 @@
             color="primary"
             @click="viewComplaint(props.row)"
           >
-            <q-tooltip>View Details</q-tooltip>
+            <q-tooltip>{{ $t('admin.viewDetails') }}</q-tooltip>
           </q-btn>
           <q-btn
             v-if="props.row.status === 'Unsolved'"
@@ -60,7 +60,7 @@
             color="positive"
             @click="resolveComplaint(props.row)"
           >
-            <q-tooltip>Mark as Resolved</q-tooltip>
+            <q-tooltip>{{ $t('admin.markAsResolved') }}</q-tooltip>
           </q-btn>
           <q-btn
             v-else
@@ -72,7 +72,7 @@
             color="warning"
             @click="unresolveComplaint(props.row.complaint_id)"
           >
-            <q-tooltip>Reopen Complaint</q-tooltip>
+            <q-tooltip>{{ $t('admin.reopenComplaint') }}</q-tooltip>
           </q-btn>
           <q-btn
             flat
@@ -83,7 +83,7 @@
             color="negative"
             @click="deleteComplaint(props.row.complaint_id)"
           >
-            <q-tooltip>Delete</q-tooltip>
+            <q-tooltip>{{ $t('common.delete') }}</q-tooltip>
           </q-btn>
         </q-td>
       </template>
@@ -93,17 +93,17 @@
     <q-dialog v-model="showDetailsDialog">
       <q-card class="admin-dialog-card" style="min-width: 500px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Complaint Details</div>
+          <div class="text-h6">{{ $t('admin.complaintDetails') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
         </q-card-section>
 
         <q-card-section v-if="selectedComplaint">
           <div class="q-gutter-md">
-            <div><strong>Complaint ID:</strong> #{{ selectedComplaint.complaint_id }}</div>
-            <div><strong>Role:</strong> {{ selectedComplaint.complainant_role || '—' }}</div>
+            <div><strong>{{ $t('admin.complaintId') }}</strong> #{{ selectedComplaint.complaint_id }}</div>
+            <div><strong>{{ $t('admin.role') }}</strong> {{ selectedComplaint.complainant_role || '—' }}</div>
             <div>
-              <strong>Filed By:</strong>
+              <strong>{{ $t('admin.filedBy') }}</strong>
               <template v-if="complainantLoading">
                 <q-spinner size="xs" class="q-ml-xs" />
               </template>
@@ -111,13 +111,13 @@
                 {{ complainantUser?.full_name || '—' }}
               </template>
             </div>
-            <div><strong>Issue Type:</strong> {{ selectedComplaint.issue_type || '—' }}</div>
+            <div><strong>{{ $t('admin.colIssueType') }}:</strong> {{ selectedComplaint.issue_type || '—' }}</div>
             <div v-if="selectedComplaint.request_id">
-              <strong>Related Request:</strong> #{{ selectedComplaint.request_id }}
+              <strong>{{ $t('admin.relatedRequest') }}</strong> #{{ selectedComplaint.request_id }}
             </div>
-            <div><strong>Description:</strong> {{ selectedComplaint.description || '—' }}</div>
+            <div><strong>{{ $t('admin.colDescription') }}:</strong> {{ selectedComplaint.description || '—' }}</div>
             <div>
-              <strong>Status:</strong>
+              <strong>{{ $t('admin.colStatus') }}:</strong>
               <q-badge
                 :label="selectedComplaint.status"
                 :color="getStatusColor(selectedComplaint.status)"
@@ -126,17 +126,17 @@
             </div>
 
             <q-separator class="q-my-sm" />
-            <div class="text-subtitle2 text-weight-bold">Complaint Against</div>
+            <div class="text-subtitle2 text-weight-bold">{{ $t('admin.complaintAgainst') }}</div>
             <template v-if="complainedAgainstLoading">
               <q-spinner size="sm" class="q-mr-sm" /> Loading...
             </template>
             <template v-else-if="complainedAgainstUser">
-              <div><strong>Name:</strong> {{ complainedAgainstUser.full_name || '—' }}</div>
-              <div><strong>Email:</strong> {{ complainedAgainstUser.email || '—' }}</div>
-              <div><strong>Phone:</strong> {{ complainedAgainstUser.phone_number || '—' }}</div>
+              <div><strong>{{ $t('admin.colName') }}:</strong> {{ complainedAgainstUser.full_name || '—' }}</div>
+              <div><strong>{{ $t('common.email') }}:</strong> {{ complainedAgainstUser.email || '—' }}</div>
+              <div><strong>{{ $t('common.phone') }}:</strong> {{ complainedAgainstUser.phone_number || '—' }}</div>
             </template>
             <template v-else>
-              <div class="text-grey">No complained-against info available</div>
+              <div class="text-grey">{{ $t('admin.noComplaintAgainstInfo') }}</div>
             </template>
           </div>
         </q-card-section>
@@ -147,10 +147,10 @@
             unelevated
             no-caps
             color="positive"
-            label="Mark Resolved"
+            :label="$t('admin.markResolved')"
             @click="resolveAndClose"
           />
-          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -160,20 +160,22 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
+const { t } = useI18n()
 
 const columns = [
-  { name: 'complaint_id', label: 'ID', field: 'complaint_id', align: 'left' },
-  { name: 'complainant_role', label: 'Role', field: 'complainant_role', align: 'left' },
-  { name: 'issue_type', label: 'Issue Type', field: 'issue_type', align: 'left' },
-  { name: 'description', label: 'Description', field: 'description', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'center' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+  { name: 'complaint_id', label: t('admin.colId'), field: 'complaint_id', align: 'left' },
+  { name: 'complainant_role', label: t('admin.role'), field: 'complainant_role', align: 'left' },
+  { name: 'issue_type', label: t('admin.colIssueType'), field: 'issue_type', align: 'left' },
+  { name: 'description', label: t('admin.colDescription'), field: 'description', align: 'left' },
+  { name: 'status', label: t('admin.colStatus'), field: 'status', align: 'center' },
+  { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
-const statusOptions = ['Unsolved', 'Resolved']
+const statusOptions = [t('admin.unsolved'), t('admin.resolved')]
 
 const complaints = ref([])
 const loading = ref(false)
@@ -215,7 +217,7 @@ const loadComplaints = async () => {
     console.error('Error loading complaints:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error loading complaints',
+      message: t('admin.errorLoadingComplaints'),
       position: 'top',
     })
   } finally {
@@ -324,13 +326,13 @@ const resolveComplaint = async (complaint) => {
 
     $q.notify({
       type: 'positive',
-      message: 'Complaint marked as Resolved. Confirmation sent to complainant.',
+      message: t('admin.complaintResolved'),
       position: 'top',
     })
     loadComplaints()
   } catch (error) {
     console.error('Error resolving complaint:', error)
-    $q.notify({ type: 'negative', message: 'Failed to resolve complaint', position: 'top' })
+    $q.notify({ type: 'negative', message: t('admin.failedResolve'), position: 'top' })
   }
 }
 
@@ -342,19 +344,19 @@ const unresolveComplaint = async (id) => {
       .eq('complaint_id', id)
 
     if (error) throw error
-    $q.notify({ type: 'warning', message: 'Complaint reopened', position: 'top' })
+    $q.notify({ type: 'warning', message: t('admin.complaintReopened'), position: 'top' })
     loadComplaints()
   } catch (error) {
     console.error('Error reopening complaint:', error)
-    $q.notify({ type: 'negative', message: 'Failed to reopen complaint', position: 'top' })
+    $q.notify({ type: 'negative', message: t('admin.failedReopen'), position: 'top' })
   }
 }
 
 const deleteComplaint = async (id) => {
   try {
     await $q.dialog({
-      title: 'Confirm',
-      message: 'Are you sure you want to delete this complaint?',
+      title: t('common.confirm'),
+      message: t('admin.deleteComplaintConfirm'),
       cancel: true,
       persistent: true,
     })
@@ -364,7 +366,7 @@ const deleteComplaint = async (id) => {
     if (error) throw error
     $q.notify({
       type: 'positive',
-      message: 'Complaint deleted successfully',
+      message: t('admin.complaintDeleted'),
       position: 'top',
     })
     loadComplaints()
@@ -373,7 +375,7 @@ const deleteComplaint = async (id) => {
       console.error('Error deleting complaint:', error)
       $q.notify({
         type: 'negative',
-        message: 'Error deleting complaint',
+        message: t('admin.errorDeletingComplaint'),
         position: 'top',
       })
     }

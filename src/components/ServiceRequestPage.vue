@@ -30,18 +30,18 @@
             indicator-color="primary"
             align="justify"
           >
-            <q-tab name="post" label="Post Request" icon="edit" />
-            <q-tab name="history" label="Request History" icon="history" />
+            <q-tab name="post" :label="$t('serviceRequest.postRequest')" icon="edit" />
+            <q-tab name="history" :label="$t('serviceRequest.requestHistory')" icon="history" />
           </q-tabs>
 
           <!-- POST REQUEST TAB -->
           <div v-if="activeTab === 'post'" class="tab-content san3a-animate-in">
-            <h2 class="tab-heading">Post a Request</h2>
+            <h2 class="tab-heading">{{ $t('serviceRequest.postARequest') }}</h2>
 
             <div class="form-grid">
               <div class="field-group full-width">
                 <label class="field-label"
-                  >Describe your {{ serviceLabel.toLowerCase() }} issue</label
+                  >{{ $t('serviceRequest.describeIssue', { service: serviceLabel.toLowerCase() }) }}</label
                 >
                 <q-input
                   v-model="requestText"
@@ -49,26 +49,26 @@
                   outlined
                   autogrow
                   :input-style="{ minHeight: '120px' }"
-                  placeholder="Please describe the issue in detail..."
+                  :placeholder="$t('serviceRequest.descriptionPlaceholder')"
                   class="san3a-input"
                 />
               </div>
 
               <div class="field-group">
-                <label class="field-label">Appointment Date</label>
+                <label class="field-label">{{ $t('serviceRequest.appointmentDate') }}</label>
                 <q-input
                   v-model="appointmentDate"
                   outlined
                   dense
                   class="san3a-input"
-                  placeholder="Select date"
+                  :placeholder="$t('serviceRequest.selectDate')"
                 >
                   <template #prepend>
                     <q-icon name="event" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                         <q-date v-model="appointmentDate" mask="YYYY-MM-DD">
                           <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Close" color="primary" flat />
+                            <q-btn v-close-popup :label="$t('common.close')" color="primary" flat />
                           </div>
                         </q-date>
                       </q-popup-proxy>
@@ -78,20 +78,20 @@
               </div>
 
               <div class="field-group">
-                <label class="field-label">Appointment Time</label>
+                <label class="field-label">{{ $t('serviceRequest.appointmentTime') }}</label>
                 <q-input
                   v-model="appointmentTime"
                   outlined
                   dense
                   class="san3a-input"
-                  placeholder="HH:MM"
+                  :placeholder="$t('serviceRequest.timePlaceholder')"
                 >
                   <template #prepend>
                     <q-icon name="access_time" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                         <q-time v-model="appointmentTime" mask="hh:mm A">
                           <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Close" color="primary" flat />
+                            <q-btn v-close-popup :label="$t('common.close')" color="primary" flat />
                           </div>
                         </q-time>
                       </q-popup-proxy>
@@ -101,7 +101,7 @@
               </div>
 
               <div class="field-group full-width">
-                <label class="field-label">District</label>
+                <label class="field-label">{{ $t('serviceRequest.district') }}</label>
                 <q-select
                   v-model="district"
                   :options="cairoDistricts"
@@ -109,14 +109,14 @@
                   dense
                   clearable
                   class="san3a-input"
-                  placeholder="Select district"
+                  :placeholder="$t('serviceRequest.selectDistrict')"
                 >
                   <template #prepend><q-icon name="location_city" /></template>
                 </q-select>
               </div>
 
               <div class="field-group">
-                <label class="field-label">Urgency</label>
+                <label class="field-label">{{ $t('serviceRequest.urgency') }}</label>
                 <q-select
                   v-model="urgency"
                   :options="urgencyOptions"
@@ -129,7 +129,7 @@
               </div>
 
               <div class="field-group">
-                <label class="field-label">Payment Method</label>
+                <label class="field-label">{{ $t('serviceRequest.paymentMethod') }}</label>
                 <div class="payment-options">
                   <q-btn
                     :outline="paymentMethod !== 'cash'"
@@ -138,7 +138,7 @@
                     class="payment-btn"
                     @click="paymentMethod = 'cash'"
                   >
-                    <q-icon name="payments" class="q-mr-sm" /> Cash
+                    <q-icon name="payments" class="q-mr-sm" /> {{ $t('serviceRequest.cash') }}
                   </q-btn>
                   <q-btn
                     :outline="paymentMethod !== 'instapay'"
@@ -147,7 +147,7 @@
                     class="payment-btn"
                     @click="paymentMethod = 'instapay'"
                   >
-                    <q-icon name="credit_card" class="q-mr-sm" /> Instapay
+                    <q-icon name="credit_card" class="q-mr-sm" /> {{ $t('serviceRequest.instapay') }}
                   </q-btn>
                 </div>
               </div>
@@ -163,14 +163,14 @@
                 size="md"
                 @click="openImagePicker"
               >
-                <q-tooltip>Attach Photos</q-tooltip>
+                <q-tooltip>{{ $t('serviceRequest.attachPhotos') }}</q-tooltip>
               </q-btn>
               <q-space />
               <q-btn
                 unelevated
                 color="primary"
                 icon="send"
-                label="Submit"
+                :label="$t('common.submit')"
                 no-caps
                 class="submit-request-btn"
                 @click="submitRequest"
@@ -206,7 +206,7 @@
           <!-- REQUEST HISTORY TAB -->
           <div v-if="activeTab === 'history'" class="tab-content san3a-animate-in">
             <div class="tab-header">
-              <h2 class="tab-heading">Request History</h2>
+              <h2 class="tab-heading">{{ $t('serviceRequest.requestHistory') }}</h2>
               <q-badge
                 v-if="!historyLoading && requestHistory.length"
                 color="primary"
@@ -217,17 +217,17 @@
 
             <div v-if="historyLoading" class="state-center">
               <q-spinner color="primary" size="48px" />
-              <div class="q-mt-md text-grey-7">Loading your requests...</div>
+              <div class="q-mt-md text-grey-7">{{ $t('serviceRequest.loadingRequests') }}</div>
             </div>
 
             <div v-else-if="historyError" class="state-center">
               <q-icon name="error" size="64px" color="negative" />
-              <div class="state-title">Failed to load requests</div>
+              <div class="state-title">{{ $t('serviceRequest.failedToLoad') }}</div>
               <div class="state-sub">{{ historyError }}</div>
               <q-btn
                 flat
                 color="primary"
-                label="Retry"
+                :label="$t('common.retry')"
                 icon="refresh"
                 class="q-mt-sm"
                 @click="fetchHistory"
@@ -236,11 +236,11 @@
 
             <div v-else-if="requestHistory.length === 0" class="state-center">
               <q-icon name="inbox" size="64px" color="grey-4" />
-              <div class="state-title">No requests yet</div>
+              <div class="state-title">{{ $t('serviceRequest.noRequestsYet') }}</div>
               <q-btn
                 flat
                 color="primary"
-                label="Post your first request"
+                :label="$t('serviceRequest.postFirstRequest')"
                 icon="edit"
                 class="q-mt-sm"
                 @click="activeTab = 'post'"
@@ -256,7 +256,7 @@
                     :label="req.request_status || 'pending'"
                   />
                 </div>
-                <p class="history-desc">{{ req.description_of_issue || 'No description' }}</p>
+                <p class="history-desc">{{ req.description_of_issue || $t('common.noDescription') }}</p>
                 <div class="history-meta">
                   <div v-if="req.request_date" class="meta-item">
                     <q-icon name="event" size="14px" color="grey-6" />
@@ -313,10 +313,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
+
+const { t } = useI18n()
 
 const props = defineProps({
   serviceType: { type: String, required: true },
@@ -340,10 +343,10 @@ const paymentMethod = ref('cash')
 const district = ref(null)
 const urgency = ref('standard')
 
-const urgencyOptions = [
-  { label: 'Standard', value: 'standard' },
-  { label: 'Urgent', value: 'urgent' },
-]
+const urgencyOptions = computed(() => [
+  { label: t('serviceRequest.standard'), value: 'standard' },
+  { label: t('common.urgent'), value: 'urgent' },
+])
 
 const cairoDistricts = [
   'Downtown / Wust El-Balad',
@@ -488,11 +491,11 @@ const submitRequest = async () => {
     !urgency.value ||
     !paymentMethod.value
   ) {
-    $q.notify({ type: 'warning', message: 'Fill the rest of the form' })
+    $q.notify({ type: 'warning', message: t('serviceRequest.fillForm') })
     return
   }
   if (!currentUserId.value) {
-    $q.notify({ type: 'negative', message: 'You must be signed in to submit a request' })
+    $q.notify({ type: 'negative', message: t('serviceRequest.mustBeSignedIn') })
     return
   }
 

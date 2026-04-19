@@ -27,14 +27,14 @@
     <q-dialog v-model="showNotifications" position="top" seamless>
       <q-card class="notif-card">
         <q-card-section class="row items-center q-pb-sm">
-          <div class="notif-title">Notifications</div>
+          <div class="notif-title">{{ $t('incomingOffers.notifications') }}</div>
           <q-space />
           <q-btn
             v-if="notifications.length > 0"
             flat
             dense
             no-caps
-            label="Clear All"
+            :label="$t('incomingOffers.clearAll')"
             color="negative"
             size="sm"
             class="q-mr-sm"
@@ -69,7 +69,7 @@
               <q-item-label class="text-weight-bold">
                 {{
                   notif.type === 'completion-check' || notif.type === 'still-going-check'
-                    ? notif.title || 'Request Status'
+                    ? notif.title || $t('incomingOffers.requestStatus')
                     : notif.fixerName
                 }}
               </q-item-label>
@@ -151,7 +151,7 @@
           </q-item>
         </q-list>
         <q-card-section v-else class="text-center text-grey-5 q-py-lg"
-          >No notifications yet</q-card-section
+          >{{ $t('incomingOffers.noNotifications') }}</q-card-section
         >
       </q-card>
     </q-dialog>
@@ -161,13 +161,13 @@
         <!-- Loading -->
         <div v-if="loading" class="state-center">
           <q-spinner color="primary" size="48px" />
-          <div class="q-mt-md text-grey-7">Loading incoming offers...</div>
+          <div class="q-mt-md text-grey-7">{{ $t('incomingOffers.loadingOffers') }}</div>
         </div>
 
         <!-- Error -->
         <div v-else-if="error" class="state-center">
           <q-icon name="error_outline" size="72px" color="negative" />
-          <div class="state-title">Could not load offers</div>
+          <div class="state-title">{{ $t('incomingOffers.couldNotLoad') }}</div>
           <div class="state-sub">{{ error }}</div>
           <q-btn
             unelevated
@@ -183,13 +183,13 @@
         <!-- Empty -->
         <div v-else-if="incomingOffers.length === 0" class="state-center">
           <q-icon name="mark_email_read" size="72px" color="grey-4" />
-          <div class="state-title">No incoming offers yet</div>
-          <div class="state-sub">When a fixer sends a price, it will appear here.</div>
+          <div class="state-title">{{ $t('incomingOffers.noOffersTitle') }}</div>
+          <div class="state-sub">{{ $t('incomingOffers.noOffersSubtitle') }}</div>
         </div>
 
         <!-- Offers list -->
         <div v-else class="offers-shell san3a-animate-in">
-          <div class="page-title">Incoming Offers</div>
+          <div class="page-title">{{ $t('incomingOffers.incomingOffersTitle') }}</div>
           <div class="row items-center justify-between q-mb-md">
             <q-badge color="primary" class="q-pa-sm text-body2"
               >{{ filteredOffers.length }}
@@ -203,13 +203,13 @@
               dense
               outlined
               class="status-filter"
-              label="Profession"
+              :label="$t('incomingOffers.profession')"
             />
           </div>
 
           <div v-if="filteredOffers.length === 0" class="state-center-inline">
             <q-icon name="filter_alt_off" size="56px" color="grey-4" />
-            <div class="state-sub">No offers for selected status.</div>
+            <div class="state-sub">{{ $t('incomingOffers.noOffersStatus') }}</div>
           </div>
 
           <div v-for="req in filteredOffers" :key="req.request_id" class="offer-card">
@@ -245,7 +245,7 @@
 
             <div v-if="req.final_price" class="price-row q-mb-sm">
               <q-chip dense color="teal-2" text-color="teal-9" icon="check_circle"
-                >Final price: {{ req.final_price }} EGP</q-chip
+                >{{ $t('incomingOffers.finalPrice', { amount: req.final_price }) }}</q-chip
               >
             </div>
 
@@ -270,7 +270,7 @@
                   <div class="fixer-name-row">
                     <q-icon name="person" size="16px" color="grey-7" />
                     <span class="fixer-name">{{
-                      offer.fixerInfo?.full_name || 'Unknown fixer'
+                      offer.fixerInfo?.full_name || $t('incomingOffers.unknownFixer')
                     }}</span>
                   </div>
                   <q-badge
@@ -298,13 +298,13 @@
                 </div>
 
                 <div v-if="offer.fixer_message" class="fixer-message">
-                  <div class="fixer-message-title">Message</div>
+                  <div class="fixer-message-title">{{ $t('incomingOffers.message') }}</div>
                   <div class="fixer-message-body">{{ offer.fixer_message }}</div>
                 </div>
 
                 <div class="price-row">
                   <q-chip dense color="orange-2" text-color="orange-9" icon="build"
-                    >Offer: {{ offer.offered_price }} EGP</q-chip
+                    >{{ $t('incomingOffers.offerAmount', { amount: offer.offered_price }) }}</q-chip
                   >
                   <q-chip
                     v-if="offer.customer_counter_price"
@@ -312,7 +312,7 @@
                     color="green-2"
                     text-color="green-9"
                     icon="person"
-                    >Your counter: {{ offer.customer_counter_price }} EGP</q-chip
+                    >{{ $t('incomingOffers.yourCounter', { amount: offer.customer_counter_price }) }}</q-chip
                   >
                 </div>
 
@@ -322,7 +322,7 @@
                     dense
                     color="positive"
                     icon="check_circle"
-                    label="Accept"
+                    :label="$t('incomingOffers.accept')"
                     no-caps
                     class="action-btn"
                     :loading="offer._accepting"
@@ -333,7 +333,7 @@
                     dense
                     color="negative"
                     icon="cancel"
-                    label="Reject"
+                    :label="$t('incomingOffers.reject')"
                     no-caps
                     class="action-btn"
                     :loading="offer._rejecting"
@@ -344,7 +344,7 @@
                     dense
                     color="warning"
                     icon="gavel"
-                    label="Bargain"
+                    :label="$t('incomingOffers.bargain')"
                     no-caps
                     class="action-btn"
                     @click="openBargain(offer)"
@@ -361,9 +361,9 @@
     <q-dialog v-model="bargainDialog" persistent>
       <q-card class="bargain-card">
         <q-card-section>
-          <div class="bargain-title">Make a Counter-Offer</div>
+          <div class="bargain-title">{{ $t('incomingOffers.makeCounterOffer') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Fixer's price: <strong>{{ bargainTarget?.offered_price }} EGP</strong>
+            {{ $t('incomingOffers.fixerPrice', { amount: bargainTarget?.offered_price }) }}
           </div>
         </q-card-section>
         <q-form ref="bargainForm">
@@ -371,12 +371,12 @@
             <q-input
               v-model.number="bargainPrice"
               type="number"
-              label="Your counter-offer (EGP)"
+              :label="$t('incomingOffers.yourCounterOffer')"
               outlined
               dense
               autofocus
               min="1"
-              :rules="[(v) => (!!v && Number(v) > 0) || 'Enter a valid price']"
+              :rules="[(v) => (!!v && Number(v) > 0) || $t('incomingOffers.enterValidPrice')]"
               @keyup.enter="submitBargain"
             />
           </q-card-section>
@@ -384,7 +384,7 @@
             <q-btn flat label="Cancel" color="grey-7" v-close-popup />
             <q-btn
               unelevated
-              label="Send Offer"
+              :label="$t('incomingOffers.sendOffer')"
               color="warning"
               icon="send"
               no-caps
@@ -406,15 +406,15 @@
         narrow-indicator
         dense
       >
-        <q-tab name="home" icon="home" label="Home" @click="$router.push('/home')" />
+        <q-tab name="home" icon="home" :label="$t('common.home')" @click="$router.push('/home')" />
         <q-tab
           name="offers"
           icon="handshake"
-          label="Requests"
+          :label="$t('common.requests')"
           @click="$router.push('/incoming-offers')"
         />
-        <q-tab name="orders" icon="receipt_long" label="Orders" @click="$router.push('/orders')" />
-        <q-tab name="profile" icon="person" label="Profile" @click="$router.push('/profile')" />
+        <q-tab name="orders" icon="receipt_long" :label="$t('common.orders')" @click="$router.push('/orders')" />
+        <q-tab name="profile" icon="person" :label="$t('common.profile')" @click="$router.push('/profile')" />
       </q-tabs>
     </q-footer>
 
@@ -574,6 +574,7 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
@@ -582,6 +583,7 @@ import { useCustomerCompletionCheck } from 'src/composables/useCustomerCompletio
 const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 const activeTab = ref('offers')
 const loading = ref(true)
 const error = ref(null)
@@ -646,16 +648,16 @@ const etaCountdownDisplay = computed(() => {
 
 const handleArrivalYes = async () => {
   const { error: err } = await confirmArrival(arrivalCheckRequest.value)
-  if (err) $q.notify({ type: 'negative', message: 'Failed to update status: ' + err.message })
+  if (err) $q.notify({ type: 'negative', message: t('common.failedUpdateStatus') + ': ' + err.message })
   else {
-    $q.notify({ type: 'positive', message: 'Great! Request is now on-going.' })
+    $q.notify({ type: 'positive', message: t('common.requestOngoing') })
     await fetchIncomingOffers()
   }
 }
 
 const handleArrivalNo = async () => {
   await reportNoArrival(arrivalCheckRequest.value)
-  $q.notify({ type: 'info', message: 'Technician has been notified. Waiting for ETA...' })
+  $q.notify({ type: 'info', message: t('common.technicianNotified') })
 }
 
 const onSubmitCustomerReview = async (skip = false) => {
@@ -663,7 +665,7 @@ const onSubmitCustomerReview = async (skip = false) => {
   if (success) {
     $q.notify({
       type: 'positive',
-      message: skip ? 'Request marked as completed.' : 'Review submitted! Request completed.',
+      message: skip ? t('common.requestCompleted') : t('common.reviewSubmitted'),
     })
   }
 }
@@ -943,7 +945,7 @@ const acceptOffer = async (req, offer) => {
     .eq('offer_id', offer.offer_id)
   if (offerErr) {
     offer._accepting = false
-    $q.notify({ type: 'negative', message: 'Failed to accept: ' + offerErr.message })
+    $q.notify({ type: 'negative', message: t('common.failedAccept') + ': ' + offerErr.message })
     return
   }
   // Reject all other pending offers for this request
@@ -967,9 +969,9 @@ const acceptOffer = async (req, offer) => {
 
   offer._accepting = false
   if (reqErr)
-    $q.notify({ type: 'negative', message: 'Failed to update request: ' + reqErr.message })
+    $q.notify({ type: 'negative', message: t('common.failedUpdateRequest') + ': ' + reqErr.message })
   else {
-    $q.notify({ type: 'positive', message: 'Offer accepted!' })
+    $q.notify({ type: 'positive', message: t('common.offerAccepted') })
     await fetchIncomingOffers()
   }
 }
@@ -981,9 +983,9 @@ const rejectOffer = async (offer) => {
     .update({ status: 'rejected' })
     .eq('offer_id', offer.offer_id)
   offer._rejecting = false
-  if (err) $q.notify({ type: 'negative', message: 'Failed to reject: ' + err.message })
+  if (err) $q.notify({ type: 'negative', message: t('common.failedReject') + ': ' + err.message })
   else {
-    $q.notify({ type: 'warning', message: 'Offer rejected.' })
+    $q.notify({ type: 'warning', message: t('common.offerRejected') })
     await fetchIncomingOffers()
   }
 }
@@ -1029,10 +1031,10 @@ const submitBargain = async () => {
   bargainLoading.value = false
   if (err) {
     console.error('[Bargain] Supabase error:', err)
-    $q.notify({ type: 'negative', message: 'Failed to save offer: ' + err.message })
+    $q.notify({ type: 'negative', message: t('common.failedSaveOffer') + ': ' + err.message })
   } else if (!data || data.length === 0) {
     console.warn('[Bargain] 0 rows updated')
-    $q.notify({ type: 'warning', message: 'Update blocked — check database permissions.' })
+    $q.notify({ type: 'warning', message: t('common.updateBlocked') })
   } else {
     bargainTarget.value.customer_counter_price = price
     bargainDialog.value = false
@@ -1059,17 +1061,17 @@ const submitBargain = async () => {
         console.warn('Counter-offer notification not saved.')
         $q.notify({
           type: 'warning',
-          message: 'Counter-offer sent, but notification persistence failed.',
+          message: t('common.counterOfferNotifFailed'),
         })
       }
     } else {
       console.warn('Counter-offer notification skipped: fixer email not found.')
       $q.notify({
         type: 'warning',
-        message: 'Counter-offer sent, but fixer email was not found for notification.',
+        message: t('common.fixerEmailNotFound'),
       })
     }
-    $q.notify({ type: 'positive', message: 'Your offer has been sent!' })
+    $q.notify({ type: 'positive', message: t('common.offerSent') })
     const target = bargainTarget.value
     if (target.technician_id) {
       const fixerChannel = supabase.channel(`bargain-fixer-${target.technician_id}`)

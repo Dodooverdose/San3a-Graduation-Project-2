@@ -5,7 +5,7 @@
         <div class="auth-wrapper san3a-animate-in">
           <div class="back-link" @click="$router.push('/profile')">
             <q-icon name="arrow_back" size="18px" />
-            <span>Back to User Profile</span>
+            <span>{{ $t('resetPasswordPage.backToProfile') }}</span>
           </div>
 
           <div class="auth-card">
@@ -16,23 +16,23 @@
                 </div>
                 <span class="brand-text">Sanعa</span>
               </div>
-              <h1 class="auth-title">Set New Password</h1>
-              <p class="auth-subtitle">Enter your new password below</p>
+              <h1 class="auth-title">{{ $t('resetPasswordPage.title') }}</h1>
+              <p class="auth-subtitle">{{ $t('resetPasswordPage.subtitle') }}</p>
             </div>
 
             <q-form @submit.prevent="onSubmit" class="auth-form">
               <div class="field-group">
-                <label class="field-label">New Password</label>
+                <label class="field-label">{{ $t('resetPasswordPage.newPassword') }}</label>
                 <q-input
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Enter new password"
+                  :placeholder="$t('resetPasswordPage.newPasswordPlaceholder')"
                   outlined
                   dense
                   hide-bottom-space
                   class="san3a-input"
                   :rules="[
-                    (val) => (val && val.length >= 6) || 'Password must be at least 6 characters',
+                    (val) => (val && val.length >= 6) || $t('resetPasswordPage.passwordMinLength'),
                   ]"
                 >
                   <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
@@ -47,16 +47,16 @@
               </div>
 
               <div class="field-group">
-                <label class="field-label">Confirm New Password</label>
+                <label class="field-label">{{ $t('resetPasswordPage.confirmPassword') }}</label>
                 <q-input
                   v-model="confirmPassword"
                   :type="showConfirm ? 'text' : 'password'"
-                  placeholder="Confirm new password"
+                  :placeholder="$t('resetPasswordPage.confirmPlaceholder')"
                   outlined
                   dense
                   hide-bottom-space
                   class="san3a-input"
-                  :rules="[(val) => val === password || 'Passwords do not match']"
+                  :rules="[(val) => val === password || $t('resetPasswordPage.passwordsMismatch')]"
                 >
                   <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
                   <template v-slot:append
@@ -73,7 +73,7 @@
                 unelevated
                 no-caps
                 color="primary"
-                label="Update Password"
+                :label="$t('resetPasswordPage.updatePassword')"
                 class="submit-btn"
                 type="submit"
                 :loading="loading"
@@ -91,10 +91,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
@@ -103,7 +105,7 @@ const loading = ref(false)
 
 const onSubmit = async () => {
   if (password.value !== confirmPassword.value) {
-    $q.notify({ type: 'negative', message: 'Passwords do not match' })
+    $q.notify({ type: 'negative', message: t('resetPasswordPage.passwordsMismatch') })
     return
   }
   loading.value = true
@@ -113,11 +115,11 @@ const onSubmit = async () => {
       $q.notify({ type: 'negative', message: error.message })
       return
     }
-    $q.notify({ type: 'positive', message: 'Password updated successfully! Please sign in.' })
+    $q.notify({ type: 'positive', message: t('resetPasswordPage.passwordUpdated') })
     await supabase.auth.signOut()
     router.push('/signin')
   } catch (err) {
-    $q.notify({ type: 'negative', message: 'An unexpected error occurred.' })
+    $q.notify({ type: 'negative', message: t('resetPasswordPage.unexpectedError') })
     console.error(err)
   } finally {
     loading.value = false

@@ -6,7 +6,7 @@
           <!-- Back link -->
           <div class="back-link" @click="goBack">
             <q-icon name="arrow_back" size="18px" />
-            <span>Back to Home</span>
+            <span>{{ $t('signInPage.backToHome') }}</span>
           </div>
 
           <!-- Auth Card -->
@@ -19,23 +19,23 @@
                 </div>
                 <span class="brand-text">Sanعa</span>
               </div>
-              <h1 class="auth-title">Welcome Back!</h1>
-              <p class="auth-subtitle">Sign in to continue to your account</p>
+              <h1 class="auth-title">{{ $t('signInPage.welcomeBack') }}</h1>
+              <p class="auth-subtitle">{{ $t('signInPage.subtitle') }}</p>
             </div>
 
             <!-- Form -->
             <q-form @submit.prevent="onSubmit" class="auth-form">
               <div class="field-group">
-                <label class="field-label">Email or Phone Number</label>
+                <label class="field-label">{{ $t('signInPage.emailOrPhone') }}</label>
                 <q-input
                   v-model="form.identifier"
-                  placeholder="your.email@example.com"
+                  :placeholder="$t('signInPage.emailPlaceholder')"
                   outlined
                   dense
                   hide-bottom-space
                   class="san3a-input"
                   :rules="[
-                    (val) => (val && val.trim().length > 0) || 'Email or phone number is required',
+                    (val) => (val && val.trim().length > 0) || $t('signInPage.emailRequired'),
                   ]"
                 >
                   <template v-slot:prepend>
@@ -45,17 +45,17 @@
               </div>
 
               <div class="field-group">
-                <label class="field-label">Password</label>
+                <label class="field-label">{{ $t('signInPage.password') }}</label>
                 <q-input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Enter your password"
+                  :placeholder="$t('signInPage.passwordPlaceholder')"
                   outlined
                   dense
                   hide-bottom-space
                   class="san3a-input"
                   :rules="[
-                    (val) => (val && val.length >= 6) || 'Password must be at least 6 characters',
+                    (val) => (val && val.length >= 6) || $t('signInPage.passwordMinLength'),
                   ]"
                 >
                   <template v-slot:prepend>
@@ -75,18 +75,18 @@
               <div class="remember-row">
                 <q-checkbox
                   v-model="form.rememberMe"
-                  label="Remember me"
+                  :label="$t('signInPage.rememberMe')"
                   dense
                   class="remember-check"
                 />
-                <span class="forgot-link" @click="onForgotPassword">Forgot password?</span>
+                <span class="forgot-link" @click="onForgotPassword">{{ $t('signInPage.forgotPassword') }}</span>
               </div>
 
               <q-btn
                 unelevated
                 no-caps
                 color="primary"
-                label="Sign In"
+                :label="$t('common.signIn')"
                 class="submit-btn"
                 :disable="!isSignInEnabled"
                 :loading="loading"
@@ -97,23 +97,23 @@
             <!-- Divider -->
             <div class="auth-divider">
               <div class="divider-line"></div>
-              <span class="divider-text">or</span>
+              <span class="divider-text">{{ $t('common.or') }}</span>
               <div class="divider-line"></div>
             </div>
 
             <!-- Sign Up link -->
             <p class="switch-text">
-              Don't have an account?
-              <span class="switch-link" @click="goToSignUp">Sign up for free</span>
+              {{ $t('signInPage.noAccount') }}
+              <span class="switch-link" @click="goToSignUp">{{ $t('signInPage.signUpFree') }}</span>
             </p>
           </div>
 
           <!-- Footer -->
           <p class="auth-footer">
-            By signing in, you agree to our
-            <span class="footer-link">Terms of Service</span>
-            and
-            <span class="footer-link">Privacy Policy</span>
+            {{ $t('signInPage.agreeText') }}
+            <span class="footer-link">{{ $t('landing.termsOfService') }}</span>
+            {{ $t('common.and') || '' }}
+            <span class="footer-link">{{ $t('landing.privacyPolicy') }}</span>
           </p>
         </div>
       </q-page>
@@ -127,7 +127,9 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { supabase } from 'src/boot/supabase'
 import { useAuthStore } from 'src/stores/authStore'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -183,12 +185,12 @@ const onSubmit = async () => {
   const identifier = form.value.identifier.trim()
 
   if (!identifier) {
-    $q.notify({ type: 'negative', message: 'Please enter your email or phone number' })
+    $q.notify({ type: 'negative', message: t('signInPage.enterEmailOrPhone') })
     return
   }
 
   if (!form.value.password || form.value.password.length < 6) {
-    $q.notify({ type: 'negative', message: 'Password must be at least 6 characters' })
+    $q.notify({ type: 'negative', message: t('signInPage.passwordTooShort') })
     return
   }
 
@@ -200,7 +202,7 @@ const onSubmit = async () => {
     if (!isEmail(identifier)) {
       email = await lookupEmailByPhone(identifier)
       if (!email) {
-        $q.notify({ type: 'negative', message: 'No account found with that phone number' })
+        $q.notify({ type: 'negative', message: t('signInPage.noAccountPhone') })
         return
       }
     }
@@ -210,7 +212,7 @@ const onSubmit = async () => {
     if (!success) {
       $q.notify({
         type: 'negative',
-        message: error?.message || 'Sign in failed. Please check your credentials.',
+        message: error?.message || t('signInPage.signInFailed'),
         position: 'top',
       })
       return
@@ -218,7 +220,7 @@ const onSubmit = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Welcome back. You are signed in.',
+      message: t('signInPage.welcomeBackMsg'),
       icon: 'check_circle',
       position: 'top-right',
       timeout: 1400,
@@ -228,7 +230,7 @@ const onSubmit = async () => {
     const path = authStore.getRedirectPath()
     router.push(path)
   } catch (err) {
-    $q.notify({ type: 'negative', message: 'An unexpected error occurred. Please try again.' })
+    $q.notify({ type: 'negative', message: t('signInPage.unexpectedError') })
     console.error(err)
   } finally {
     loading.value = false

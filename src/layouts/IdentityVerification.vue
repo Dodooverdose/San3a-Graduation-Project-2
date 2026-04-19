@@ -6,7 +6,7 @@
           <div class="verify-card">
             <div class="verify-head">
               <q-chip color="primary" text-color="white" icon="verified_user">
-                Step {{ currentStepIndex + 1 }} of 3
+                {{ $t('verification.stepOf', { step: currentStepIndex + 1 }) }}
               </q-chip>
               <h1>{{ currentConfig.title }}</h1>
               <p>{{ currentConfig.subtitle }}</p>
@@ -41,11 +41,11 @@
             </div>
 
             <div class="tips-box">
-              <strong>Tips:</strong>
+              <strong>{{ $t('verification.tips') }}</strong>
               <ul>
-                <li>Use clear lighting and avoid glare.</li>
-                <li>Make sure all edges are visible.</li>
-                <li>Do not blur or crop key details.</li>
+                <li>{{ $t('verification.tip1') }}</li>
+                <li>{{ $t('verification.tip2') }}</li>
+                <li>{{ $t('verification.tip3') }}</li>
               </ul>
             </div>
 
@@ -54,7 +54,7 @@
                 outline
                 color="primary"
                 icon="photo_camera"
-                label="Take Photo"
+                :label="$t('verification.takePhoto')"
                 no-caps
                 @click="openCameraCapture"
               />
@@ -62,20 +62,20 @@
                 flat
                 color="primary"
                 icon="photo_library"
-                label="Upload from Gallery"
+                :label="$t('verification.uploadFromGallery')"
                 no-caps
                 @click="openGalleryInput"
               />
             </div>
 
             <div class="footer-actions">
-              <q-btn flat no-caps icon="arrow_back" label="Back" @click="goBack" />
+              <q-btn flat no-caps icon="arrow_back" :label="$t('common.back')" @click="goBack" />
               <div class="footer-right">
                 <q-btn
                   flat
                   no-caps
                   color="negative"
-                  label="Retake"
+                  :label="$t('verification.retake')"
                   :disable="!previewImage"
                   @click="retake"
                 />
@@ -83,7 +83,7 @@
                   unelevated
                   color="primary"
                   no-caps
-                  :label="isLastStep ? 'Submit Verification' : 'Confirm & Continue'"
+                  :label="isLastStep ? $t('verification.submitVerification') : $t('verification.confirmContinue')"
                   :disable="!previewImage"
                   :loading="saving"
                   @click="saveAndContinue"
@@ -94,7 +94,7 @@
             <div class="privacy-note">
               <q-icon name="shield" size="16px" />
               <span>
-                Your photos are used only for identity verification and profile safety checks.
+                {{ $t('verification.privacyNote') }}
               </span>
             </div>
           </div>
@@ -119,7 +119,7 @@
         <q-dialog v-model="cameraDialog" persistent>
           <q-card class="camera-dialog-card">
             <q-card-section class="row items-center q-pb-none">
-              <div class="text-h6">Take Photo</div>
+              <div class="text-h6">{{ $t('verification.takePhoto') }}</div>
               <q-space />
               <q-btn icon="close" flat round dense @click="closeCameraDialog" />
             </q-card-section>
@@ -131,12 +131,12 @@
             </q-card-section>
 
             <q-card-actions align="right">
-              <q-btn flat no-caps label="Cancel" @click="closeCameraDialog" />
+              <q-btn flat no-caps :label="$t('common.cancel')" @click="closeCameraDialog" />
               <q-btn
                 unelevated
                 color="primary"
                 no-caps
-                label="Capture"
+                :label="$t('verification.capture')"
                 @click="captureFromCamera"
               />
             </q-card-actions>
@@ -153,42 +153,44 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const route = useRoute()
 const $q = useQuasar()
+const { t } = useI18n()
 
 const stepOrder = ['id-front', 'id-back', 'selfie']
-const stepConfig = [
+const stepConfig = computed(() => [
   {
     key: 'id-front',
-    shortLabel: 'ID Front',
-    title: 'Capture National ID Front',
-    subtitle: 'Place the front side of the card inside the frame.',
-    guide: 'Align the front of your National ID inside the frame',
+    shortLabel: t('verification.idFront'),
+    title: t('verification.captureIdFront'),
+    subtitle: t('verification.captureIdFrontSub'),
+    guide: t('verification.alignFront'),
     icon: 'badge',
     column: 'national_id_front_image',
   },
   {
     key: 'id-back',
-    shortLabel: 'ID Back',
-    title: 'Capture National ID Back',
-    subtitle: 'Now capture the back side of your National ID card.',
-    guide: 'Align the back of your National ID inside the frame',
+    shortLabel: t('verification.idBack'),
+    title: t('verification.captureIdBack'),
+    subtitle: t('verification.captureIdBackSub'),
+    guide: t('verification.alignBack'),
     icon: 'credit_card',
     column: 'national_id_back_image',
   },
   {
     key: 'selfie',
-    shortLabel: 'Selfie',
-    title: 'Capture a Selfie',
-    subtitle: 'Take a clear selfie so we can verify your profile.',
-    guide: 'Center your face and keep your eyes visible',
+    shortLabel: t('verification.selfie'),
+    title: t('verification.captureSelfie'),
+    subtitle: t('verification.captureSelfieSub'),
+    guide: t('verification.centerFace'),
     icon: 'face',
     column: 'selfie_image',
   },
-]
+])
 
 const captureInputRef = ref(null)
 const galleryInputRef = ref(null)
@@ -208,7 +210,7 @@ const currentStepIndex = computed(() => {
   return idx >= 0 ? idx : 0
 })
 const isLastStep = computed(() => currentStepIndex.value === stepOrder.length - 1)
-const currentConfig = computed(() => stepConfig[currentStepIndex.value])
+const currentConfig = computed(() => stepConfig.value[currentStepIndex.value])
 
 const accountType = computed(() => {
   const queryType = String(route.query.accountType || '').toLowerCase()
@@ -234,7 +236,7 @@ const normalizedProfileDetails = computed(() => ({
 }))
 
 const isStepComplete = (stepKey) => {
-  const step = stepConfig.find((item) => item.key === stepKey)
+  const step = stepConfig.value.find((item) => item.key === stepKey)
   if (!step) return false
   return Boolean(submission.value?.[step.column])
 }
@@ -357,12 +359,12 @@ const onFileSelected = async (event) => {
   if (!file) return
 
   if (!file.type.startsWith('image/')) {
-    $q.notify({ type: 'negative', message: 'Please select an image file.' })
+    $q.notify({ type: 'negative', message: t('verification.selectImageFile') })
     return
   }
 
   if (file.size > 6 * 1024 * 1024) {
-    $q.notify({ type: 'negative', message: 'Image is too large. Max size is 6MB.' })
+    $q.notify({ type: 'negative', message: t('verification.imageTooLarge') })
     return
   }
 
@@ -371,7 +373,7 @@ const onFileSelected = async (event) => {
     previewImage.value = imageData
   } catch (error) {
     console.error(error)
-    $q.notify({ type: 'negative', message: 'Could not read selected image.' })
+    $q.notify({ type: 'negative', message: t('verification.couldNotRead') })
   } finally {
     if (event?.target) {
       event.target.value = ''
@@ -407,7 +409,7 @@ const persistCurrentStepImage = async () => {
 
 const saveAndContinue = async () => {
   if (!previewImage.value) {
-    $q.notify({ type: 'negative', message: 'Please capture or upload an image first.' })
+    $q.notify({ type: 'negative', message: t('verification.captureFirst') })
     return
   }
 
@@ -438,14 +440,14 @@ const saveAndContinue = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Verification submitted successfully. We are reviewing your profile.',
+      message: t('verification.verificationSubmitted'),
     })
     router.push('/pending-approval')
   } catch (error) {
     console.error(error)
     $q.notify({
       type: 'negative',
-      message: error?.message || 'Failed to save verification. Please try again.',
+      message: error?.message || t('verification.verificationFailed'),
     })
   } finally {
     saving.value = false

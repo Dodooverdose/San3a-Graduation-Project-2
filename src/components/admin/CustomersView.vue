@@ -3,7 +3,7 @@
     <div class="view-toolbar q-mb-md">
       <q-btn
         color="primary"
-        label="Add User"
+        :label="$t('admin.addUser')"
         icon="add"
         class="toolbar-btn"
         @click="showAddDialog = true"
@@ -12,7 +12,7 @@
         v-model="searchQuery"
         outlined
         dense
-        placeholder="Search users..."
+        :placeholder="$t('admin.searchUsers')"
         class="toolbar-search"
       >
         <template v-slot:prepend>
@@ -58,22 +58,22 @@
     <q-dialog v-model="showDetailsDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">User Details</div>
+          <div class="text-h6">{{ $t('admin.userDetails') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showDetailsDialog = false" />
         </q-card-section>
 
         <q-card-section v-if="selectedCustomer">
           <div class="q-gutter-md">
-            <div><strong>ID:</strong> {{ selectedCustomer._id }}</div>
-            <div><strong>Name:</strong> {{ selectedCustomer._name }}</div>
-            <div><strong>Email:</strong> {{ selectedCustomer._email }}</div>
-            <div><strong>Phone:</strong> {{ selectedCustomer._phone }}</div>
+            <div><strong>{{ $t('admin.colId') }}:</strong> {{ selectedCustomer._id }}</div>
+            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedCustomer._name }}</div>
+            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedCustomer._email }}</div>
+            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedCustomer._phone }}</div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Close" color="primary" @click="showDetailsDialog = false" />
+          <q-btn flat :label="$t('common.close')" color="primary" @click="showDetailsDialog = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -82,7 +82,7 @@
     <q-dialog v-model="showAddDialog">
       <q-card class="admin-dialog-card" style="min-width: 400px">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ editingId ? 'Edit' : 'Add' }} User</div>
+          <div class="text-h6">{{ editingId ? $t('common.save') : $t('admin.addUser') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showAddDialog = false" />
         </q-card-section>
@@ -91,27 +91,27 @@
           <q-form @submit="saveCustomer">
             <q-input
               v-model="formData.name"
-              label="Full Name"
+              :label="$t('admin.colName')"
               outlined
               class="q-mb-md"
-              :rules="[(val) => (val && val.length > 0) || 'Name is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.nameRequired')]"
             />
             <q-input
               v-model="formData.email"
-              label="Email"
+              :label="$t('common.email')"
               outlined
               class="q-mb-md"
               type="email"
-              :rules="[(val) => (val && val.length > 0) || 'Email is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.emailRequired')]"
             />
             <q-input
               v-model="formData.phone"
-              label="Phone"
+              :label="$t('common.phone')"
               outlined
               class="q-mb-md"
-              :rules="[(val) => (val && val.length > 0) || 'Phone is required']"
+              :rules="[(val) => (val && val.length > 0) || $t('admin.phoneRequired')]"
             />
-            <q-btn type="submit" color="primary" label="Save" class="q-mt-md full-width" />
+            <q-btn type="submit" color="primary" :label="$t('common.save')" class="q-mt-md full-width" />
           </q-form>
         </q-card-section>
       </q-card>
@@ -122,16 +122,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
+const { t } = useI18n()
 
 const columns = [
-  { name: 'id', label: 'ID', field: '_id', align: 'left' },
-  { name: 'name', label: 'Name', field: '_name', align: 'left' },
-  { name: 'email', label: 'Email', field: '_email', align: 'left' },
-  { name: 'phone', label: 'Phone', field: '_phone', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+  { name: 'id', label: t('admin.colId'), field: '_id', align: 'left' },
+  { name: 'name', label: t('admin.colName'), field: '_name', align: 'left' },
+  { name: 'email', label: t('common.email'), field: '_email', align: 'left' },
+  { name: 'phone', label: t('common.phone'), field: '_phone', align: 'left' },
+  { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
 const users = ref([])
@@ -187,7 +189,7 @@ const loadCustomers = async () => {
     console.error('Error loading customers:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error loading customers',
+      message: t('admin.errorLoadingCustomers'),
       position: 'top',
     })
   } finally {
@@ -212,7 +214,7 @@ const saveCustomer = async () => {
       if (error) throw error
       $q.notify({
         type: 'positive',
-        message: 'User updated successfully',
+        message: t('admin.userUpdated'),
         position: 'top',
       })
     } else {
@@ -221,7 +223,7 @@ const saveCustomer = async () => {
       if (error) throw error
       $q.notify({
         type: 'positive',
-        message: 'User added successfully',
+        message: t('admin.userAdded'),
         position: 'top',
       })
     }
@@ -232,7 +234,7 @@ const saveCustomer = async () => {
     console.error('Error saving user:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error saving user',
+      message: t('admin.errorSavingUser'),
       position: 'top',
     })
   }
@@ -256,7 +258,7 @@ const deleteCustomer = async (customer) => {
     if (error) throw error
     $q.notify({
       type: 'positive',
-      message: 'User deleted successfully',
+      message: t('admin.userDeleted'),
       position: 'top',
     })
     loadCustomers()
@@ -264,7 +266,7 @@ const deleteCustomer = async (customer) => {
     console.error('Error deleting user:', error)
     $q.notify({
       type: 'negative',
-      message: error?.message || 'Error deleting user',
+      message: error?.message || t('admin.errorDeletingUser'),
       position: 'top',
     })
   }

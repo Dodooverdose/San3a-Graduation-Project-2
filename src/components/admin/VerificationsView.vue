@@ -16,7 +16,7 @@
         v-model="searchQuery"
         outlined
         dense
-        placeholder="Search by name or email..."
+        :placeholder="$t('admin.searchByNameEmail')"
         class="toolbar-search"
       >
         <template v-slot:prepend>
@@ -57,7 +57,7 @@
       <template v-slot:body-cell-account_type="props">
         <q-td :props="props">
           <q-badge
-            :label="props.row.account_type === 'technician' ? 'Technician' : 'User'"
+            :label="props.row.account_type === 'technician' ? $t('admin.technicians') : $t('admin.users')"
             :color="props.row.account_type === 'technician' ? 'secondary' : 'primary'"
           />
         </q-td>
@@ -114,68 +114,67 @@
     <q-dialog v-model="showDialog">
       <q-card class="admin-dialog-card details-card">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Verification Profile</div>
+          <div class="text-h6">{{ $t('admin.verificationProfile') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showDialog = false" />
         </q-card-section>
 
         <q-card-section v-if="selectedRow" class="details-section">
           <div class="details-grid">
-            <div><strong>Account:</strong> {{ selectedRow.account_type }}</div>
-            <div><strong>Name:</strong> {{ selectedRow.full_name || '-' }}</div>
-            <div><strong>Email:</strong> {{ selectedRow.email || '-' }}</div>
-            <div><strong>Status:</strong> {{ formatStatus(selectedRow.review_status) }}</div>
+            <div><strong>{{ $t('admin.account') }}</strong> {{ selectedRow.account_type }}</div>
+            <div><strong>{{ $t('admin.colName') }}:</strong> {{ selectedRow.full_name || '-' }}</div>
+            <div><strong>{{ $t('common.email') }}:</strong> {{ selectedRow.email || '-' }}</div>
+            <div><strong>{{ $t('admin.colStatus') }}:</strong> {{ formatStatus(selectedRow.review_status) }}</div>
             <div v-if="selectedRow.review_status === 'rejected' && selectedRow.reviewer_notes">
-              <strong>Rejection Reason:</strong> {{ selectedRow.reviewer_notes }}
+              <strong>{{ $t('admin.rejectionReason') }}</strong> {{ selectedRow.reviewer_notes }}
             </div>
             <div>
-              <strong>Submitted:</strong>
+              <strong>{{ $t('admin.submitted') }}</strong>
               {{ formatDate(selectedRow.verification_completed_at || selectedRow.submitted_at) }}
             </div>
-            <div><strong>Phone:</strong> {{ selectedRow.profile_details?.phoneNumber || '-' }}</div>
+            <div><strong>{{ $t('common.phone') }}:</strong> {{ selectedRow.profile_details?.phoneNumber || '-' }}</div>
             <div v-if="selectedRow.account_type === 'technician'">
-              <strong>Specialty:</strong> {{ selectedRow.profile_details?.specialty || '-' }}
+              <strong>{{ $t('admin.colSpecialty') }}:</strong> {{ selectedRow.profile_details?.specialty || '-' }}
             </div>
             <div v-if="selectedRow.account_type === 'technician'">
-              <strong>Experience:</strong>
-              {{ selectedRow.profile_details?.yearsOfExperience || '-' }} years
+              <strong>{{ $t('admin.experience', { years: selectedRow.profile_details?.yearsOfExperience || '-' }) }}</strong>
             </div>
           </div>
 
           <div class="images-grid">
             <div class="image-card">
-              <div class="image-label">National ID Front</div>
+              <div class="image-label">{{ $t('admin.nationalIdFront') }}</div>
               <img
                 v-if="selectedRow.national_id_front_image"
                 :src="selectedRow.national_id_front_image"
                 alt="National ID front"
               />
-              <div v-else class="image-empty">No image uploaded</div>
+              <div v-else class="image-empty">{{ $t('admin.noImageUploaded') }}</div>
             </div>
 
             <div class="image-card">
-              <div class="image-label">National ID Back</div>
+              <div class="image-label">{{ $t('admin.nationalIdBack') }}</div>
               <img
                 v-if="selectedRow.national_id_back_image"
                 :src="selectedRow.national_id_back_image"
                 alt="National ID back"
               />
-              <div v-else class="image-empty">No image uploaded</div>
+              <div v-else class="image-empty">{{ $t('admin.noImageUploaded') }}</div>
             </div>
 
             <div class="image-card">
               <div class="image-label">Selfie</div>
               <img v-if="selectedRow.selfie_image" :src="selectedRow.selfie_image" alt="Selfie" />
-              <div v-else class="image-empty">No image uploaded</div>
+              <div v-else class="image-empty">{{ $t('admin.noImageUploaded') }}</div>
             </div>
           </div>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Reject" color="negative" @click="rejectWithReason(selectedRow)" />
+          <q-btn flat :label="$t('admin.reject')" color="negative" @click="rejectWithReason(selectedRow)" />
           <q-btn
             unelevated
-            label="Approve"
+            :label="$t('admin.approve')"
             color="positive"
             @click="updateReviewStatus(selectedRow, 'approved')"
           />
@@ -186,13 +185,13 @@
     <q-dialog v-model="showRejectDialog" persistent>
       <q-card class="admin-dialog-card reject-dialog-card">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Reject Profile</div>
+          <div class="text-h6">{{ $t('admin.rejectProfile') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="closeRejectDialog" />
         </q-card-section>
 
         <q-card-section>
-          <div class="text-body2 q-mb-sm">Please write the rejection reason:</div>
+          <div class="text-body2 q-mb-sm">{{ $t('admin.rejectReason') }}</div>
           <q-input
             v-model="rejectReason"
             type="textarea"
@@ -200,15 +199,15 @@
             outlined
             dense
             maxlength="500"
-            placeholder="Explain why this profile is rejected"
+            :placeholder="$t('admin.rejectPlaceholder')"
           />
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="grey-7" @click="closeRejectDialog" />
+          <q-btn flat :label="$t('common.cancel')" color="grey-7" @click="closeRejectDialog" />
           <q-btn
             unelevated
-            label="Reject Profile"
+            :label="$t('admin.rejectProfile')"
             color="negative"
             :loading="rejectSaving"
             @click="submitRejectWithReason"
@@ -222,17 +221,19 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const $q = useQuasar()
+const { t } = useI18n()
 
 const columns = [
-  { name: 'account_type', label: 'Account Type', field: 'account_type', align: 'left' },
-  { name: 'full_name', label: 'Name', field: 'full_name', align: 'left' },
-  { name: 'email', label: 'Email', field: 'email', align: 'left' },
-  { name: 'review_status', label: 'Status', field: 'review_status', align: 'center' },
-  { name: 'submitted_at', label: 'Submitted', field: 'submitted_at', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'actions', align: 'center' },
+  { name: 'account_type', label: t('admin.colAccountType'), field: 'account_type', align: 'left' },
+  { name: 'full_name', label: t('admin.colName'), field: 'full_name', align: 'left' },
+  { name: 'email', label: t('common.email'), field: 'email', align: 'left' },
+  { name: 'review_status', label: t('admin.colStatus'), field: 'review_status', align: 'center' },
+  { name: 'submitted_at', label: t('admin.colSubmitted'), field: 'submitted_at', align: 'left' },
+  { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
 const rows = ref([])
@@ -249,16 +250,16 @@ const rejectTargetRow = ref(null)
 const rejectSaving = ref(false)
 
 const accountTypeOptions = [
-  { label: 'All accounts', value: 'all' },
-  { label: 'Technician', value: 'technician' },
-  { label: 'User', value: 'user' },
+  { label: t('admin.allAccounts'), value: 'all' },
+  { label: t('admin.technicians'), value: 'technician' },
+  { label: t('admin.users'), value: 'user' },
 ]
 
 const statusOptions = [
-  { label: 'All statuses', value: 'all' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
+  { label: t('admin.allStatuses'), value: 'all' },
+  { label: t('common.pending'), value: 'pending' },
+  { label: t('common.approved'), value: 'approved' },
+  { label: t('common.rejected'), value: 'rejected' },
 ]
 
 const filteredRows = computed(() => {
@@ -327,7 +328,7 @@ const loadRows = async () => {
     rows.value = data || []
   } catch (error) {
     console.error('Error loading verifications:', error)
-    $q.notify({ type: 'negative', message: 'Failed to load verification profiles.' })
+    $q.notify({ type: 'negative', message: t('admin.failedLoadVerifications') })
   } finally {
     loading.value = false
   }
@@ -360,7 +361,7 @@ const updateReviewStatus = async (row, status, reviewerNotes = null) => {
 
     $q.notify({
       type: 'positive',
-      message: `Verification marked as ${status}.`,
+      message: t('admin.verificationApprovedRejected', { status }),
     })
 
     if (selectedRow.value?.auth_id === row.auth_id) {
@@ -374,7 +375,7 @@ const updateReviewStatus = async (row, status, reviewerNotes = null) => {
     await loadRows()
   } catch (error) {
     console.error('Failed to update status:', error)
-    $q.notify({ type: 'negative', message: error?.message || 'Failed to update review status.' })
+    $q.notify({ type: 'negative', message: error?.message || t('admin.failedUpdateReview') })
   }
 }
 
@@ -400,7 +401,7 @@ const submitRejectWithReason = async () => {
     if (!cleanedReason) {
       $q.notify({
         type: 'warning',
-        message: 'Please write a rejection reason before rejecting this profile.',
+        message: t('admin.writeRejectionReason'),
       })
       return
     }
@@ -412,7 +413,7 @@ const submitRejectWithReason = async () => {
     console.error('Reject action failed:', error)
     $q.notify({
       type: 'negative',
-      message: error?.message || 'Could not reject profile. Please try again.',
+      message: error?.message || t('admin.couldNotReject'),
     })
   } finally {
     rejectSaving.value = false

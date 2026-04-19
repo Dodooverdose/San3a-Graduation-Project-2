@@ -2,13 +2,13 @@
   <div class="analytics-view">
     <div class="row items-center justify-between q-mb-md header-row">
       <div>
-        <div class="text-h5 text-weight-bold">Analytics Overview</div>
-        <div class="text-grey-7">Operational insights for verification and platform health</div>
+        <div class="text-h5 text-weight-bold">{{ $t('admin.analyticsOverview') }}</div>
+        <div class="text-grey-7">{{ $t('admin.analyticsSubtitle') }}</div>
       </div>
       <q-btn
         color="primary"
         icon="refresh"
-        label="Refresh"
+        :label="$t('admin.refresh')"
         :loading="loading"
         @click="loadAnalytics"
       />
@@ -47,10 +47,10 @@
         <q-card-section>
           <div class="ops-head">
             <div>
-              <div class="text-subtitle1 text-weight-bold">Action Center</div>
-              <div class="text-caption text-grey-7">Items requiring admin attention</div>
+              <div class="text-subtitle1 text-weight-bold">{{ $t('admin.actionCenter') }}</div>
+              <div class="text-caption text-grey-7">{{ $t('admin.actionCenterSub') }}</div>
             </div>
-            <q-badge color="warning" text-color="white">{{ actionItems.length }} alerts</q-badge>
+            <q-badge color="warning" text-color="white">{{ actionItems.length }} {{ $t('admin.alerts') }}</q-badge>
           </div>
 
           <div class="action-list" v-if="actionItems.length">
@@ -72,39 +72,39 @@
             </button>
           </div>
 
-          <div v-else class="text-caption text-grey-7">No high-priority alerts right now.</div>
+          <div v-else class="text-caption text-grey-7">{{ $t('admin.noHighPriority') }}</div>
         </q-card-section>
       </q-card>
 
       <q-card flat bordered class="ops-card">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-bold">Platform Health</div>
-          <div class="text-caption text-grey-7 q-mb-sm">Verification and operations quality</div>
+          <div class="text-subtitle1 text-weight-bold">{{ $t('admin.platformHealth') }}</div>
+          <div class="text-caption text-grey-7 q-mb-sm">{{ $t('admin.platformHealthSub') }}</div>
 
           <div class="health-grid">
             <div class="health-item">
-              <div class="health-label">Approval Rate</div>
+              <div class="health-label">{{ $t('admin.approvalRate') }}</div>
               <div class="health-value">{{ approvalRate }}%</div>
             </div>
             <div class="health-item">
-              <div class="health-label">Total Reviewed Profiles</div>
+              <div class="health-label">{{ $t('admin.totalReviewedProfiles') }}</div>
               <div class="health-value">{{ formatNumber(totalReviewedProfiles) }}</div>
             </div>
             <div class="health-item">
-              <div class="health-label">Open Operational Load</div>
+              <div class="health-label">{{ $t('admin.openOperationalLoad') }}</div>
               <div class="health-value">
                 {{ formatNumber(activeRequestsCount + complaintsCount) }}
               </div>
             </div>
             <div class="health-item">
-              <div class="health-label">Backlog Ratio</div>
+              <div class="health-label">{{ $t('admin.backlogRatio') }}</div>
               <div class="health-value">{{ backlogRatio }}%</div>
             </div>
           </div>
 
           <div class="q-mt-md">
             <div class="row items-center justify-between q-mb-xs">
-              <span class="text-caption text-grey-7">Verification Completion</span>
+              <span class="text-caption text-grey-7">{{ $t('admin.verificationCompletion') }}</span>
               <span class="text-caption text-weight-bold">{{ approvalRate }}%</span>
             </div>
             <q-linear-progress
@@ -122,9 +122,9 @@
     <div class="charts-grid">
       <q-card flat bordered class="chart-card">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-medium">Verification Pipeline</div>
+          <div class="text-subtitle1 text-weight-medium">{{ $t('admin.verificationPipeline') }}</div>
           <div class="text-caption text-grey-7 q-mb-md">
-            Pending, approved, and rejected verification submissions
+            {{ $t('admin.verificationPipelineSub') }}
           </div>
 
           <div v-for="row in verificationBreakdown" :key="row.label" class="bar-row">
@@ -145,11 +145,11 @@
 
       <q-card flat bordered class="chart-card">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-medium">Requests by Status</div>
-          <div class="text-caption text-grey-7 q-mb-md">Current distribution in request table</div>
+          <div class="text-subtitle1 text-weight-medium">{{ $t('admin.requestsByStatus') }}</div>
+          <div class="text-caption text-grey-7 q-mb-md">{{ $t('admin.requestsByStatusSub') }}</div>
 
           <div v-if="requestStatusBars.length === 0" class="text-grey-7">
-            No request data found.
+            {{ $t('admin.noRequestData') }}
           </div>
 
           <div v-for="bar in requestStatusBars" :key="bar.label" class="bar-row">
@@ -170,12 +170,12 @@
 
       <q-card flat bordered class="chart-card">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-medium">Service Category Mix</div>
+          <div class="text-subtitle1 text-weight-medium">{{ $t('admin.serviceCategoryMix') }}</div>
           <div class="text-caption text-grey-7 q-mb-md">
-            Request volume split by service category
+            {{ $t('admin.serviceCategoryMixSub') }}
           </div>
 
-          <div v-if="serviceMix.length === 0" class="text-grey-7">No category data found.</div>
+          <div v-if="serviceMix.length === 0" class="text-grey-7">{{ $t('admin.noCategoryData') }}</div>
 
           <div v-else class="service-mix-wrap">
             <div class="donut-wrap">
@@ -203,9 +203,9 @@
         <q-card-section>
           <div class="trend-head q-mb-md">
             <div>
-              <div class="text-subtitle1 text-weight-medium">Activity Trends</div>
+              <div class="text-subtitle1 text-weight-medium">{{ $t('admin.activityTrends') }}</div>
               <div class="text-caption text-grey-7">
-                Requests, complaints, and verification submissions over time
+                {{ $t('admin.activityTrendsSub') }}
               </div>
             </div>
             <q-btn-toggle
@@ -217,13 +217,13 @@
               color="grey-3"
               text-color="grey-8"
               :options="[
-                { label: '7 Days', value: 7 },
-                { label: '30 Days', value: 30 },
+                { label: $t('admin.days7'), value: 7 },
+                { label: $t('admin.days30'), value: 30 },
               ]"
             />
           </div>
 
-          <div v-if="activityBars.length === 0" class="text-grey-7">No recent activity found.</div>
+          <div v-if="activityBars.length === 0" class="text-grey-7">{{ $t('admin.noRecentActivityFound') }}</div>
 
           <div v-for="day in activityBars" :key="day.date" class="activity-row">
             <div class="activity-label text-caption text-grey-8">{{ day.label }}</div>
@@ -255,15 +255,15 @@
           <div class="legend row items-center q-gutter-md q-mt-md">
             <div class="row items-center">
               <span class="legend-dot legend-dot--request"></span>
-              <span class="text-caption q-ml-xs">Requests</span>
+              <span class="text-caption q-ml-xs">{{ $t('admin.requests') }}</span>
             </div>
             <div class="row items-center">
               <span class="legend-dot legend-dot--complaint"></span>
-              <span class="text-caption q-ml-xs">Complaints</span>
+              <span class="text-caption q-ml-xs">{{ $t('admin.complaints') }}</span>
             </div>
             <div class="row items-center">
               <span class="legend-dot legend-dot--verification"></span>
-              <span class="text-caption q-ml-xs">Verifications</span>
+              <span class="text-caption q-ml-xs">{{ $t('admin.verifications') }}</span>
             </div>
           </div>
         </q-card-section>
@@ -275,10 +275,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const emit = defineEmits(['open-section'])
 const $q = useQuasar()
+const { t } = useI18n()
 
 const loading = ref(false)
 const usersCount = ref(0)
@@ -433,7 +435,7 @@ const loadAnalytics = async () => {
     console.error('Error loading analytics:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error loading analytics data',
+      message: t('admin.errorLoadingAnalytics'),
       position: 'top',
     })
   } finally {
@@ -443,56 +445,56 @@ const loadAnalytics = async () => {
 
 const kpiCards = computed(() => [
   {
-    label: 'Pending Verifications',
-    subtitle: 'Needs admin review',
+    label: t('admin.pendingVerifications'),
+    subtitle: t('admin.needsAdminReview'),
     value: pendingVerifications.value,
     icon: 'pending_actions',
     tone: 'warning',
     sectionKey: 'pending',
   },
   {
-    label: 'Users',
-    subtitle: 'Registered customers',
+    label: t('admin.users'),
+    subtitle: t('admin.registeredCustomers'),
     value: usersCount.value,
     icon: 'person',
     tone: 'primary',
     sectionKey: 'customers',
   },
   {
-    label: 'Technicians',
-    subtitle: 'Registered providers',
+    label: t('admin.technicians'),
+    subtitle: t('admin.registeredProviders'),
     value: techniciansCount.value,
     icon: 'engineering',
     tone: 'teal',
     sectionKey: 'technicians',
   },
   {
-    label: 'Active Requests',
-    subtitle: 'Not completed/cancelled',
+    label: t('admin.activeRequests'),
+    subtitle: t('admin.notCompletedCancelled'),
     value: activeRequestsCount.value,
     icon: 'assignment',
     tone: 'info',
     sectionKey: 'requests',
   },
   {
-    label: 'Complaints',
-    subtitle: 'Total complaint records',
+    label: t('admin.complaints'),
+    subtitle: t('admin.totalComplaintRecords'),
     value: complaintsCount.value,
     icon: 'flag',
     tone: 'danger',
     sectionKey: 'complaints',
   },
   {
-    label: 'Approved Profiles',
-    subtitle: 'Verification accepted',
+    label: t('admin.approvedProfiles'),
+    subtitle: t('admin.verificationAccepted'),
     value: approvedProfiles.value,
     icon: 'verified',
     tone: 'success',
     sectionKey: 'pending',
   },
   {
-    label: 'Rejected Profiles',
-    subtitle: 'Verification rejected',
+    label: t('admin.rejectedProfiles'),
+    subtitle: t('admin.verificationRejected'),
     value: rejectedProfiles.value,
     icon: 'gpp_bad',
     tone: 'danger',

@@ -6,10 +6,9 @@
           <div class="pending-icon-wrap">
             <q-icon name="hourglass_top" size="46px" color="warning" />
           </div>
-          <h1>Your Profile Is Under Review</h1>
+          <h1>{{ $t('pendingApproval.title') }}</h1>
           <p>
-            Thank you for submitting your verification documents. Your account is currently in
-            pending approval state. You will get full access once an admin approves your profile.
+            {{ $t('pendingApproval.description') }}
           </p>
 
           <div class="status-chip-row">
@@ -24,7 +23,7 @@
               color="primary"
               icon="refresh"
               no-caps
-              label="Check Status"
+              :label="$t('pendingApproval.checkStatus')"
               :loading="loading"
               @click="checkStatus"
             />
@@ -34,7 +33,7 @@
               color="warning"
               icon="upload_file"
               no-caps
-              label="Resubmit Documents"
+              :label="$t('pendingApproval.resubmitDocuments')"
               @click="goToResubmission"
             />
             <q-btn
@@ -42,7 +41,7 @@
               color="primary"
               icon="logout"
               no-caps
-              label="Sign Out"
+              :label="$t('pendingApproval.signOut')"
               @click="signOut"
             />
           </div>
@@ -52,7 +51,7 @@
           </div>
 
           <div v-if="rejectionReason" class="rejection-reason-box">
-            <div class="reason-title">Admin Rejection Reason</div>
+            <div class="reason-title">{{ $t('pendingApproval.rejectionReason') }}</div>
             <div class="reason-body">{{ rejectionReason }}</div>
           </div>
         </div>
@@ -65,10 +64,12 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
 const $q = useQuasar()
+const { t } = useI18n()
 
 const loading = ref(false)
 const lastStatusMessage = ref('')
@@ -78,12 +79,12 @@ const currentStatus = ref('pending')
 
 const statusChip = computed(() => {
   if (currentStatus.value === 'rejected') {
-    return { label: 'Rejected', color: 'negative', icon: 'gpp_bad' }
+    return { label: t('common.rejected'), color: 'negative', icon: 'gpp_bad' }
   }
   if (currentStatus.value === 'approved') {
-    return { label: 'Approved', color: 'positive', icon: 'verified' }
+    return { label: t('common.approved'), color: 'positive', icon: 'verified' }
   }
-  return { label: 'Pending Approval', color: 'orange', icon: 'pending_actions' }
+  return { label: t('common.pending') + ' ' + t('common.approved'), color: 'orange', icon: 'pending_actions' }
 })
 
 const checkStatus = async () => {
@@ -126,17 +127,17 @@ const checkStatus = async () => {
       currentStatus.value = 'rejected'
       canResubmit.value = true
       rejectionReason.value = data?.reviewer_notes || ''
-      lastStatusMessage.value = 'Your profile was rejected. Please fix the issue and resubmit.'
+      lastStatusMessage.value = t('pendingApproval.rejectedMessage')
       return
     }
 
     currentStatus.value = 'pending'
     canResubmit.value = false
     rejectionReason.value = ''
-    lastStatusMessage.value = 'Still pending. Please check back later.'
+    lastStatusMessage.value = t('pendingApproval.stillPending')
   } catch (error) {
     console.error(error)
-    $q.notify({ type: 'negative', message: 'Could not refresh status. Please try again.' })
+    $q.notify({ type: 'negative', message: t('pendingApproval.couldNotRefresh') })
   } finally {
     loading.value = false
   }
@@ -165,7 +166,7 @@ const goToResubmission = async () => {
     await router.push({ path: '/verify-identity/id-front', query: { resubmission: '1' } })
   } catch (error) {
     console.error(error)
-    $q.notify({ type: 'negative', message: 'Could not start resubmission. Please try again.' })
+    $q.notify({ type: 'negative', message: t('pendingApproval.couldNotResubmit') })
   } finally {
     loading.value = false
   }
