@@ -242,9 +242,13 @@ const viewComplaint = async (complaint) => {
       .select('full_name, email, phone_number')
       .eq(filerIdColumn, filerId)
       .maybeSingle()
-      .then(({ data }) => { complainantUser.value = data })
+      .then(({ data }) => {
+        complainantUser.value = data
+      })
       .catch((err) => console.error('Error fetching complainant:', err))
-      .finally(() => { complainantLoading.value = false })
+      .finally(() => {
+        complainantLoading.value = false
+      })
   }
   const targetId =
     complaint.complained_against_id ||
