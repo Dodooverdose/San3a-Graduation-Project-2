@@ -77,6 +77,21 @@
                   <span>Joined {{ memberSinceLabel }}</span>
                   <span v-if="isTechnician">{{ jobsCompleted }} completed jobs</span>
                 </div>
+                <div v-if="totalRatings > 0" class="hero-rating">
+                  <q-rating
+                    :model-value="averageRating"
+                    size="20px"
+                    color="amber"
+                    icon="star"
+                    icon-half="star_half"
+                    icon-selected="star"
+                    readonly
+                  />
+                  <span class="rating-text">{{ averageRating }}</span>
+                  <span class="rating-count"
+                    >({{ totalRatings }} {{ totalRatings === 1 ? 'review' : 'reviews' }})</span
+                  >
+                </div>
               </div>
             </div>
 
@@ -494,6 +509,9 @@ const technicianId = ref(null)
 const technicianVerificationStatus = ref('pending')
 const technicianIsVerified = ref(false)
 
+const averageRating = ref(0)
+const totalRatings = ref(0)
+
 const requestsPosted = ref(0)
 const activeRequests = ref(0)
 const completedRequests = ref(0)
@@ -702,6 +720,37 @@ const formatActivityTime = (value) => {
   return `${Math.floor(diffMin / 1440)}d ago`
 }
 
+const loadRating = async () => {
+  try {
+    if (isTechnician.value && technicianId.value) {
+      const { data } = await supabase
+        .from('rating')
+        .select('customer_rating')
+        .eq('technician_id', technicianId.value)
+        .not('customer_rating', 'is', null)
+      const rows = data || []
+      totalRatings.value = rows.length
+      averageRating.value = rows.length
+        ? Math.round((rows.reduce((sum, r) => sum + r.customer_rating, 0) / rows.length) * 10) / 10
+        : 0
+    } else if (!isTechnician.value && customerId.value) {
+      const { data } = await supabase
+        .from('rating')
+        .select('technician_rating')
+        .eq('user_id', customerId.value)
+        .not('technician_rating', 'is', null)
+      const rows = data || []
+      totalRatings.value = rows.length
+      averageRating.value = rows.length
+        ? Math.round((rows.reduce((sum, r) => sum + r.technician_rating, 0) / rows.length) * 10) /
+          10
+        : 0
+    }
+  } catch (err) {
+    console.error('Failed to load rating:', err)
+  }
+}
+
 const loadCustomerStats = async () => {
   if (!customerId.value) return
 
@@ -814,11 +863,11 @@ const loadProfile = async () => {
     if (metadata.role === 'fixer') {
       userRole.value = 'fixer'
       await loadTechnicianProfile(email, metadata)
-      await Promise.all([loadVerificationState(), loadTechnicianStats()])
+      await Promise.all([loadVerificationState(), loadTechnicianStats(), loadRating()])
     } else {
       userRole.value = 'customer'
       await loadCustomerProfile(email, metadata)
-      await loadCustomerStats()
+      await Promise.all([loadCustomerStats(), loadRating()])
     }
   } catch (error) {
     console.error('Failed to load profile:', error)
@@ -1191,6 +1240,24 @@ watch(darkMode, (val) => {
   gap: 12px;
   color: var(--san3a-gray-500);
   font-size: 13px;
+}
+
+.hero-rating {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rating-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--san3a-gray-900);
+}
+
+.rating-count {
+  font-size: 13px;
+  color: var(--san3a-gray-500);
 }
 
 .role-badge,

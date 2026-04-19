@@ -961,6 +961,7 @@ const acceptOffer = async (req, offer) => {
       technician_id: offer.technician_id,
       fixer_price: offer.offered_price,
       final_price: offer.offered_price,
+      fixer_message: offer.fixer_message || null,
     })
     .eq('request_id', req.request_id)
 

@@ -1397,7 +1397,7 @@ const acceptCustomerOffer = async (req) => {
   acceptingCounterOfferId.value = req.request_id
   const { error: offerErr } = await supabase
     .from('request_offers')
-    .update({ offered_price: acceptedPrice, status: 'accepted' })
+    .update({ status: 'accepted' })
     .eq('offer_id', offer.offer_id)
   if (offerErr) {
     acceptingCounterOfferId.value = null
@@ -1407,10 +1407,11 @@ const acceptCustomerOffer = async (req) => {
   const { error: requestError } = await supabase
     .from('request')
     .update({
-      fixer_price: acceptedPrice,
+      customer_price: acceptedPrice,
       request_status: 'accepted',
       technician_id: technicianId.value,
       final_price: acceptedPrice,
+      fixer_message: offer.fixer_message || null,
     })
     .eq('request_id', req.request_id)
   acceptingCounterOfferId.value = null
