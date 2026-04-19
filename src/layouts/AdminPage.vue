@@ -21,6 +21,23 @@
           </div>
         </div>
         <q-space />
+        <q-btn-dropdown flat dense no-caps class="lang-dropdown" icon="language">
+          <template #label>
+            <span class="lang-label">{{ currentLocaleLabel }}</span>
+          </template>
+          <q-list dense>
+            <q-item
+              v-for="loc in localeOptions"
+              :key="loc.value"
+              clickable
+              v-close-popup
+              :active="locale === loc.value"
+              @click="switchLocale(loc.value)"
+            >
+              <q-item-section>{{ loc.label }}</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
         <q-btn
           flat
           round
@@ -103,7 +120,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
@@ -117,11 +134,29 @@ import AnalyticsView from 'src/components/admin/AnalyticsView.vue'
 
 const router = useRouter()
 const $q = useQuasar()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const activeTab = ref('analytics')
 const drawerOpen = ref(false)
 const activityItems = ref([])
 const activityLoading = ref(false)
+
+const localeOptions = [
+  { value: 'en-US', label: 'English' },
+  { value: 'ar', label: 'العربية' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+]
+
+const currentLocaleLabel = computed(
+  () => localeOptions.find((o) => o.value === locale.value)?.label || 'English',
+)
+
+const switchLocale = (val) => {
+  locale.value = val
+  localStorage.setItem('san3a-locale', val)
+  document.documentElement.dir = val === 'ar' ? 'rtl' : 'ltr'
+  document.documentElement.lang = val === 'en-US' ? 'en' : val
+}
 
 const navItems = [
   { key: 'analytics', label: t('admin.analytics'), icon: 'insights' },
@@ -266,6 +301,18 @@ onMounted(() => {
 .header-action-btn,
 .logout-btn {
   color: rgba(255, 255, 255, 0.9) !important;
+}
+.lang-dropdown {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 13px;
+}
+.lang-label {
+  margin-left: 4px;
+}
+@media (max-width: 600px) {
+  .lang-label {
+    display: none;
+  }
 }
 
 .admin-page {

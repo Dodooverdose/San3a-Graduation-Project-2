@@ -560,6 +560,8 @@ export default {
     verificationAccepted: 'Verifizierung akzeptiert',
     rejectedProfiles: 'Abgelehnte Profile',
     verificationRejected: 'Verifizierung abgelehnt',
+    totalRevenue: 'Gesamtumsatz',
+    completedRequestsRevenue: 'Aus abgeschlossenen Anfragen',
     addTechnician: 'Techniker hinzufügen',
     searchTechnicians: 'Techniker suchen...',
     pendingVerificationBadge: 'Verifizierung ausstehend',

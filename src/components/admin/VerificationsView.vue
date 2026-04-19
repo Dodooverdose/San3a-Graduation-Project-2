@@ -383,6 +383,27 @@ const updateReviewStatus = async (row, status, reviewerNotes = null) => {
 
     if (error) throw error
 
+    // Sync technician_verification_state for technician accounts
+    if (row.account_type === 'technician') {
+      const { data: techRow } = await supabase
+        .from('technician')
+        .select('technician_id')
+        .eq('auth_id', row.auth_id)
+        .maybeSingle()
+
+      if (techRow?.technician_id) {
+        await supabase.from('technician_verification_state').upsert(
+          {
+            technician_id: techRow.technician_id,
+            is_verified: status === 'approved',
+            verification_status: status === 'approved' ? 'approved' : 'pending',
+            verified_at: status === 'approved' ? new Date().toISOString() : null,
+          },
+          { onConflict: 'technician_id' },
+        )
+      }
+    }
+
     $q.notify({
       type: 'positive',
       message: t('admin.verificationApprovedRejected', { status }),

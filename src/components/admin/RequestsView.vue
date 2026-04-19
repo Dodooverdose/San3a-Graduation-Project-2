@@ -52,15 +52,6 @@
             flat
             dense
             round
-            icon="edit"
-            size="sm"
-            @click="editRequest(props.row)"
-            color="primary"
-          />
-          <q-btn
-            flat
-            dense
-            round
             icon="delete"
             size="sm"
             @click="deleteRequest(props.row)"
@@ -126,56 +117,6 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-
-    <!-- Edit Dialog -->
-    <q-dialog v-model="showEditDialog">
-      <q-card class="admin-dialog-card" style="min-width: 400px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('admin.editRequest') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense @click="showEditDialog = false" />
-        </q-card-section>
-
-        <q-card-section>
-          <q-form @submit="saveRequest">
-            <q-select
-              v-model="formData.status"
-              :options="statusOptions"
-              outlined
-              :label="$t('admin.status')"
-              class="q-mb-md"
-            />
-            <q-input
-              v-model="formData.fixer_price"
-              :label="$t('admin.technicianPrice')"
-              outlined
-              class="q-mb-md"
-              type="number"
-            />
-            <q-input
-              v-model="formData.customer_price"
-              :label="$t('admin.customerPrice')"
-              outlined
-              class="q-mb-md"
-              type="number"
-            />
-            <q-input
-              v-model="formData.final_price"
-              :label="$t('admin.finalPrice')"
-              outlined
-              class="q-mb-md"
-              type="number"
-            />
-            <q-btn
-              type="submit"
-              color="primary"
-              :label="$t('common.save')"
-              class="q-mt-md full-width"
-            />
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 
@@ -214,17 +155,7 @@ const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
 const filterStatus = ref(null)
 const showDetailsDialog = ref(false)
-const showEditDialog = ref(false)
 const selectedRequest = ref(null)
-const editingId = ref(null)
-const editingKeyColumn = ref('id')
-
-const formData = ref({
-  status: '',
-  fixer_price: null,
-  customer_price: null,
-  final_price: null,
-})
 
 const normalizeText = (value) => (value === null || value === undefined ? '' : String(value))
 
@@ -294,43 +225,6 @@ const loadRequests = async () => {
 const viewRequest = (request) => {
   selectedRequest.value = request
   showDetailsDialog.value = true
-}
-
-const editRequest = (request) => {
-  editingId.value = request._id
-  editingKeyColumn.value = request._keyColumn || 'id'
-  formData.value = {
-    status: request._status,
-    fixer_price: request.fixer_price,
-    customer_price: request.customer_price,
-    final_price: request.final_price,
-  }
-  showEditDialog.value = true
-}
-
-const saveRequest = async () => {
-  try {
-    const { error } = await supabase
-      .from('request')
-      .update(formData.value)
-      .eq(editingKeyColumn.value, editingId.value)
-
-    if (error) throw error
-    $q.notify({
-      type: 'positive',
-      message: t('admin.requestUpdated'),
-      position: 'top',
-    })
-    showEditDialog.value = false
-    loadRequests()
-  } catch (error) {
-    console.error('Error saving request:', error)
-    $q.notify({
-      type: 'negative',
-      message: t('admin.errorSavingRequest'),
-      position: 'top',
-    })
-  }
 }
 
 const deleteRequest = async (request) => {

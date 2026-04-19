@@ -11,6 +11,23 @@
         </div>
         <q-space />
         <div class="header-actions">
+          <q-btn-dropdown flat dense no-caps class="lang-dropdown" icon="language">
+            <template #label>
+              <span class="lang-label">{{ currentLocaleLabel }}</span>
+            </template>
+            <q-list dense>
+              <q-item
+                v-for="loc in localeOptions"
+                :key="loc.value"
+                clickable
+                v-close-popup
+                :active="locale === loc.value"
+                @click="switchLocale(loc.value)"
+              >
+                <q-item-section>{{ loc.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <q-btn
             flat
             no-caps
@@ -230,15 +247,33 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { supabase } from 'src/boot/supabase'
 
 const router = useRouter()
-useI18n()
+const { locale } = useI18n()
 const goTo = (path) => router.push(path)
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+
+const localeOptions = [
+  { value: 'en-US', label: 'English' },
+  { value: 'ar', label: 'العربية' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+]
+
+const currentLocaleLabel = computed(
+  () => localeOptions.find((o) => o.value === locale.value)?.label || 'English',
+)
+
+const switchLocale = (val) => {
+  locale.value = val
+  localStorage.setItem('san3a-locale', val)
+  document.documentElement.dir = val === 'ar' ? 'rtl' : 'ltr'
+  document.documentElement.lang = val === 'en-US' ? 'en' : val
+}
 
 const stats = ref([
   { number: '--', labelKey: 'landing.customers' },
@@ -480,6 +515,12 @@ const trustItems = [
 
 .get-started-btn {
   padding: 6px 20px !important;
+}
+
+.lang-dropdown {
+  color: var(--san3a-gray-700) !important;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 /* ───── Hero ───── */
@@ -871,6 +912,33 @@ const trustItems = [
 }
 
 @media (max-width: 600px) {
+  .brand-name {
+    font-size: 20px;
+  }
+
+  .header-actions {
+    gap: 2px;
+  }
+
+  .lang-label {
+    display: none;
+  }
+
+  .lang-dropdown {
+    min-width: 0 !important;
+    padding: 0 4px !important;
+  }
+
+  .signin-link {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+
+  .get-started-btn {
+    font-size: 12px !important;
+    padding: 4px 12px !important;
+  }
+
   .hero-section {
     padding: 80px 20px 60px;
   }

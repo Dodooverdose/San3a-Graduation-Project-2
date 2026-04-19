@@ -266,9 +266,13 @@ const filteredTechnicians = computed(() => {
 const loadTechnicians = async () => {
   loading.value = true
   try {
-    const [techniciansRes, verificationRes] = await Promise.all([
+    const [techniciansRes, verificationRes, submissionsRes] = await Promise.all([
       supabase.from('technician').select('*'),
       supabase.from('technician_verification_state').select('*'),
+      supabase
+        .from('profile_verification_submissions')
+        .select('auth_id, email, review_status')
+        .eq('account_type', 'technician'),
     ])
 
     if (techniciansRes.error) throw techniciansRes.error
@@ -278,9 +282,32 @@ const loadTechnicians = async () => {
       (verificationRes.data || []).map((row) => [String(row.technician_id), row]),
     )
 
-    technicians.value = (techniciansRes.data || []).map((tech) =>
-      normalizeTechnician(tech, verificationStateMap.value.get(String(tech.technician_id)) || null),
-    )
+    // Build lookup maps by both auth_id and email (lowercased)
+    const submissionsByAuthId = new Map()
+    const submissionsByEmail = new Map()
+    ;(submissionsRes.data || []).forEach((row) => {
+      if (row.auth_id) submissionsByAuthId.set(row.auth_id, row.review_status)
+      if (row.email) submissionsByEmail.set(row.email.toLowerCase(), row.review_status)
+    })
+
+    technicians.value = (techniciansRes.data || []).map((tech) => {
+      const verState = verificationStateMap.value.get(String(tech.technician_id)) || null
+      const normalized = normalizeTechnician(tech, verState)
+
+      // If technician_verification_state shows not approved, check profile_verification_submissions
+      if (!normalized._isApproved) {
+        const submissionStatus =
+          (tech.auth_id && submissionsByAuthId.get(tech.auth_id)) ||
+          (tech.email && submissionsByEmail.get(tech.email.toLowerCase())) ||
+          null
+        if (submissionStatus === 'approved') {
+          normalized._isApproved = true
+          normalized._verificationStatus = 'approved'
+        }
+      }
+
+      return normalized
+    })
   } catch (error) {
     console.error('Error loading technicians:', error)
     $q.notify({

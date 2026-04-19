@@ -298,6 +298,7 @@ const complaintsCount = ref(0)
 const pendingVerifications = ref(0)
 const approvedProfiles = ref(0)
 const rejectedProfiles = ref(0)
+const totalRevenue = ref(0)
 const requestStatusMap = ref({})
 const serviceCategoryMap = ref({})
 const dailyActivity = ref([])
@@ -368,6 +369,7 @@ const loadAnalytics = async () => {
       pendingVerificationTotal,
       approvedProfilesTotal,
       rejectedProfilesTotal,
+      revenueRows,
       requestRows,
       complaintRows,
       verificationRows,
@@ -379,6 +381,11 @@ const loadAnalytics = async () => {
       fetchTableCount('profile_verification_submissions', (q) => q.eq('review_status', 'pending')),
       fetchTableCount('profile_verification_submissions', (q) => q.eq('review_status', 'approved')),
       fetchTableCount('profile_verification_submissions', (q) => q.eq('review_status', 'rejected')),
+      supabase
+        .from('request')
+        .select('final_price')
+        .eq('request_status', 'completed')
+        .not('final_price', 'is', null),
       supabase.from('request').select('*').limit(2000),
       supabase.from('complaint').select('*').limit(2000),
       supabase
@@ -394,6 +401,12 @@ const loadAnalytics = async () => {
     pendingVerifications.value = pendingVerificationTotal
     approvedProfiles.value = approvedProfilesTotal
     rejectedProfiles.value = rejectedProfilesTotal
+
+    if (revenueRows.error) throw revenueRows.error
+    totalRevenue.value = (revenueRows.data || []).reduce(
+      (sum, row) => sum + Number(row.final_price || 0),
+      0,
+    )
 
     if (requestRows.error) throw requestRows.error
     if (complaintRows.error) throw complaintRows.error
@@ -507,6 +520,14 @@ const kpiCards = computed(() => [
     icon: 'gpp_bad',
     tone: 'danger',
     sectionKey: 'pending',
+  },
+  {
+    label: t('admin.totalRevenue'),
+    subtitle: t('admin.completedRequestsRevenue'),
+    value: totalRevenue.value,
+    icon: 'payments',
+    tone: 'success',
+    sectionKey: 'requests',
   },
 ])
 
