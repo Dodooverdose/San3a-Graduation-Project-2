@@ -10,6 +10,57 @@ import routes from './routes'
 import { supabase } from 'src/boot/supabase'
 import { useAuthStore } from 'src/stores/authStore'
 
+/**
+ * Resolve a user's effective role from the database.
+ *
+ * SECURITY: This function intentionally does NOT trust
+ * `session.user.user_metadata.role`. The `user_metadata` object is writable
+ * by the authenticated user themselves (via supabase.auth.updateUser), so it
+ * is not a safe source of authorization claims. Roles are derived from the
+ * `admin` and `technician` tables, which are protected by RLS.
+ *
+ * Returns one of: 'admin' | 'fixer' | 'customer'.
+ */
+async function resolveRoleFromDatabase(user, authStore) {
+  if (!user?.email) return 'customer'
+
+  // 1. Check admin table.
+  try {
+    const { data: adminRow } = await supabase
+      .from('admin')
+      .select('email')
+      .ilike('email', user.email)
+      .maybeSingle()
+
+    if (adminRow) {
+      authStore.user = user
+      authStore.isAdminVerified = true
+      authStore.roleData = adminRow
+      return 'admin'
+    }
+  } catch (err) {
+    console.warn('Admin role lookup failed:', err)
+  }
+
+  // 2. Check technician table.
+  try {
+    const { data: techRow } = await supabase
+      .from('technician')
+      .select('email')
+      .ilike('email', user.email)
+      .maybeSingle()
+
+    if (techRow) {
+      return 'fixer'
+    }
+  } catch (err) {
+    console.warn('Technician role lookup failed:', err)
+  }
+
+  // 3. Default: customer.
+  return 'customer'
+}
+
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -72,41 +123,26 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         return '/signin'
       }
 
-      if (session.user?.user_metadata?.role === 'admin') {
-        if (to.meta.requiresAdmin) {
-          authStore.user = session.user
-          await authStore.verifyAdminStatus(session.user.email)
+      // SECURITY: Resolve the user's role from the database — NEVER from
+      // session.user.user_metadata, because that field is writable by the
+      // authenticated user themselves (via supabase.auth.updateUser) and
+      // therefore cannot be trusted for authorization decisions.
+      const effectiveRole = await resolveRoleFromDatabase(session.user, authStore)
 
-          if (!authStore.isAdminVerified) {
-            console.warn(
-              'Admin table verification failed, but allowing access due to admin role in metadata',
-            )
-            authStore.isAdminVerified = true
-          }
+      // Default landing page per role, used when access is denied.
+      const landingFor = (role) =>
+        role === 'admin' ? '/admin' : role === 'fixer' ? '/service-provider' : '/home'
+
+      // Enforce allowedRoles declared on the route.
+      const allowedRoles = to.meta.allowedRoles
+      if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+        if (!allowedRoles.includes(effectiveRole)) {
+          return landingFor(effectiveRole)
         }
-
-        return true
       }
 
-      if (to.meta.requiresAdmin) {
-        const role = session.user?.user_metadata?.role
-
-        if (role !== 'admin') {
-          return '/home'
-        }
-
-        // Optional: Verify admin is in admin table (non-blocking)
-        authStore.user = session.user
-        await authStore.verifyAdminStatus(session.user.email)
-
-        if (!authStore.isAdminVerified) {
-          // Admin table verification failed, but allow if role is admin in metadata
-          console.warn(
-            'Admin table verification failed, but allowing access due to admin role in metadata',
-          )
-          authStore.isAdminVerified = true
-        }
-
+      // Admin shortcut: verified admins bypass the verification flow below.
+      if (effectiveRole === 'admin') {
         return true
       }
 
@@ -127,14 +163,14 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       // Approved accounts should never be forced back into verification steps.
       if (reviewStatus === 'approved') {
         if (isPendingApprovalRoute || isVerificationRoute) {
-          return session.user?.user_metadata?.role === 'fixer' ? '/service-provider' : '/home'
+          return effectiveRole === 'fixer' ? '/service-provider' : '/home'
         }
         return true
       }
 
       // Fallback for technicians: if no verification submission exists but
       // the technician record is already marked as verified, allow access.
-      if (!verification && session.user?.user_metadata?.role === 'fixer') {
+      if (!verification && effectiveRole === 'fixer') {
         const { data: tech } = await supabase
           .from('technician')
           .select('is_verified')

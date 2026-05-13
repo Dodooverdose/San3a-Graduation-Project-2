@@ -490,7 +490,7 @@ const onSubmit = async () => {
       return
     }
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { error: authError } = await supabase.auth.signUp({
       email: form.value.email,
       password: form.value.password,
       options: {
@@ -530,21 +530,13 @@ const onSubmit = async () => {
     })
 
     const selectedRole = form.value.role
-    const verificationQuery = {
-      accountType: selectedRole === 'fixer' ? 'technician' : 'user',
-      email: form.value.email,
-      fullName: form.value.fullName,
-      phoneNumber: form.value.phoneNumber,
-      role: selectedRole,
-      authId: authData?.user?.id || '',
-      specialty: form.value.specialty || '',
-      yearsOfExperience:
-        form.value.yearsOfExperience !== null && form.value.yearsOfExperience !== ''
-          ? String(form.value.yearsOfExperience)
-          : '',
-    }
+    // SECURITY: Do NOT pass role/email/authId/fullName/phone/etc in the URL.
+    // The verification page reads these from the authenticated session and
+    // the users/technician tables instead. URL query params are user-editable
+    // and would let an attacker overwrite another account's submission.
+    void selectedRole
 
-    await router.push({ path: '/verify-identity/id-front', query: verificationQuery })
+    await router.push({ path: '/verify-identity/id-front' })
   } catch (err) {
     $q.notify({ type: 'negative', message: t('signUpPage.unexpectedError') })
     console.error(err)

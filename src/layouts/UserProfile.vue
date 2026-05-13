@@ -452,6 +452,48 @@
                     ]"
                   />
 
+                  <div class="complaint-image-section">
+                    <div class="text-caption text-grey-7 q-mb-xs">
+                      {{ $t('userProfile.attachImageOptional') }}
+                    </div>
+                    <div v-if="complaintImagePreview" class="complaint-image-preview-wrap">
+                      <img
+                        :src="complaintImagePreview"
+                        :alt="$t('userProfile.attachImageOptional')"
+                        class="complaint-image-preview"
+                      />
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="close"
+                        size="sm"
+                        color="negative"
+                        class="complaint-image-remove"
+                        @click="clearComplaintImage"
+                      />
+                    </div>
+                    <q-btn
+                      outline
+                      no-caps
+                      icon="photo_camera"
+                      color="primary"
+                      :label="
+                        complaintImagePreview
+                          ? $t('userProfile.replaceImage')
+                          : $t('userProfile.attachImage')
+                      "
+                      @click="openComplaintImagePicker"
+                    />
+                    <input
+                      ref="complaintImageInputRef"
+                      type="file"
+                      accept="image/*"
+                      class="visually-hidden"
+                      @change="onComplaintImageChange"
+                    />
+                  </div>
+
                   <q-btn
                     type="submit"
                     unelevated
@@ -571,6 +613,9 @@ const recentActivity = ref([])
 const showComplaintDialog = ref(false)
 const submittingComplaint = ref(false)
 const userRequestOptions = ref([])
+const complaintImageFile = ref(null)
+const complaintImagePreview = ref('')
+const complaintImageInputRef = ref(null)
 const complaintForm = ref({
   request_id: null,
   issue_type: null,
@@ -918,7 +963,16 @@ const loadProfile = async () => {
     const email = user.email || ''
     const metadata = user.user_metadata || {}
 
-    if (metadata.role === 'fixer') {
+    // SECURITY: Determine the role from the database, not from user_metadata.
+    // user_metadata is user-writable (supabase.auth.updateUser) and cannot be
+    // trusted for authorization or for choosing which profile to load.
+    const { data: techRow } = await supabase
+      .from('technician')
+      .select('email')
+      .ilike('email', email)
+      .maybeSingle()
+
+    if (techRow) {
       userRole.value = 'fixer'
       await loadTechnicianProfile(email, metadata)
       await Promise.all([loadVerificationState(), loadTechnicianStats(), loadRating()])
@@ -1002,6 +1056,7 @@ const openComplaintDialog = async () => {
   technicianRequestOptions.value = []
   requestCustomerMap.value = {}
   requestTechnicianMap.value = {}
+  clearComplaintImage()
   showComplaintDialog.value = true
 
   try {
@@ -1088,6 +1143,26 @@ const openComplaintDialog = async () => {
 const submitComplaint = async () => {
   submittingComplaint.value = true
   try {
+    // Optional image upload (evidence photo).
+    let attachedImageUrl = null
+    if (complaintImageFile.value) {
+      const file = complaintImageFile.value
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const authId = currentAuthUser.value?.id || 'anon'
+      const filePath = `${authId}/${Date.now()}.${ext}`
+
+      const { error: uploadErr } = await supabase.storage
+        .from('complaint-images')
+        .upload(filePath, file, { contentType: file.type || 'image/jpeg' })
+
+      if (uploadErr) {
+        throw new Error(`Image upload failed: ${uploadErr.message}`)
+      }
+
+      const { data: urlData } = supabase.storage.from('complaint-images').getPublicUrl(filePath)
+      attachedImageUrl = urlData?.publicUrl || null
+    }
+
     // Get next complaint_id since column has no auto-increment
     const { data: maxRow } = await supabase
       .from('complaint')
@@ -1114,11 +1189,13 @@ const submitComplaint = async () => {
       complained_against_id: isTechnician.value
         ? requestCustomerMap.value[complaintForm.value.request_id] || null
         : requestTechnicianMap.value[complaintForm.value.request_id] || null,
+      attached_image: attachedImageUrl,
     }
 
     const { error } = await supabase.from('complaint').insert(payload)
     if (error) throw error
 
+    clearComplaintImage()
     showComplaintDialog.value = false
     $q.notify({
       type: 'positive',
@@ -1134,6 +1211,37 @@ const submitComplaint = async () => {
   } finally {
     submittingComplaint.value = false
   }
+}
+
+const openComplaintImagePicker = () => complaintImageInputRef.value?.click()
+
+const onComplaintImageChange = (event) => {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    $q.notify({ type: 'negative', message: t('userProfile.complaintImageInvalid') })
+    if (event.target) event.target.value = ''
+    return
+  }
+  if (file.size > 6 * 1024 * 1024) {
+    $q.notify({ type: 'negative', message: t('userProfile.complaintImageTooLarge') })
+    if (event.target) event.target.value = ''
+    return
+  }
+  if (complaintImagePreview.value) {
+    URL.revokeObjectURL(complaintImagePreview.value)
+  }
+  complaintImageFile.value = file
+  complaintImagePreview.value = URL.createObjectURL(file)
+  if (event.target) event.target.value = ''
+}
+
+const clearComplaintImage = () => {
+  if (complaintImagePreview.value) {
+    URL.revokeObjectURL(complaintImagePreview.value)
+  }
+  complaintImageFile.value = null
+  complaintImagePreview.value = ''
 }
 
 const goToPage = (route) => {
@@ -1155,6 +1263,7 @@ onMounted(loadProfile)
 
 onBeforeUnmount(() => {
   if (objectUrl) URL.revokeObjectURL(objectUrl)
+  if (complaintImagePreview.value) URL.revokeObjectURL(complaintImagePreview.value)
 })
 
 watch(darkMode, (val) => {
@@ -1494,6 +1603,33 @@ watch(language, (val) => {
   margin-top: 2px;
   font-size: 12px;
   color: var(--san3a-gray-500);
+}
+
+.complaint-image-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.complaint-image-preview-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.complaint-image-preview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--san3a-gray-200);
+}
+
+.complaint-image-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .sticky-save {

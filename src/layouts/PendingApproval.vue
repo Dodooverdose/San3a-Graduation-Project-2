@@ -167,7 +167,7 @@ const goToResubmission = async () => {
 
     canResubmit.value = false
     currentStatus.value = 'rejected'
-    await router.push({ path: '/verify-identity/id-front', query: { resubmission: '1' } })
+    await router.push({ path: '/verify-identity/id-front' })
   } catch (error) {
     console.error(error)
     $q.notify({ type: 'negative', message: t('pendingApproval.couldNotResubmit') })

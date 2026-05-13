@@ -207,6 +207,19 @@ const saving = ref(false)
 
 const submission = ref(null)
 const authUser = ref(null)
+// SECURITY: Profile/role data must come from authoritative sources (the
+// authenticated session + the `users`/`technician` tables), NEVER from URL
+// query parameters. URL params are user-controlled and can be tampered with
+// to write another user's data into profile_verification_submissions.
+const authoritativeProfile = ref({
+  accountType: '',
+  role: '',
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  specialty: '',
+  yearsOfExperience: '',
+})
 
 const currentStep = computed(() => String(route.params.step || 'id-front'))
 const currentStepIndex = computed(() => {
@@ -216,27 +229,14 @@ const currentStepIndex = computed(() => {
 const isLastStep = computed(() => currentStepIndex.value === stepOrder.length - 1)
 const currentConfig = computed(() => stepConfig.value[currentStepIndex.value])
 
-const accountType = computed(() => {
-  const queryType = String(route.query.accountType || '').toLowerCase()
-  if (queryType === 'technician' || queryType === 'user') return queryType
-
-  const metadataRole = String(authUser.value?.user_metadata?.role || '').toLowerCase()
-  return metadataRole === 'fixer' ? 'technician' : 'user'
-})
+const accountType = computed(() => authoritativeProfile.value.accountType || 'user')
 
 const normalizedProfileDetails = computed(() => ({
-  role: String(route.query.role || authUser.value?.user_metadata?.role || ''),
-  phoneNumber: String(route.query.phoneNumber || ''),
-  specialty:
-    accountType.value === 'technician'
-      ? String(route.query.specialty || authUser.value?.user_metadata?.specialty || '')
-      : null,
+  role: authoritativeProfile.value.role,
+  phoneNumber: authoritativeProfile.value.phoneNumber,
+  specialty: accountType.value === 'technician' ? authoritativeProfile.value.specialty || '' : null,
   yearsOfExperience:
-    accountType.value === 'technician'
-      ? String(
-          route.query.yearsOfExperience || authUser.value?.user_metadata?.years_of_experience || '',
-        )
-      : null,
+    accountType.value === 'technician' ? authoritativeProfile.value.yearsOfExperience || '' : null,
 }))
 
 const isStepComplete = (stepKey) => {
@@ -327,7 +327,51 @@ const ensureSession = async () => {
   }
 
   authUser.value = session.user
+  await loadAuthoritativeProfile(session.user)
   return session.user
+}
+
+/**
+ * Load profile fields strictly from the database, never from the URL.
+ * Determines whether the signed-in user is a customer or technician by
+ * checking the `technician` table first, then falling back to `users`.
+ */
+async function loadAuthoritativeProfile(user) {
+  const email = user?.email || ''
+
+  let isTechnician = false
+  let row = null
+
+  const { data: techRow } = await supabase
+    .from('technician')
+    .select('full_name,email,phone_number,specialty,years_of_experience')
+    .ilike('email', email)
+    .maybeSingle()
+
+  if (techRow) {
+    isTechnician = true
+    row = techRow
+  } else {
+    const { data: custRow } = await supabase
+      .from('users')
+      .select('full_name,email,phone_number')
+      .ilike('email', email)
+      .maybeSingle()
+    row = custRow
+  }
+
+  authoritativeProfile.value = {
+    accountType: isTechnician ? 'technician' : 'user',
+    role: isTechnician ? 'fixer' : 'customer',
+    fullName: row?.full_name || '',
+    email: row?.email || email,
+    phoneNumber: row?.phone_number || '',
+    specialty: row?.specialty || '',
+    yearsOfExperience:
+      row?.years_of_experience !== undefined && row?.years_of_experience !== null
+        ? String(row.years_of_experience)
+        : '',
+  }
 }
 
 const loadSubmission = async () => {
@@ -388,8 +432,8 @@ const onFileSelected = async (event) => {
 const basePayload = () => ({
   auth_id: authUser.value.id,
   account_type: accountType.value,
-  full_name: String(route.query.fullName || authUser.value?.user_metadata?.full_name || ''),
-  email: String(route.query.email || authUser.value?.email || ''),
+  full_name: authoritativeProfile.value.fullName,
+  email: authoritativeProfile.value.email,
   profile_details: normalizedProfileDetails.value,
   submitted_at: new Date().toISOString(),
   review_status: submission.value?.review_status || 'pending',
@@ -425,7 +469,6 @@ const saveAndContinue = async () => {
     if (nextIndex < stepOrder.length) {
       router.push({
         path: `/verify-identity/${stepOrder[nextIndex]}`,
-        query: route.query,
       })
       return
     }
@@ -463,7 +506,6 @@ const goBack = () => {
   if (previousIndex >= 0) {
     router.push({
       path: `/verify-identity/${stepOrder[previousIndex]}`,
-      query: route.query,
     })
     return
   }
@@ -481,7 +523,12 @@ const retake = () => {
 
 const normalizeStep = () => {
   if (!stepOrder.includes(currentStep.value)) {
-    router.replace({ path: '/verify-identity/id-front', query: route.query })
+    router.replace({ path: '/verify-identity/id-front' })
+  } else if (Object.keys(route.query || {}).length > 0) {
+    // SECURITY: Strip any user-supplied query params (role, email, authId, ...)
+    // that legacy navigations may have placed on the URL. These must not be
+    // trusted, and we don't want them surfaced or re-read.
+    router.replace({ path: route.path })
   }
 }
 

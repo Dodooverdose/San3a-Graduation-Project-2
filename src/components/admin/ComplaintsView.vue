@@ -136,6 +136,17 @@
               />
             </div>
 
+            <div v-if="selectedComplaint.attached_image" class="complaint-image-block">
+              <strong>{{ $t('admin.attachedImage') }}</strong>
+              <a :href="selectedComplaint.attached_image" target="_blank" rel="noopener">
+                <img
+                  :src="selectedComplaint.attached_image"
+                  :alt="$t('admin.attachedImage')"
+                  class="complaint-attached-image"
+                />
+              </a>
+            </div>
+
             <q-separator class="q-my-sm" />
             <div class="text-subtitle2 text-weight-bold">{{ $t('admin.complaintAgainst') }}</div>
             <template v-if="complainedAgainstLoading">
@@ -464,6 +475,22 @@ loadComplaints()
 
 .admin-dialog-card {
   border-radius: 14px;
+}
+
+.complaint-image-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.complaint-attached-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 10px;
+  border: 1px solid var(--san3a-gray-200);
+  object-fit: contain;
+  display: block;
 }
 
 @media (max-width: 600px) {
