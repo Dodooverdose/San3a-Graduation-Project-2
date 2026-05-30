@@ -104,7 +104,11 @@
                 <label class="field-label">{{ $t('serviceRequest.district') }}</label>
                 <q-select
                   v-model="district"
-                  :options="cairoDistricts"
+                  :options="districtOptions"
+                  emit-value
+                  map-options
+                  option-label="label"
+                  option-value="value"
                   outlined
                   dense
                   clearable
@@ -279,7 +283,7 @@
                   </div>
                   <div v-if="req.service_location" class="meta-item">
                     <q-icon name="location_on" size="14px" color="grey-6" />
-                    <span>{{ req.service_location }}</span>
+                    <span>{{ formatDistrict(req.service_location) }}</span>
                   </div>
                   <div v-if="req.payment_method" class="meta-item">
                     <q-icon name="payments" size="14px" color="grey-6" />
@@ -329,6 +333,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
+import { buildDistrictOptions, getDistrictLabel, normalizeDistrictValue } from 'src/utils/districts'
 
 const { t } = useI18n()
 
@@ -358,59 +363,11 @@ const urgencyOptions = computed(() => [
   { label: t('serviceRequest.standard'), value: 'standard' },
   { label: t('common.urgent'), value: 'urgent' },
 ])
-
-const cairoDistricts = [
-  'Downtown / Wust El-Balad',
-  'Abdeen',
-  'Azbakeya',
-  "Bab El-Sha'reya",
-  'El-Gamaliya',
-  'El-Mosky',
-  'El-Darb El-Ahmar',
-  'El-Khalifa',
-  'El-Sayeda Zeinab',
-  'Zamalek',
-  'Garden City',
-  'Bulaq',
-  'Shubra',
-  'Rod El-Farag',
-  'El-Sharabiya',
-  'El-Zawya El-Hamra',
-  'El-Wayli',
-  'Abbassia',
-  'Heliopolis / Masr El-Gedida',
-  'Nasr City',
-  'Ain Shams',
-  'El-Matareya',
-  'El-Marg',
-  'El-Salam',
-  'Maadi',
-  'Misr El-Kadima / Old Cairo',
-  'Basatin',
-  'Helwan',
-  '15th of May City',
-  'Tura',
-  'New Cairo / El-Tagammu',
-  'Rehab City',
-  'Madinaty',
-  'Shorouk City',
-  'Obour City',
-  'Badr City',
-  'Dokki',
-  'Mohandessin',
-  'Agouza',
-  'Imbaba',
-  'Bulaq El-Dakrour',
-  'El-Haram',
-  'Faisal',
-  'El-Omraniya',
-  'Giza',
-  '6th of October City',
-  'Sheikh Zayed',
-  'Hadayek El-Ahram',
-]
+const districtOptions = computed(() => buildDistrictOptions(t))
 
 const goBack = () => router.push('/home')
+
+const formatDistrict = (value) => getDistrictLabel(value, t)
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
@@ -567,7 +524,7 @@ const submitRequest = async () => {
   const { error } = await supabase.from('request').insert({
     description_of_issue: requestText.value.trim(),
     schedule_time: scheduleTime,
-    service_location: district.value || null,
+    service_location: normalizeDistrictValue(district.value),
     payment_method: paymentMethod.value,
     urgency: urgency.value,
     user_id: currentUserId.value,

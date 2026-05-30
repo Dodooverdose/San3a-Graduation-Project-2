@@ -245,7 +245,7 @@
               </div>
               <div v-if="req.service_location" class="meta-item">
                 <q-icon name="location_on" size="14px" color="grey-6" /><span>{{
-                  req.service_location
+                  formatDistrict(req.service_location)
                 }}</span>
               </div>
               <div v-if="req.payment_method" class="meta-item">
@@ -658,6 +658,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { supabase } from 'src/boot/supabase'
+import { getDistrictLabel } from 'src/utils/districts'
 import { useNotificationCenter } from 'src/composables/useNotificationCenter'
 import { useArrivalCheck } from 'src/composables/useArrivalCheck'
 import { useCustomerCompletionCheck } from 'src/composables/useCustomerCompletionCheck'
@@ -829,6 +830,8 @@ const formatDate = (dateStr) => {
     minute: '2-digit',
   })
 }
+
+const formatDistrict = (value) => getDistrictLabel(value, t)
 
 const openNotification = (notif, index) => {
   if (handleCompletionNotifClick(notif, index)) {
