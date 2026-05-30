@@ -4,6 +4,8 @@
       <q-select
         v-model="filterStatus"
         :options="statusOptions"
+        emit-value
+        map-options
         outlined
         dense
         :label="$t('admin.filterByStatus')"
@@ -210,13 +212,17 @@ const columns = [
   { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
-const statusOptions = [t('admin.unsolved'), t('admin.resolved')]
+const statusOptions = [
+  { label: t('admin.allStatuses'), value: 'all' },
+  { label: t('admin.unsolved'), value: 'Unsolved' },
+  { label: t('admin.resolved'), value: 'Resolved' },
+]
 
 const complaints = ref([])
 const loading = ref(false)
 const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
-const filterStatus = ref(null)
+const filterStatus = ref('all')
 const showDetailsDialog = ref(false)
 const selectedComplaint = ref(null)
 const complainedAgainstUser = ref(null)
@@ -230,12 +236,16 @@ const filteredComplaints = computed(() => {
   const query = searchQuery.value.toLowerCase()
 
   return complaints.value.filter((comp) => {
-    const matchesSearch =
-      normalizeText(comp.issue_type).toLowerCase().includes(query) ||
-      normalizeText(comp.description).toLowerCase().includes(query) ||
-      normalizeText(comp.complainant_role).toLowerCase().includes(query)
+    const matchesSearch = [
+      comp.complaint_id,
+      comp.complainant_role,
+      comp.issue_type,
+      comp.description,
+      comp.status,
+      comp.request_id,
+    ].some((value) => normalizeText(value).toLowerCase().includes(query))
 
-    const matchesStatus = !filterStatus.value || comp.status === filterStatus.value
+    const matchesStatus = filterStatus.value === 'all' || comp.status === filterStatus.value
 
     return matchesSearch && matchesStatus
   })

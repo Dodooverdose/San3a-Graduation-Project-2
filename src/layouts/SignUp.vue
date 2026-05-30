@@ -57,18 +57,19 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Email Address</label>
+                    <label class="field-label">{{ $t('signUpPage.emailAddress') }}</label>
                     <q-input
                       v-model="form.email"
                       type="email"
-                      placeholder="your.email@example.com"
+                      :placeholder="$t('signUpPage.emailPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
                       :rules="[
                         (val) =>
-                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) || 'Valid email required',
+                          (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) ||
+                          $t('signUpPage.validEmailRequired'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="mail" color="grey-5" /></template>
@@ -76,11 +77,11 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Phone Number</label>
+                    <label class="field-label">{{ $t('signUpPage.phoneNumber') }}</label>
                     <q-input
                       v-model="form.phoneNumber"
                       type="tel"
-                      placeholder="1XX XXX XXXX"
+                      :placeholder="$t('signUpPage.phonePlaceholder')"
                       prefix="+20"
                       mask="### ### ####"
                       outlined
@@ -90,10 +91,10 @@
                       :rules="[
                         (val) =>
                           (val && val.replace(/\s/g, '').length === 10) ||
-                          'Enter a valid phone number',
+                          $t('signUpPage.validPhone'),
                         (val) =>
                           /^1[0125]/.test(val ? val.replace(/\s/g, '') : '') ||
-                          'Number must start with 10, 11, 12, or 15',
+                          $t('signUpPage.phoneStart'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="phone" color="grey-5" /></template>
@@ -101,18 +102,17 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Password</label>
+                    <label class="field-label">{{ $t('signUpPage.password') }}</label>
                     <q-input
                       v-model="form.password"
                       :type="showPassword ? 'text' : 'password'"
-                      placeholder="Create a strong password"
+                      :placeholder="$t('signUpPage.passwordPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
                       :rules="[
-                        (val) =>
-                          (val && val.length >= 6) || 'Password must be at least 6 characters',
+                        (val) => (val && val.length >= 6) || $t('signUpPage.passwordMinLength'),
                       ]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
@@ -127,16 +127,18 @@
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label">Confirm Password</label>
+                    <label class="field-label">{{ $t('signUpPage.confirmPassword') }}</label>
                     <q-input
                       v-model="form.confirmPassword"
                       :type="showConfirmPassword ? 'text' : 'password'"
-                      placeholder="Confirm your password"
+                      :placeholder="$t('signUpPage.confirmPlaceholder')"
                       outlined
                       dense
                       hide-bottom-space
                       class="san3a-input"
-                      :rules="[(val) => val === form.password || 'Passwords must match']"
+                      :rules="[
+                        (val) => val === form.password || $t('signUpPage.passwordsMustMatch'),
+                      ]"
                     >
                       <template v-slot:prepend><q-icon name="lock" color="grey-5" /></template>
                       <template v-slot:append

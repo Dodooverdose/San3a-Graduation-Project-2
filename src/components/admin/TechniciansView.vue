@@ -256,10 +256,15 @@ const normalizeTechnician = (technician, verificationState = null) => ({
 const filteredTechnicians = computed(() => {
   const query = searchQuery.value.toLowerCase()
 
-  return technicians.value.filter(
-    (tech) =>
-      normalizeText(tech._name).toLowerCase().includes(query) ||
-      normalizeText(tech._email).toLowerCase().includes(query),
+  return technicians.value.filter((tech) =>
+    [
+      tech._id,
+      tech._name,
+      tech._email,
+      tech._phone,
+      tech.specialty,
+      tech._isApproved ? t('common.approved') : t('admin.pendingVerificationBadge'),
+    ].some((value) => normalizeText(value).toLowerCase().includes(query)),
   )
 })
 

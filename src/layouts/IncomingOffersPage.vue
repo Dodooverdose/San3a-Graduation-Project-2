@@ -505,7 +505,7 @@
       <q-card style="min-width: 320px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="person_pin_circle" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Did the technician arrive?</div>
+          <div class="text-h6 q-mt-sm">{{ $t('ordersPage.didTechnicianArrive') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
             Request #{{ arrivalCheckRequest?.request_id }}
           </div>
@@ -514,7 +514,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes"
+            :label="$t('common.yes')"
             icon="check"
             no-caps
             @click="handleArrivalYes"
@@ -522,7 +522,7 @@
           <q-btn
             unelevated
             color="negative"
-            label="No"
+            :label="$t('common.no')"
             icon="close"
             no-caps
             @click="handleArrivalNo"
@@ -536,7 +536,7 @@
       <q-card style="min-width: 320px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="schedule" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Technician ETA</div>
+          <div class="text-h6 q-mt-sm">{{ $t('ordersPage.technicianETA') }}</div>
           <div
             v-if="etaSecondsLeft > 0"
             class="text-h3 q-mt-md"
@@ -548,11 +548,17 @@
           >
             {{ etaCountdownDisplay }}
           </div>
-          <div v-else class="text-h6 text-negative q-mt-md">Time is up! Checking arrival...</div>
+          <div v-else class="text-h6 text-negative q-mt-md">{{ $t('ordersPage.timeIsUp') }}</div>
           <div class="text-body2 text-grey-7 q-mt-sm">Request #{{ etaRequestId }}</div>
         </q-card-section>
         <q-card-actions v-if="etaSecondsLeft > 0" align="center" class="q-pb-md">
-          <q-btn unelevated color="primary" label="OK" no-caps @click="showEtaMessage = false" />
+          <q-btn
+            unelevated
+            color="primary"
+            :label="$t('common.ok')"
+            no-caps
+            @click="showEtaMessage = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -562,15 +568,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="task_alt" size="56px" color="primary" />
-          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-h6 q-mt-sm">{{ $t('incomingOffers.requestStatus') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Has request <strong>#{{ completionCheckTarget?.request_id }}</strong> been completed?
+            {{ $t('homePage.hasRequestCompleted', { id: completionCheckTarget?.request_id }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="No"
+            :label="$t('common.no')"
             color="grey-7"
             no-caps
             @click="handleCompletionNo(completionCheckTarget)"
@@ -578,7 +584,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="Yes, it's done"
+            :label="$t('ordersPage.yesItsDone')"
             icon="check_circle"
             no-caps
             @click="handleCompletionYes(completionCheckTarget)"
@@ -592,15 +598,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="update" size="56px" color="warning" />
-          <div class="text-h6 q-mt-sm">Request Status</div>
+          <div class="text-h6 q-mt-sm">{{ $t('incomingOffers.requestStatus') }}</div>
           <div class="text-body2 text-grey-7 q-mt-xs">
-            Is request <strong>#{{ stillGoingCheckTarget?.request_id }}</strong> still going?
+            {{ $t('homePage.isRequestStillGoing', { id: stillGoingCheckTarget?.request_id }) }}
           </div>
         </q-card-section>
         <q-card-actions align="center" class="q-pb-md q-gutter-sm">
           <q-btn
             flat
-            label="Yes, still going"
+            :label="$t('ordersPage.yesStillGoing')"
             color="grey-7"
             no-caps
             @click="handleStillGoingYes(stillGoingCheckTarget)"
@@ -608,7 +614,7 @@
           <q-btn
             unelevated
             color="positive"
-            label="No, it's done"
+            :label="$t('ordersPage.noItsDone')"
             icon="check_circle"
             no-caps
             @click="handleStillGoingNo(stillGoingCheckTarget)"
@@ -622,15 +628,15 @@
       <q-card style="min-width: 340px; border-radius: 20px">
         <q-card-section class="text-center">
           <q-icon name="rate_review" size="56px" color="amber" />
-          <div class="text-h6 q-mt-sm">Rate the Technician</div>
-          <div class="text-body2 text-grey-7 q-mt-xs">How was the service?</div>
+          <div class="text-h6 q-mt-sm">{{ $t('ordersPage.rateTechnician') }}</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">{{ $t('ordersPage.howWasService') }}</div>
         </q-card-section>
         <q-card-section class="text-center">
           <q-rating v-model="customerReviewStars" size="2.5em" color="amber" icon="star" />
           <q-input
             v-model="customerReviewText"
             type="textarea"
-            label="Leave a comment (optional)"
+            :label="$t('ordersPage.leaveComment')"
             filled
             autogrow
             class="q-mt-md"
@@ -640,7 +646,7 @@
           <q-btn
             unelevated
             color="primary"
-            label="Submit Review"
+            :label="$t('ordersPage.submitReview')"
             no-caps
             :loading="customerReviewSubmitting"
             :disable="customerReviewStars === 0"

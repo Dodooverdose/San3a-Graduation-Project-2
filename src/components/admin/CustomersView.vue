@@ -189,10 +189,10 @@ const normalizeCustomer = (customer) => ({
 const filteredCustomers = computed(() => {
   const query = searchQuery.value.toLowerCase()
 
-  return users.value.filter(
-    (cust) =>
-      normalizeText(cust._name).toLowerCase().includes(query) ||
-      normalizeText(cust._email).toLowerCase().includes(query),
+  return users.value.filter((cust) =>
+    [cust._id, cust._name, cust._email, cust._phone].some((value) =>
+      normalizeText(value).toLowerCase().includes(query),
+    ),
   )
 })
 

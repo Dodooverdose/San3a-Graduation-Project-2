@@ -4,6 +4,8 @@
       <q-select
         v-model="filterStatus"
         :options="statusOptions"
+        emit-value
+        map-options
         outlined
         dense
         :label="$t('admin.filterByStatus')"
@@ -138,7 +140,14 @@ const columns = [
   { name: 'actions', label: t('admin.colActions'), field: 'actions', align: 'center' },
 ]
 
-const statusOptions = ['pending', 'assigned', 'in-progress', 'completed', 'cancelled']
+const statusOptions = [
+  { label: t('admin.allStatuses'), value: 'all' },
+  { label: 'pending', value: 'pending' },
+  { label: 'assigned', value: 'assigned' },
+  { label: 'in-progress', value: 'in-progress' },
+  { label: 'completed', value: 'completed' },
+  { label: 'cancelled', value: 'cancelled' },
+]
 
 const serviceTypeLabels = {
   plumber: 'Plumbing',
@@ -153,7 +162,7 @@ const requests = ref([])
 const loading = ref(false)
 const tablePagination = ref({ rowsPerPage: 0 })
 const searchQuery = ref('')
-const filterStatus = ref(null)
+const filterStatus = ref('all')
 const showDetailsDialog = ref(false)
 const selectedRequest = ref(null)
 
@@ -190,12 +199,16 @@ const filteredRequests = computed(() => {
   const query = searchQuery.value.toLowerCase()
 
   return requests.value.filter((req) => {
-    const matchesSearch =
-      normalizeText(req._customer_name).toLowerCase().includes(query) ||
-      normalizeText(req._category).toLowerCase().includes(query) ||
-      normalizeText(req._description).toLowerCase().includes(query)
+    const matchesSearch = [
+      req._id,
+      req._customer_name,
+      req._category,
+      req._description,
+      req._status,
+    ].some((value) => normalizeText(value).toLowerCase().includes(query))
 
-    const matchesStatus = !filterStatus.value || normalizeText(req._status) === filterStatus.value
+    const matchesStatus =
+      filterStatus.value === 'all' || normalizeText(req._status) === filterStatus.value
 
     return matchesSearch && matchesStatus
   })
