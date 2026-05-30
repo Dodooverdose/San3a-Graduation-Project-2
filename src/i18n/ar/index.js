@@ -313,6 +313,17 @@ export default {
     browseServices: 'تصفح الخدمات',
     myOrders: 'طلباتي',
     noOrders: 'لا توجد طلبات {status} بعد',
+    didTechnicianArrive: 'هل وصل الفني؟',
+    technicianETA: 'الوقت المتوقع لوصول الفني',
+    timeIsUp: 'انتهى الوقت! جارٍ التحقق من الوصول...',
+    yesItsDone: 'نعم، انتهى',
+    yesStillGoing: 'نعم، ما زال مستمراً',
+    noItsDone: 'لا، انتهى',
+    rateTechnician: 'قيّم الفني',
+    howWasService: 'كيف كانت الخدمة؟',
+    leaveComment: 'اترك تعليقاً (اختياري)',
+    submitReview: 'إرسال التقييم',
+    mustBeSignedInToViewOrders: 'يجب تسجيل الدخول لعرض الطلبات.',
   },
 
   incomingOffers: {
@@ -340,6 +351,10 @@ export default {
     yourCounterOffer: 'عرضك المضاد (جنيه)',
     enterValidPrice: 'أدخل سعراً صحيحاً',
     sendOffer: 'إرسال العرض',
+    cancelRequestTitle: 'إلغاء الطلب؟',
+    cancelRequestMessage: 'سيتم إلغاء الطلب رقم {id}.',
+    cancelRequestSuccess: 'تم إلغاء الطلب.',
+    cancelRequestNoLongerPending: 'الطلب لم يعد قيد الانتظار.',
   },
 
   verification: {

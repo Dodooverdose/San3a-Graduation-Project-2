@@ -315,6 +315,17 @@ export default {
     browseServices: 'Dienste durchsuchen',
     myOrders: 'Meine Bestellungen',
     noOrders: 'Noch keine {status} Bestellungen',
+    didTechnicianArrive: 'Ist der Techniker angekommen?',
+    technicianETA: 'Voraussichtliche Ankunftszeit des Technikers',
+    timeIsUp: 'Zeit ist abgelaufen! Ankunft wird geprüft...',
+    yesItsDone: 'Ja, es ist erledigt',
+    yesStillGoing: 'Ja, es läuft noch',
+    noItsDone: 'Nein, es ist erledigt',
+    rateTechnician: 'Techniker bewerten',
+    howWasService: 'Wie war der Service?',
+    leaveComment: 'Kommentar hinterlassen (optional)',
+    submitReview: 'Bewertung absenden',
+    mustBeSignedInToViewOrders: 'Sie müssen angemeldet sein, um Bestellungen zu sehen.',
   },
 
   incomingOffers: {
@@ -342,6 +353,10 @@ export default {
     yourCounterOffer: 'Ihr Gegenangebot (EGP)',
     enterValidPrice: 'Geben Sie einen gültigen Preis ein',
     sendOffer: 'Angebot senden',
+    cancelRequestTitle: 'Anfrage stornieren?',
+    cancelRequestMessage: 'Dadurch wird die Anfrage #{id} storniert.',
+    cancelRequestSuccess: 'Anfrage storniert.',
+    cancelRequestNoLongerPending: 'Die Anfrage ist nicht mehr ausstehend.',
   },
 
   verification: {

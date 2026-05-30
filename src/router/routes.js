@@ -45,7 +45,7 @@ const routes = [
   },
   {
     path: '/incoming-offers',
-    meta: { requiresAuth: true, allowedRoles: fixerOnly },
+    meta: { requiresAuth: true, allowedRoles: customerOnly },
     component: () => import('../layouts/IncomingOffersPage.vue'),
   },
   {

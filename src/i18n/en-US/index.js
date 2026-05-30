@@ -362,6 +362,17 @@ export default {
     browseServices: 'Browse Services',
     myOrders: 'My Orders',
     noOrders: 'No {status} orders yet',
+    didTechnicianArrive: 'Did the technician arrive?',
+    technicianETA: 'Technician ETA',
+    timeIsUp: 'Time is up! Checking arrival...',
+    yesItsDone: "Yes, it's done",
+    yesStillGoing: 'Yes, still going',
+    noItsDone: "No, it's done",
+    rateTechnician: 'Rate the Technician',
+    howWasService: 'How was the service?',
+    leaveComment: 'Leave a comment (optional)',
+    submitReview: 'Submit Review',
+    mustBeSignedInToViewOrders: 'You must be signed in to view orders.',
   },
 
   // ── Incoming Offers ──
@@ -390,6 +401,10 @@ export default {
     yourCounterOffer: 'Your counter-offer (EGP)',
     enterValidPrice: 'Enter a valid price',
     sendOffer: 'Send Offer',
+    cancelRequestTitle: 'Cancel request?',
+    cancelRequestMessage: 'This will cancel request #{id}.',
+    cancelRequestSuccess: 'Request cancelled.',
+    cancelRequestNoLongerPending: 'Request is no longer pending.',
   },
 
   // ── Identity Verification ──

@@ -214,7 +214,20 @@
 
           <div v-for="req in filteredOffers" :key="req.request_id" class="offer-card">
             <div class="offer-card-header">
-              <span class="offer-id">Request #{{ req.request_id }}</span>
+              <div class="request-title-row">
+                <q-avatar size="34px" class="request-service-avatar">
+                  <img
+                    :src="getServiceIcon(req.service_type)"
+                    :alt="getServiceLabel(req.service_type)"
+                  />
+                </q-avatar>
+                <div>
+                  <span class="offer-id">Request #{{ req.request_id }}</span>
+                  <div class="request-service-name">
+                    {{ getServiceLabel(req.service_type) }}
+                  </div>
+                </div>
+              </div>
               <q-badge
                 :color="statusColor(req.request_status)"
                 :label="req.request_status || 'pending'"
@@ -243,6 +256,18 @@
               </div>
             </div>
 
+            <div v-if="req.request_status === 'pending'" class="request-actions q-mb-sm">
+              <q-btn
+                unelevated
+                dense
+                color="negative"
+                icon="cancel"
+                no-caps
+                :label="$t('common.cancel')"
+                @click="openCancelRequestDialog(req)"
+              />
+            </div>
+
             <div v-if="req.final_price" class="price-row q-mb-sm">
               <q-chip dense color="teal-2" text-color="teal-9" icon="check_circle">{{
                 $t('incomingOffers.finalPrice', { amount: req.final_price })
@@ -257,7 +282,12 @@
                   >{{ req.offers.length }} {{ req.offers.length === 1 ? 'offer' : 'offers' }}</span
                 >
               </div>
+              <div v-if="req.offers.length === 0" class="no-offers-state">
+                <q-icon name="hourglass_empty" size="18px" color="grey-5" />
+                <span>{{ $t('incomingOffers.noOffersStatus') }}</span>
+              </div>
               <div
+                v-else
                 v-for="offer in req.offers"
                 :key="offer.offer_id"
                 class="single-offer"
@@ -270,9 +300,9 @@
                   <div class="fixer-name-row">
                     <q-avatar size="28px" color="primary" text-color="white" icon="person" />
                     <div>
-                      <span class="fixer-name">{{
-                        offer.fixerInfo?.full_name || $t('incomingOffers.unknownFixer')
-                      }}</span>
+                      <span class="fixer-name">
+                        {{ offer.fixerInfo?.full_name || $t('incomingOffers.unknownFixer') }}
+                      </span>
                       <div class="fixer-rating-row">
                         <q-rating
                           :model-value="offer.avgRating || 0"
@@ -370,6 +400,34 @@
         </div>
       </q-page>
     </q-page-container>
+    <!-- Cancel Request Dialog -->
+    <q-dialog v-model="cancelRequestDialog">
+      <q-card style="min-width: 340px; border-radius: 20px">
+        <q-card-section class="text-center">
+          <q-icon name="cancel" size="56px" color="negative" />
+          <div class="text-h6 q-mt-sm">{{ $t('incomingOffers.cancelRequestTitle') }}</div>
+          <div class="text-body2 text-grey-7 q-mt-xs">
+            {{
+              $t('incomingOffers.cancelRequestMessage', {
+                id: cancelRequestTarget?.request_id,
+              })
+            }}
+          </div>
+        </q-card-section>
+        <q-card-actions align="center" class="q-pb-md q-gutter-sm">
+          <q-btn flat :label="$t('common.no')" color="grey-7" no-caps v-close-popup />
+          <q-btn
+            unelevated
+            color="negative"
+            :label="$t('common.yes')"
+            icon="cancel"
+            no-caps
+            :loading="cancelRequestSubmitting"
+            @click="cancelCustomerRequest()"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Bargain Dialog -->
     <q-dialog v-model="bargainDialog" persistent>
@@ -613,6 +671,9 @@ const loading = ref(true)
 const error = ref(null)
 const incomingOffers = ref([])
 const showNotifications = ref(false)
+const cancelRequestDialog = ref(false)
+const cancelRequestTarget = ref(null)
+const cancelRequestSubmitting = ref(false)
 const notificationCenter = useNotificationCenter()
 const {
   notifications,
@@ -705,6 +766,29 @@ const professionFilterOptions = [
   { label: 'Drapery', value: 'drapery_seamstress' },
 ]
 
+const serviceIcons = {
+  plumber: '/icons/plumbing.png',
+  carpenter: '/icons/carpentry.png',
+  electrician: '/icons/electrical.png',
+  kitchen_fitter: '/icons/kitchen.png',
+  painter: '/icons/painters.png',
+  drapery_seamstress: '/icons/drapery.png',
+}
+
+const getServiceIcon = (serviceType) => serviceIcons[serviceType] || '/icons/White.png'
+
+const getServiceLabel = (serviceType) => {
+  const map = {
+    plumber: t('services.plumbing'),
+    carpenter: t('services.carpentry'),
+    electrician: t('services.electrical'),
+    kitchen_fitter: t('services.kitchenUtilities'),
+    painter: t('services.paintersAndDecorators'),
+    drapery_seamstress: t('services.draperySeamstress'),
+  }
+  return map[serviceType] || ''
+}
+
 const requestIdFilter = computed(() => {
   const raw = route.query.requestId
   return raw ? String(raw) : null
@@ -764,6 +848,48 @@ const openNotification = (notif, index) => {
   router.push('/incoming-offers')
 }
 
+const openCancelRequestDialog = (req) => {
+  if (!req?.request_id || String(req.request_status || '').toLowerCase() !== 'pending') return
+  cancelRequestTarget.value = req
+  cancelRequestDialog.value = true
+}
+
+const cancelCustomerRequest = async () => {
+  const req = cancelRequestTarget.value
+  if (!req?.request_id || String(req.request_status || '').toLowerCase() !== 'pending') {
+    cancelRequestDialog.value = false
+    return
+  }
+
+  cancelRequestSubmitting.value = true
+  try {
+    const { data, error } = await supabase
+      .from('request')
+      .update({ request_status: 'cancelled' })
+      .eq('request_id', req.request_id)
+      .eq('request_status', 'pending')
+      .select('request_id')
+
+    if (error) {
+      $q.notify({ type: 'negative', message: error.message })
+      return
+    }
+
+    cancelRequestDialog.value = false
+
+    if (!data || data.length === 0) {
+      $q.notify({ type: 'warning', message: t('incomingOffers.cancelRequestNoLongerPending') })
+      await fetchIncomingOffers()
+      return
+    }
+
+    $q.notify({ type: 'positive', message: t('incomingOffers.cancelRequestSuccess') })
+    await fetchIncomingOffers()
+  } finally {
+    cancelRequestSubmitting.value = false
+  }
+}
+
 const fetchIncomingOffers = async () => {
   loading.value = true
   error.value = null
@@ -798,6 +924,7 @@ const fetchIncomingOffers = async () => {
       )
       .eq('user_id', customer.user_id)
       .neq('request_status', 'completed')
+      .neq('request_status', 'cancelled')
       .order('request_id', { ascending: false })
 
     if (requestsErr) {
@@ -826,30 +953,28 @@ const fetchIncomingOffers = async () => {
         })
       }
 
-      // Build final list – include requests with request_offers entries
-      // AND legacy requests that have fixer_price set directly on the row
-      const result = requestRows
-        .map((r) => {
-          let offers = offersMap[r.request_id] || []
-          // Legacy: if no request_offers rows but fixer_price exists, synthesize an offer
-          if (offers.length === 0 && r.fixer_price && r.technician_id) {
-            offers = [
-              {
-                offer_id: `legacy-${r.request_id}`,
-                request_id: r.request_id,
-                technician_id: r.technician_id,
-                offered_price: r.fixer_price,
-                customer_counter_price: r.customer_price || null,
-                fixer_message: r.fixer_message || null,
-                status: r.request_status === 'accepted' ? 'accepted' : 'pending',
-                fixerInfo: null,
-                _legacy: true,
-              },
-            ]
-          }
-          return { ...r, offers }
-        })
-        .filter((r) => r.offers.length > 0)
+      // Build final list – include all active requests so customers can
+      // see pending requests even when no offers have arrived yet.
+      const result = requestRows.map((r) => {
+        let offers = offersMap[r.request_id] || []
+        // Legacy: if no request_offers rows but fixer_price exists, synthesize an offer
+        if (offers.length === 0 && r.fixer_price && r.technician_id) {
+          offers = [
+            {
+              offer_id: `legacy-${r.request_id}`,
+              request_id: r.request_id,
+              technician_id: r.technician_id,
+              offered_price: r.fixer_price,
+              customer_counter_price: r.customer_price || null,
+              fixer_message: r.fixer_message || null,
+              status: r.request_status === 'accepted' ? 'accepted' : 'pending',
+              fixerInfo: null,
+              _legacy: true,
+            },
+          ]
+        }
+        return { ...r, offers }
+      })
 
       // Fetch technician info for legacy offers missing fixerInfo
       const legacyTechIds = [
@@ -1295,6 +1420,22 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   margin-bottom: 10px;
 }
+.request-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.request-service-avatar {
+  background: var(--san3a-primary-light) !important;
+  flex-shrink: 0;
+}
+.request-service-name {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--san3a-gray-500);
+  line-height: 1.2;
+}
 .offer-id {
   font-size: 15px;
   font-weight: 700;
@@ -1325,6 +1466,20 @@ onBeforeUnmount(() => {
   gap: 4px;
   font-size: 12px;
   color: var(--san3a-gray-500);
+}
+
+.request-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.no-offers-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 2px;
+  color: var(--san3a-gray-500);
+  font-size: 13px;
 }
 
 .fixer-info {
