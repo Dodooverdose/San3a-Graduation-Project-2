@@ -348,6 +348,18 @@
                     <span class="customer-rating-count">({{ req.customerRatingCount || 0 }})</span>
                   </div>
 
+                  <div
+                    v-if="canShowCustomerContact(req) && (req.customer_email || req.customer_phone)"
+                    class="req-customer"
+                  >
+                    <q-icon
+                      :name="req.customer_phone ? 'phone' : 'mail'"
+                      size="16px"
+                      color="grey-7"
+                    />
+                    <span>{{ req.customer_phone || req.customer_email }}</span>
+                  </div>
+
                   <p class="req-desc">
                     {{ req.description_of_issue || $t('serviceProvider.noDescription') }}
                   </p>
@@ -1296,6 +1308,11 @@ const hasMyOffer = (req) => !!getMyOffer(req)
 
 const isOfferAccepted = (req) => (req?.request_status || '').toLowerCase() === 'accepted'
 
+const canShowCustomerContact = (req) => {
+  const status = (req?.request_status || '').toLowerCase()
+  return status === 'accepted' || status === 'completed'
+}
+
 const isRequestTaken = (req) => {
   const st = (req?.request_status || '').toLowerCase()
   return st === 'accepted' || st === 'on-going'
@@ -1332,7 +1349,7 @@ const fetchRequests = async () => {
   requestsError.value = null
   const { data, error } = await supabase
     .from('request')
-    .select('*, users:user_id(full_name, email)')
+    .select('*, users:user_id(full_name, email, phone_number)')
     .eq('service_type', specialty.value)
     .eq('request_status', 'pending')
     .order('request_date', { ascending: false })
@@ -1346,6 +1363,7 @@ const fetchRequests = async () => {
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
+    customer_phone: r.users?.phone_number || null,
     customerRating: 0,
     customerRatingCount: 0,
   }))
@@ -1360,7 +1378,7 @@ const fetchAcceptedOrders = async () => {
   requestsError.value = null
   const { data, error } = await supabase
     .from('request')
-    .select('*, users:user_id(full_name, email)')
+    .select('*, users:user_id(full_name, email, phone_number)')
     .eq('service_type', specialty.value)
     .eq('technician_id', technicianId.value)
     .or(
@@ -1376,6 +1394,7 @@ const fetchAcceptedOrders = async () => {
     ...r,
     customer_name: r.users?.full_name || null,
     customer_email: r.users?.email || null,
+    customer_phone: r.users?.phone_number || null,
     customerRating: 0,
     customerRatingCount: 0,
   }))

@@ -29,7 +29,7 @@
                 <label class="field-label">{{ $t('signInPage.emailOrPhone') }}</label>
                 <q-input
                   v-model="form.identifier"
-                  :placeholder="$t('signInPage.emailPlaceholder')"
+                  :placeholder="$t('signInPage.enterEmailOrPhone')"
                   outlined
                   dense
                   hide-bottom-space
@@ -159,22 +159,19 @@ const isSignInEnabled = computed(() => {
 const isEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
 
 const lookupEmailByPhone = async (phone) => {
-  let { data } = await supabase
-    .from('users')
-    .select('email')
-    .eq('phone_number', phone)
-    .limit(1)
-    .single()
+  const normalizedPhone = String(phone || '').trim()
+  if (!normalizedPhone) return null
 
-  if (data?.email) return data.email
-  ;({ data } = await supabase
-    .from('technician')
-    .select('email')
-    .eq('phone_number', phone)
-    .limit(1)
-    .single())
+  const { data, error } = await supabase.rpc('lookup_login_email_by_phone', {
+    phone_input: normalizedPhone,
+  })
 
-  return data?.email || null
+  if (error) {
+    console.warn('Phone lookup RPC failed:', error)
+    return null
+  }
+
+  return data || null
 }
 
 const onForgotPassword = () => {
